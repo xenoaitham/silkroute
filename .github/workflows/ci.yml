@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  sim-compose:
+    name: sim compose config + smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose file
+        run: docker compose config -q
+      - name: Bring up sim network and verify health
+        run: |
+          docker compose up -d
+          timeout 240 bash -c 'until [ "$(docker compose ps --format json | jq -s "[.[] | select(.Health==\"healthy\" or (.Health==\"\" and .State==\"running\"))] | length")" -eq "$(docker compose config --services | wc -l)" ]; do sleep 5; done'
+          docker compose ps
+      - name: Smoke test
+        run: make smoke
+      - name: Tear down
+        if: always()
+        run: docker compose down -v --remove-orphans
+
+  # Phase 1+: java-build (mvnw test), contract-tests (karate), terraform-validate land here.

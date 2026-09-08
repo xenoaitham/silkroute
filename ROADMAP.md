@@ -1,0 +1,29 @@
+# SILKROUTE ROADMAP — Phase Status Board
+
+Legend: `TODO` → not started · `IN_PROGRESS` → in flight · `REVIEW` → built, awaiting Critic Gate · `DONE` → Critic PASS recorded · `DE-SCOPED` → honestly cut (ADR required)
+
+Fast path (MVCP): 0 → 1 → 2 → 4-lite → 8. Phases 3, 5, 6, 7 amplify depth; Phase 5 is what makes the Asia-rollout story credible.
+
+| Phase | Goal | Status | Key evidence IDs | Notes |
+|---|---|---|---|---|
+| 0 — Foundation | Scaffolding, state machinery, sim/cloud decision, compose skeleton starts | **IN_PROGRESS** (S1) | E-001, E-002 | awaiting Critic Gate |
+| 1 — Legacy ERP (SOAP, WSDL-first) | Untouchable legacy estate: WSDLs + XSDs first, Spring Boot + CXF, WS-Security, typed faults, seed data, Karate SOAP contract tests, WSDL freeze (C6) | TODO | — | Java toolchain: JDK 17 + Maven wrapper required |
+| 2 — ESB core | Camel hub: REST→canonical→SOAP saga w/ compensation, XSLT, CBR by store region, retry/CB/DLQ, idempotent consumer, PII-masking egress; toxiproxy fault tests; measured p95 (C3) | TODO | — | The heart of the resume story |
+| 3 — ETL pipelines | Debezium→Kafka→bronze; Spark silver/gold; 100% reconciliation; DQ quarantine; freshness ≤15min (C4), T+1 by 06:00 SGT (C5) | TODO | — | |
+| 4 — AliCloud IaC & cloud deploy | Terraform alicloud modules, remote state, validate+plan clean, RAM least-privilege, budget alarm; deploy or validated-plans mode per ADR-0002 | TODO | — | See ADR-0002 for honest mode |
+| 5 — Compliance & security | CI-provable residency tests (C1), PIPL/PDPA/PIPEDA matrix w/ article citations, cross-border memo (PIPL 38–40), ICP runbook, STRIDE, ActionTrail→SLS demo | TODO | — | Asia-rollout credibility layer |
+| 6 — Observability, load, chaos, cost | SLS dashboards/alerts/SLOs, k6 measured numbers, chaos runbook executed, cost sheet from real pricing pages | TODO | — | |
+| 7 — Docs & demo | Stranger-testable README, HLD/LLD, ADR set, runbooks, delivery model (RACI), demo video | TODO | — | |
+| 8 — Resume & interview pack | Resume bullets w/ evidence IDs, 40-Q deep-drill Q&A, 25-min whiteboard script, final gate: 3-round hostile mock interview | TODO | — | Final gate = project complete |
+
+## Critic Gate log
+
+| Date | Phase | Cycle | Weighted score | Verdict | Findings summary |
+|---|---|---|---|---|---|
+| — | — | — | — | — | — |
+
+## De-scope log
+
+| Date | Phase | What was cut | ADR |
+|---|---|---|---|
+| — | — | — | — |

@@ -1,0 +1,41 @@
+# Build artifacts
+target/
+build/
+*.class
+*.jar
+!maven-wrapper.jar
+node_modules/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.tfvars
+!*.tfvars.example
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Local env / secrets
+.env
+*.pem
+*.key
+
+# Tooling scratch (not project evidence)
+out/
+.v2c/
+.mimosa/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

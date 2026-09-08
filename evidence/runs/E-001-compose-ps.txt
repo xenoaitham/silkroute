@@ -1,0 +1,6 @@
+NAME            IMAGE                              COMMAND                  SERVICE     CREATED          STATUS                    PORTS
+sim-kafka       apache/kafka:3.8.0                 "/__cacert_entrypoin…"   kafka       28 seconds ago   Up 27 seconds (healthy)   0.0.0.0:9092->9092/tcp, [::]:9092->9092/tcp
+sim-minio       minio/minio:latest                 "/usr/bin/docker-ent…"   minio       28 seconds ago   Up 26 seconds (healthy)   0.0.0.0:9000-9001->9000-9001/tcp, [::]:9000-9001->9000-9001/tcp
+sim-mysql       mysql:8.0                          "docker-entrypoint.s…"   mysql       28 seconds ago   Up 26 seconds (healthy)   0.0.0.0:3306->3306/tcp, [::]:3306->3306/tcp, 33060/tcp
+sim-redis       redis:7-alpine                     "docker-entrypoint.s…"   redis       28 seconds ago   Up 27 seconds (healthy)   0.0.0.0:16379->6379/tcp, [::]:16379->6379/tcp
+sim-toxiproxy   ghcr.io/shopify/toxiproxy:2.11.0   "/toxiproxy -host=0.…"   toxiproxy   28 seconds ago   Up 26 seconds             0.0.0.0:8474->8474/tcp, [::]:8474->8474/tcp

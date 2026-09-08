@@ -1,0 +1,108 @@
+# SILKROUTE — sim-mode infrastructure network (docker-compose skeleton, Phase 0)
+# Sim stand-ins per ADR-0001: MySQL 8 = ApsaraDB RDS, Kafka KRaft = Message Queue for Apache Kafka,
+# Redis = ESB idempotency store, MinIO = OSS, Toxiproxy = fault injection harness.
+# Cloud-mode equivalents are Terraform-managed (infra/) and only ever run for evidence capture (ADR-0002).
+
+name: silkroute-sim
+
+networks:
+  sim-net:
+    name: silkroute-sim-net
+
+volumes:
+  mysql-data:
+  minio-data:
+  kafka-data:
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sim-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: silkroute
+      MYSQL_DATABASE: oms
+      TZ: Asia/Singapore
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks: [sim-net]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-psilkroute"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: sim-kafka
+    environment:
+      CLUSTER_ID: silkroute-sim-0000000000000
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks: [sim-net]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: sim-redis
+    # host port 16379: 6379 is occupied by a pre-existing local Redis on this host;
+    # container-internal port stays 6379 — all inter-container traffic is unaffected
+    ports:
+      - "16379:6379"
+    networks: [sim-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  minio:
+    image: minio/minio:latest
+    container_name: sim-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: silkroute
+      MINIO_ROOT_PASSWORD: silkroute-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks: [sim-net]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.11.0
+    container_name: sim-toxiproxy
+    ports:
+      - "8474:8474"
+    networks: [sim-net]
+    # NOTE: ghcr.io/shopify/toxiproxy images are distroless (no shell/wget), so an
+    # in-container healthcheck is impossible. Readiness is the API answering GET /version
+    # on 8474; the Makefile/CI wait loop counts it healthy when State==running and Health=="".
