@@ -20,7 +20,8 @@ Fast path (MVCP): 0 → 1 → 2 → 4-lite → 8. Phases 3, 5, 6, 7 amplify dept
 
 | Date | Phase | Cycle | Weighted score | Verdict | Findings summary |
 |---|---|---|---|---|---|
-| 2026-09-08 | 0 | 1 | 7.80 | **FAIL** | 1 high (E-002 row not bound to its command/artifact) + 6 med (§3 tree not in git, STATE over-claims, smoke 2/5, hardcoded creds/0.0.0.0 binds, undeclared jq dep, CI never executed) + 5 low. All fixed; re-run pending. |
+| 2026-09-08 | 0 | 1 | 7.80 | **FAIL** | 1 high (E-002 row not bound to its command/artifact) + 6 med (§3 tree not in git, STATE over-claims, smoke 2/5, hardcoded creds/0.0.0.0 binds, undeclared jq dep, CI never executed) + 5 low. All fixed. |
+| 2026-09-08 | 0 | 2 | 7.75 | **FAIL** | 1 crit proven live (`make smoke` could not fail — `set -e` exempts non-final `&&`-list members), 1 high (hardcoded `-psilkroute` broke credential indirection), 2 med (kafka host listener unusable, README port omissions), 2 low (curl undeclared, CI re-implements wait). All fixed incl. negative-control evidence E-003. |
 | — | — | — | — | — | — |
 
 ## De-scope log

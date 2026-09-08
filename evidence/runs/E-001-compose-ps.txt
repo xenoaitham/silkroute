@@ -1,7 +1,8 @@
-docker compose ps
 NAME            IMAGE                                      COMMAND                  SERVICE     CREATED          STATUS                    PORTS
-sim-kafka       apache/kafka:3.8.0                         "/__cacert_entrypoin…"   kafka       27 seconds ago   Up 26 seconds (healthy)   127.0.0.1:9092->9092/tcp
-sim-minio       minio/minio:RELEASE.2025-09-07T16-13-09Z   "/usr/bin/docker-ent…"   minio       27 seconds ago   Up 26 seconds (healthy)   127.0.0.1:9000-9001->9000-9001/tcp
-sim-mysql       mysql:8.0                                  "docker-entrypoint.s…"   mysql       27 seconds ago   Up 26 seconds (healthy)   127.0.0.1:3306->3306/tcp, 33060/tcp
-sim-redis       redis:7-alpine                             "docker-entrypoint.s…"   redis       27 seconds ago   Up 26 seconds (healthy)   127.0.0.1:16379->6379/tcp
-sim-toxiproxy   ghcr.io/shopify/toxiproxy:2.11.0           "/toxiproxy -host=0.…"   toxiproxy   27 seconds ago   Up 26 seconds             127.0.0.1:8474->8474/tcp
+sim-kafka       apache/kafka:3.8.0                         "/__cacert_entrypoin…"   kafka       28 seconds ago   Up 27 seconds (healthy)   9092/tcp, 127.0.0.1:39092->39092/tcp
+sim-minio       minio/minio:RELEASE.2025-09-07T16-13-09Z   "/usr/bin/docker-ent…"   minio       28 seconds ago   Up 26 seconds (healthy)   127.0.0.1:9000-9001->9000-9001/tcp
+sim-mysql       mysql:8.0                                  "docker-entrypoint.s…"   mysql       28 seconds ago   Up 26 seconds (healthy)   127.0.0.1:3306->3306/tcp, 33060/tcp
+sim-redis       redis:7-alpine                             "docker-entrypoint.s…"   redis       28 seconds ago   Up 26 seconds (healthy)   127.0.0.1:16379->6379/tcp
+sim-toxiproxy   ghcr.io/shopify/toxiproxy:2.11.0           "/toxiproxy -host=0.…"   toxiproxy   28 seconds ago   Up 26 seconds             127.0.0.1:8474->8474/tcp
+--- host port reachability (39092 kafka HOST listener) ---
+kafka 39092 accepting

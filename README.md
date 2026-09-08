@@ -11,16 +11,26 @@ A multi-region enterprise integration platform for a fictional Canadian retailer
 
 ## Quickstart (sim mode — default, zero cloud spend)
 
-Prerequisites: **Docker** (with compose) and **jq**. If the system daemon isn't available but rootless Docker is:
+Prerequisites: **Docker** (with compose), **jq** (`make up` health-wait), **curl** (`make smoke`). If the system daemon isn't available but rootless Docker is:
 
 ```bash
 docker context use rootless   # if applicable
 cp .env.example .env          # optional — sim-only dummy credentials
 make up        # starts sim network: MySQL 8, Kafka (KRaft), Redis, MinIO, Toxiproxy
 make ps        # all services should show Up; 4/5 report (healthy), toxiproxy is distroless (no healthcheck)
-make smoke     # asserts connectivity to ALL five services
+make smoke     # asserts connectivity to ALL five services (fails non-zero on any failure)
 make down      # stop and wipe volumes
 ```
+
+Host ports (what a client on your machine connects to — all bound to 127.0.0.1 only):
+
+| Service | Host port | Why not the default |
+|---|---|---|
+| MySQL | 3306 | default |
+| Kafka | **39092** | 9092 stays internal: bootstrap metadata advertises the in-compose name `kafka:9092`; host clients use the HOST listener advertised as `localhost:39092` |
+| Redis | **16379** | 6379 often collides with a pre-existing local Redis; container port stays 6379 |
+| MinIO | 9000 (API) / 9001 (console) | defaults |
+| Toxiproxy | 8474 (API) | default |
 
 ## Repository map
 

@@ -1,0 +1,20 @@
+===== E-003 NEGATIVE CONTROL: make smoke must FAIL when a service is down =====
+--- docker compose stop redis ---
+ Container sim-redis Stopping 
+ Container sim-redis Stopped 
+--- make smoke (expect FAIL, exit non-zero) ---
+service "redis" is not running
+FAIL: redis PING did not return PONG
+make: *** [Makefile:30: smoke] Error 1
+smoke exit code: 2
+--- restore ---
+ Container sim-redis Starting 
+ Container sim-redis Started 
+--- make smoke after restore (expect OK) ---
+redis     OK (PING->PONG)
+mysql     OK (VERSION()=8.0.46)
+kafka     OK (broker-api)
+minio     OK (health/live)
+toxiproxy OK (/version=2.11.0)
+smoke OK (all 5 services) in 1s
+smoke exit code: 0

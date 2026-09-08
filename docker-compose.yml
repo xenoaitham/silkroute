@@ -32,7 +32,8 @@ services:
       - mysql-data:/var/lib/mysql
     networks: [sim-net]
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-psilkroute"]
+      # authenticated liveness probe; password comes from the container env, never hardcoded
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -47,16 +48,24 @@ services:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # dual listener: PLAINTEXT for in-compose clients (advertised kafka:9092),
+      # HOST for host-side clients (advertised localhost:39092) — publishing 9092 alone
+      # is useless from the host because bootstrap metadata advertises kafka:9092,
+      # which is unresolvable off the compose network.
+      # NOTE: host port 39092 — 29092 leaked in the rootlesskit port driver after a failed
+      # bind (stuck container) and cannot be freed without restarting the daemon, which this
+      # shared host cannot afford (an unrelated stack runs on the same rootless daemon).
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,HOST://:39092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,HOST://localhost:39092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     ports:
-      - "127.0.0.1:9092:9092"
+      - "127.0.0.1:39092:39092"
     volumes:
       - kafka-data:/var/lib/kafka/data
     networks: [sim-net]
