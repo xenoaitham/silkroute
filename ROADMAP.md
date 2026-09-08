@@ -20,6 +20,7 @@ Fast path (MVCP): 0 → 1 → 2 → 4-lite → 8. Phases 3, 5, 6, 7 amplify dept
 
 | Date | Phase | Cycle | Weighted score | Verdict | Findings summary |
 |---|---|---|---|---|---|
+| 2026-09-08 | 0 | 1 | 7.80 | **FAIL** | 1 high (E-002 row not bound to its command/artifact) + 6 med (§3 tree not in git, STATE over-claims, smoke 2/5, hardcoded creds/0.0.0.0 binds, undeclared jq dep, CI never executed) + 5 low. All fixed; re-run pending. |
 | — | — | — | — | — | — |
 
 ## De-scope log

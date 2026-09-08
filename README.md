@@ -11,13 +11,14 @@ A multi-region enterprise integration platform for a fictional Canadian retailer
 
 ## Quickstart (sim mode — default, zero cloud spend)
 
-Requires Docker. If the system daemon isn't available but rootless Docker is:
+Prerequisites: **Docker** (with compose) and **jq**. If the system daemon isn't available but rootless Docker is:
 
 ```bash
 docker context use rootless   # if applicable
+cp .env.example .env          # optional — sim-only dummy credentials
 make up        # starts sim network: MySQL 8, Kafka (KRaft), Redis, MinIO, Toxiproxy
-make ps        # all services should show (healthy)
-make smoke     # connectivity check
+make ps        # all services should show Up; 4/5 report (healthy), toxiproxy is distroless (no healthcheck)
+make smoke     # asserts connectivity to ALL five services
 make down      # stop and wipe volumes
 ```
 
@@ -30,10 +31,10 @@ make down      # stop and wipe volumes
 | [STATE.md](STATE.md) | Current state, session log, war stories |
 | [evidence/EVIDENCE.md](evidence/EVIDENCE.md) | Claim → artifact → reproduce command → measured result |
 | [decisions/](decisions/) | ADRs |
-| apps/ | legacy-erp (SOAP), esb (Camel), modern-oms, cdc, batch |
-| infra/ | Terraform alicloud modules (network/security/data/compute/observability) |
-| compliance/ | PII masking, residency tests, control matrix, ICP runbook, STRIDE |
-| tests/ | Karate contract, Testcontainers, k6 load, chaos |
+| apps/ | legacy-erp (SOAP), esb (Camel), modern-oms, cdc, batch — *lands Phases 1–3* |
+| infra/ | Terraform alicloud modules (network/security/data/compute/observability) — *lands Phase 4* |
+| compliance/ | PII masking, residency tests, control matrix, ICP runbook, STRIDE — *lands Phase 5* |
+| tests/ | Karate contract, Testcontainers, k6 load, chaos — *lands Phases 1–6* |
 | docs/ | HLD, LLD, runbooks, delivery model, demo script |
 
 Full architecture docs land in Phase 7; this README grows with the build.

@@ -33,3 +33,4 @@ Adopt **dual-mode** (option 3). Concretely:
 - (+) Terraform work still exercises real alicloud provider semantics via `validate`/`plan`.
 - (−) Sim mode cannot prove AliCloud-managed-service behavior (SLS ingest, KMS envelopes, RAM STS); those claims must either be cloud-evidenced or honestly labeled as designed/validated-only (see ADR-0002).
 - (−) Parity drift risk: image versions in sim can diverge from managed-service engine versions; mitigated by pinning MySQL 8.x and Kafka 3.x and noting versions in evidence rows.
+- (−) OSS access in cloud mode via the S3-compat layer has known gaps vs the native OSS SDK (region endpoints, STS token flow, SSE-KMS header semantics); native ossutil/oss2 paths to be validated at Phase 4 before any cloud evidence relies on them.
