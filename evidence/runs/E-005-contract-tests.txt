@@ -1,0 +1,22 @@
+=== E-005: legacy-erp build + Karate SOAP contract tests (ORCH-LEAD re-run) ===
+date: 2026-09-09 · Java 21 (Temurin), Maven 3.9.9 via ./mvnw (pinned wrapper)
+
+--- step 1: ./mvnw -f apps/legacy-erp/pom.xml clean package (unit tests included) ---
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.mapleretail.silkroute.legacyerp.PriceListTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in com.mapleretail.silkroute.legacyerp.InventoryLedgerTest
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+--- step 2: ./mvnw -f tests/contract/pom.xml verify (boots jar on 127.0.0.1:18090, black-box) ---
+[THYMELEAF]             * [* {th:with}] [600]: com.intuit.karate.template.KarateWithTagProcessor
+[THYMELEAF]             * [* {th:each}] [200]: com.intuit.karate.template.KarateEachTagProcessor
+[THYMELEAF]             * [* {th:with}] [600]: com.intuit.karate.template.KarateWithTagProcessor
+[THYMELEAF]             * [* {th:each}] [200]: com.intuit.karate.template.KarateEachTagProcessor
+[THYMELEAF]             * [* {th:with}] [600]: com.intuit.karate.template.KarateWithTagProcessor
+[THYMELEAF]         * "StandardExpressionParser": com.intuit.karate.template.KarateStandardDialect@3bd1c7f0
+[THYMELEAF]         * "StandardVariableExpressionEvaluator": com.intuit.karate.template.KarateStandardDialect@3bd1c7f0
+[THYMELEAF] * Dialect [2 of 2]: karate (com.intuit.karate.template.KarateScriptDialect)
+HTML report: (paste into browser to view) | Karate version: 1.5.2
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.22 s -- in com.mapleretail.silkroute.contract.LegacyErpContractTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS

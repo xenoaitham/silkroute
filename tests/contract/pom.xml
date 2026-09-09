@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — legacy ERP SOAP contract tests (Karate).
+
+  Black-box suite: it speaks raw SOAP 1.2 XML to the FROZEN Phase 1 WSDLs
+  (apps/legacy-erp/src/main/resources/wsdl) exactly like a real ESB client would.
+  It deliberately has NO Spring/CXF/ERP dependencies — the only coupling to the
+  system under test is (a) launching the packaged fat jar and (b) the wire
+  contract itself (constraint C6: this suite is the freeze-enforcement mechanism).
+
+  Run:   ./mvnw -B -f tests/contract/pom.xml verify        (boots the app itself)
+  Env:   ERP_TEST_PORT        port to boot the app on (default 18090)
+         ERP_TEST_BASEURL     test an ALREADY-RUNNING app instead of booting one
+         ERP_TEST_BOOT_TIMEOUT_SECONDS  health-poll budget (default 60)
+         ERP_WSS_USERNAME / ERP_WSS_PASSWORD  sim credentials (defaults match the app)
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.mapleretail.silkroute</groupId>
+  <artifactId>legacy-erp-contract-tests</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>legacy-erp-contract-tests</name>
+  <description>Karate SOAP 1.2 contract tests for the Phase 1 legacy ERP (frozen WSDLs).</description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+    <karate.version>1.5.2</karate.version>
+    <junit.jupiter.version>5.10.2</junit.jupiter.version>
+    <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+  </properties>
+
+  <dependencies>
+    <!-- Karate is the only test engine dependency: raw XML in/out, no SOAP stack. -->
+    <dependency>
+      <groupId>io.karatelabs</groupId>
+      <artifactId>karate-junit5</artifactId>
+      <version>${karate.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
+        <configuration>
+          <!-- Single entry point: the JUnit class owns the app lifecycle and runs
+               every feature. ERP_TEST_* / ERP_WSS_* env vars are inherited by the
+               forked JVM and read by LegacyErpTestApp + karate-config.js. -->
+          <includes>
+            <include>LegacyErpContractTest</include>
+          </includes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,32 @@
+
+=== E-006: legacy-erp runtime verification (ORCH-LEAD, independent of Karate suite) ===
+date: 2026-09-09 · jar: legacy-erp-1.0.0-SNAPSHOT · server binds 127.0.0.1 only
+
+--- boot with demo generator (ERP_DEMO_GENERATE_ORDERS=5) ---
+{"status":"UP"}  <- /actuator/health
+2026-09-09T19:29:12.735Z INFO  c.m.silkroute.legacyerp.seed.ErpSeedData - ERP SEED: skus=50 stores=8 stockRows=400
+2026-09-09T19:29:14.367Z INFO  c.m.s.legacyerp.demo.DemoOrderGenerator - ERP DEMO: requested=5 submitted=5 skipped=0
+
+--- ORCH-LEAD SOAP 1.2 verification suite (happy + 4 typed faults + auth + ?wsdl) ---
+PASS  pricing happy: SKU-0001 SGD
+PASS  pricing amountMinor=490 SGD (500 CAD x0.98)
+PASS  pricing unknown SKU -> PRC-SKU-UNKNOWN
+PASS    ... fault element present
+PASS  orders happy: submitOrder SUBMITTED
+PASS  order total priced in store-region currency (CAD)
+PASS  order id assigned: ORD-2026-000006
+PASS  orders qty=0 -> InvalidOrderFault/ORD-BAD-QUANTITY
+PASS  inventory getStock happy (SG region)
+PASS  inventory oversell (45 of 40) -> OutOfStockFault
+PASS  fault carries availableQuantity=40 (never over-allocated)
+PASS  release bogus reservation -> UnknownReservationFault
+PASS  no security header -> rejected
+PASS  wrong password -> rejected
+PASS  ?wsdl serves frozen contract ns
+PASS    ... soap12 binding
+----
+ORCH-LEAD verify: PASS=16 FAIL=0
+
+--- teardown ---
+[1]+  Exit 143                SERVER_PORT=18080 ERP_DEMO_GENERATE_ORDERS=5 nohup java -jar apps/legacy-erp/target/legacy-erp-1.0.0-SNAPSHOT.jar > /tmp/erp-verify/boot-final.log 2>&1
+app stopped; 127.0.0.1:18080 released

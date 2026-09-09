@@ -11,7 +11,7 @@ A multi-region enterprise integration platform for a fictional Canadian retailer
 
 ## Quickstart (sim mode — default, zero cloud spend)
 
-Prerequisites: **Docker** (with compose), **jq** (`make up` health-wait), **curl** (`make smoke`). If the system daemon isn't available but rootless Docker is:
+Prerequisites: **Docker** (with compose), **jq** (`make up` health-wait), **curl** (`make smoke`), and for the Java services **JDK 21** — the repo carries a Maven Wrapper pinned to Maven 3.9.9 (`./mvnw`), so no Maven install is ever needed. If the system daemon isn't available but rootless Docker is:
 
 ```bash
 docker context use rootless   # if applicable
@@ -31,6 +31,23 @@ Host ports (what a client on your machine connects to — all bound to 127.0.0.1
 | Redis | **16379** | 6379 often collides with a pre-existing local Redis; container port stays 6379 |
 | MinIO | 9000 (API) / 9001 (console) | defaults |
 | Toxiproxy | 8474 (API) | default |
+| legacy-erp (SOAP) | **18080** | 8080 is taken by an unrelated stack on this shared host; loopback-only, env-overridable via `SERVER_PORT` |
+| legacy-erp (contract tests) | **18090** | test-run app instance so the suite never collides with a manually started ERP |
+
+## Phase 1 — legacy ERP (SOAP 1.2, WSDL-first, frozen per C6)
+
+The "untouchable legacy estate": OrderService, InventoryService, PricingService — SOAP 1.2 document/literal, WS-Security UsernameToken (BSP-strict), typed faults, in-memory seeded estate (50 SKUs, 8 stores across CA/SG/CN regions, 400 stock rows). The WSDLs/XSDs in `apps/legacy-erp/src/main/resources/{wsdl,xsd}/` are **frozen** (ADR-0003): the code is generated *from* them (`cxf-codegen` wsdl2java) and must never be edited again.
+
+```bash
+./mvnw -f apps/legacy-erp/pom.xml clean package        # build + unit tests
+SERVER_PORT=18080 java -jar apps/legacy-erp/target/legacy-erp-*.jar &
+#   ERP SEED: skus=50 stores=8 stockRows=400   (boot log line)
+#   optional demo data: ERP_DEMO_GENERATE_ORDERS=5 at boot
+curl http://127.0.0.1:18080/actuator/health             # {"status":"UP"}
+./mvnw -f tests/contract/pom.xml verify                 # Karate contract tests (boots its own app on 18090; 16 scenarios incl. fault + auth paths)
+```
+
+Sim WSS credentials (env-indirected dummies, never real secrets): username `esb-client`, password `erp-wss-pass-2026` (override with `ERP_WSS_USERNAME` / `ERP_WSS_PASSWORD`). Header reference: `scripts/wss-header.sh`.
 
 ## Repository map
 

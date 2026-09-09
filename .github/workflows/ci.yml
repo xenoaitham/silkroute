@@ -24,3 +24,29 @@ jobs:
         run: make down
 
   # Phase 1+: java-build (mvnw test), contract-tests (karate), terraform-validate land here.
+
+  legacy-erp-contract-tests:
+    name: legacy-erp SOAP contract tests (Karate, frozen WSDLs)
+    runs-on: ubuntu-latest
+    # Black-box: boots the packaged fat jar itself (SERVER_PORT=18090) — no
+    # containers, no docker, no services. Fails loudly if the jar is missing
+    # or the app does not become healthy (falsifiable by construction).
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Temurin JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build legacy-erp fat jar (skip unit tests, the contract suite is the gate)
+        run: ./mvnw -B -f apps/legacy-erp/pom.xml package -DskipTests
+      - name: Run Karate SOAP 1.2 contract suite (boots the app, 16 scenarios)
+        run: ./mvnw -B -f tests/contract/pom.xml verify
+      - name: Archive Karate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: karate-contract-report
+          path: tests/contract/target/karate-reports
+          retention-days: 7
