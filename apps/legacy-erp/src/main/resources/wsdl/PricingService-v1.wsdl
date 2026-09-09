@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — Maple Retail Group (fictional) legacy ERP.
+  PricingService v1 — SOAP 1.2, document/literal (wrapped).
+
+  CONTRACT FREEZE NOTICE (constraint C6): FROZEN 2026-09-09. The ERP team will NOT
+  modify their WSDLs — impedance mismatch is absorbed in the ESB layer (Phase 2).
+  Incompatible changes require a NEW target namespace (urn:maple:erp:pricing:v2).
+  See decisions/ADR-0003-wsdl-contract-freeze.md.
+
+  Endpoint (illustrative; runtime publishes per application config): /ws/pricing/v1
+  Security: WS-Security UsernameToken on every operation (simulated ERP-side validation).
+  Money is returned as minor units + currency code (constraint C5) — never floats.
+-->
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  xmlns:mprc="urn:maple:erp:pricing:v1"
+                  xmlns:tns="urn:maple:erp:pricing:v1"
+                  targetNamespace="urn:maple:erp:pricing:v1"
+                  name="PricingService-v1">
+
+  <wsdl:types>
+    <xsd:schema>
+      <xsd:import namespace="urn:maple:erp:pricing:v1" schemaLocation="../xsd/pricing-v1.xsd"/>
+    </xsd:schema>
+  </wsdl:types>
+
+  <wsdl:message name="priceForSkuRequest">
+    <wsdl:part name="parameters" element="mprc:priceForSkuRequest"/>
+  </wsdl:message>
+  <wsdl:message name="priceForSkuResponse">
+    <wsdl:part name="parameters" element="mprc:priceForSkuResponse"/>
+  </wsdl:message>
+  <wsdl:message name="UnknownSkuFault">
+    <wsdl:part name="fault" element="mprc:UnknownSkuFault"/>
+  </wsdl:message>
+
+  <wsdl:portType name="PricingServicePortType">
+    <wsdl:operation name="priceForSku">
+      <wsdl:documentation>Returns the unit price for a SKU in the requested currency (CAD/SGD/CNY). Unknown SKU faults with UnknownSkuFault.</wsdl:documentation>
+      <wsdl:input message="tns:priceForSkuRequest"/>
+      <wsdl:output message="tns:priceForSkuResponse"/>
+      <wsdl:fault name="UnknownSkuFault" message="tns:UnknownSkuFault"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="PricingServiceSoap12Binding" type="tns:PricingServicePortType">
+    <soap12:binding style="document" transport="http://www.w3.org/2003/05/soap/bindings/HTTP/"/>
+    <wsdl:operation name="priceForSku">
+      <soap12:operation soapAction="urn:maple:erp:pricing:v1:priceForSku"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+      <wsdl:fault name="UnknownSkuFault"><soap12:fault name="UnknownSkuFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="PricingService-v1">
+    <wsdl:port name="PricingServiceSoap12Endpoint" binding="tns:PricingServiceSoap12Binding">
+      <soap12:address location="http://127.0.0.1:18080/ws/pricing/v1"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

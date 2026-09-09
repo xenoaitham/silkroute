@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — Maple Retail Group (fictional) legacy ERP, Inventory domain v1.
+
+  CONTRACT FREEZE NOTICE (constraint C6): FROZEN 2026-09-09. The ERP team will NOT
+  modify their WSDLs — impedance mismatch is absorbed in the ESB layer (Phase 2).
+  Incompatible changes require a NEW namespace: urn:maple:erp:inventory:v2.
+  See decisions/ADR-0003-wsdl-contract-freeze.md.
+-->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:mcom="urn:maple:erp:common:v1"
+            xmlns:minv="urn:maple:erp:inventory:v1"
+            targetNamespace="urn:maple:erp:inventory:v1"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified"
+            version="1.0">
+
+  <xsd:import namespace="urn:maple:erp:common:v1" schemaLocation="common-v1.xsd"/>
+
+  <!-- ==================== reserve ==================== -->
+  <xsd:element name="reserveRequest">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="reservationRef" type="xsd:string">
+          <xsd:annotation><xsd:documentation>Caller-side reservation reference (e.g. the ESB saga id).</xsd:documentation></xsd:annotation>
+        </xsd:element>
+        <xsd:element name="storeId" type="xsd:string"/>
+        <xsd:element name="skuId" type="xsd:string"/>
+        <xsd:element name="quantity" type="xsd:int">
+          <xsd:annotation><xsd:documentation>Must be >= 1.</xsd:documentation></xsd:annotation>
+        </xsd:element>
+        <xsd:element name="audit" type="mcom:LegacyAuditType"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="reserveResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="reservationId" type="xsd:string"/>
+        <xsd:element name="storeId" type="xsd:string"/>
+        <xsd:element name="skuId" type="xsd:string"/>
+        <xsd:element name="reservedQuantity" type="xsd:int"/>
+        <xsd:element name="remainingAvailableQuantity" type="xsd:int"/>
+        <xsd:element name="reservedUntil" type="xsd:dateTime">
+          <xsd:annotation><xsd:documentation>Legacy hold expiry; uncompensated holds expire back to available.</xsd:documentation></xsd:annotation>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="OutOfStockFault">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="mcom:ErpFaultType">
+          <xsd:sequence>
+            <xsd:element name="skuId" type="xsd:string"/>
+            <xsd:element name="storeId" type="xsd:string"/>
+            <xsd:element name="requestedQuantity" type="xsd:int"/>
+            <xsd:element name="availableQuantity" type="xsd:int"/>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+
+  <!-- ==================== release ==================== -->
+  <xsd:element name="releaseRequest">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="reservationId" type="xsd:string"/>
+        <xsd:element name="quantity" type="xsd:int" minOccurs="0">
+          <xsd:annotation><xsd:documentation>Omit to release the full outstanding reservation.</xsd:documentation></xsd:annotation>
+        </xsd:element>
+        <xsd:element name="audit" type="mcom:LegacyAuditType"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="releaseResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="reservationId" type="xsd:string"/>
+        <xsd:element name="releasedQuantity" type="xsd:int"/>
+        <xsd:element name="remainingAvailableQuantity" type="xsd:int"/>
+        <xsd:element name="fullyReleased" type="xsd:boolean"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="UnknownReservationFault">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="mcom:ErpFaultType">
+          <xsd:sequence>
+            <xsd:element name="reservationId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+
+  <!-- ==================== getStock ==================== -->
+  <xsd:element name="getStockRequest">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="storeId" type="xsd:string"/>
+        <xsd:element name="skuId" type="xsd:string"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="getStockResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="storeId" type="xsd:string"/>
+        <xsd:element name="skuId" type="xsd:string"/>
+        <xsd:element name="region" type="mcom:StoreRegionCodeType"/>
+        <xsd:element name="onHandQuantity" type="xsd:int"/>
+        <xsd:element name="reservedQuantity" type="xsd:int"/>
+        <xsd:element name="availableQuantity" type="xsd:int"/>
+        <xsd:element name="asOf" type="xsd:dateTime"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+</xsd:schema>

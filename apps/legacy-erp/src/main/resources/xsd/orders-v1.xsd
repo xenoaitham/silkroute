@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — Maple Retail Group (fictional) legacy ERP, Orders domain v1.
+
+  CONTRACT FREEZE NOTICE (constraint C6): FROZEN 2026-09-09. The ERP team will NOT
+  modify their WSDLs — impedance mismatch is absorbed in the ESB layer (Phase 2).
+  Incompatible changes require a NEW namespace: urn:maple:erp:orders:v2.
+  See decisions/ADR-0003-wsdl-contract-freeze.md.
+-->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:mcom="urn:maple:erp:common:v1"
+            xmlns:mord="urn:maple:erp:orders:v1"
+            targetNamespace="urn:maple:erp:orders:v1"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified"
+            version="1.0">
+
+  <xsd:import namespace="urn:maple:erp:common:v1" schemaLocation="common-v1.xsd"/>
+
+  <xsd:simpleType name="OrderChannelType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="WEB_STORE"/>
+      <xsd:enumeration value="POS"/>
+      <xsd:enumeration value="PHONE"/>
+      <xsd:enumeration value="EDI"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="OrderStatusType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="SUBMITTED"/>
+      <xsd:enumeration value="CONFIRMED"/>
+      <xsd:enumeration value="PICKING"/>
+      <xsd:enumeration value="SHIPPED"/>
+      <xsd:enumeration value="DELIVERED"/>
+      <xsd:enumeration value="REJECTED"/>
+      <xsd:enumeration value="CANCELLED"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="OrderLineStatusType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="PENDING"/>
+      <xsd:enumeration value="ACCEPTED"/>
+      <xsd:enumeration value="REJECTED"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="OrderLineInputType">
+    <xsd:sequence>
+      <xsd:element name="skuId" type="xsd:string"/>
+      <xsd:element name="quantity" type="xsd:int">
+        <xsd:annotation><xsd:documentation>Must be >= 1. Zero or negative lines reject the whole order.</xsd:documentation></xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="OrderLineStatusRecordType">
+    <xsd:sequence>
+      <xsd:element name="skuId" type="xsd:string"/>
+      <xsd:element name="quantity" type="xsd:int"/>
+      <xsd:element name="lineStatus" type="mord:OrderLineStatusType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ==================== submitOrder ==================== -->
+  <xsd:element name="submitOrderRequest">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="externalOrderRef" type="xsd:string">
+          <xsd:annotation><xsd:documentation>Caller-side order reference; ERP enforces uniqueness per source system.</xsd:documentation></xsd:annotation>
+        </xsd:element>
+        <xsd:element name="storeId" type="xsd:string"/>
+        <xsd:element name="customerRef" type="xsd:string" minOccurs="0"/>
+        <xsd:element name="orderChannel" type="mord:OrderChannelType"/>
+        <xsd:element name="lines" type="mord:OrderLineInputType" minOccurs="1" maxOccurs="unbounded"/>
+        <xsd:element name="audit" type="mcom:LegacyAuditType"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="submitOrderResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="orderId" type="xsd:string"/>
+        <xsd:element name="externalOrderRef" type="xsd:string"/>
+        <xsd:element name="status" type="mord:OrderStatusType"/>
+        <xsd:element name="submittedAt" type="xsd:dateTime"/>
+        <xsd:element name="totalAmount" type="mcom:MoneyType"/>
+        <xsd:element name="lineCount" type="xsd:int"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="InvalidOrderFault">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="mcom:ErpFaultType">
+          <xsd:sequence>
+            <xsd:element name="invalidField" type="xsd:string"/>
+            <xsd:element name="invalidValue" type="xsd:string" nillable="true"/>
+            <xsd:element name="externalOrderRef" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+
+  <!-- ==================== getOrderStatus ==================== -->
+  <xsd:element name="getOrderStatusRequest">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="orderId" type="xsd:string"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="getOrderStatusResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="orderId" type="xsd:string"/>
+        <xsd:element name="externalOrderRef" type="xsd:string"/>
+        <xsd:element name="storeId" type="xsd:string"/>
+        <xsd:element name="status" type="mord:OrderStatusType"/>
+        <xsd:element name="placedAt" type="xsd:dateTime"/>
+        <xsd:element name="lastUpdatedAt" type="xsd:dateTime"/>
+        <xsd:element name="totalAmount" type="mcom:MoneyType"/>
+        <xsd:element name="lines" type="mord:OrderLineStatusRecordType" minOccurs="0" maxOccurs="unbounded"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+</xsd:schema>

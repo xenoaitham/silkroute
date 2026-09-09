@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — Maple Retail Group (fictional) legacy ERP contract, common types v1.
+
+  CONTRACT FREEZE NOTICE (constraint C6): this schema is FROZEN as of 2026-09-09.
+  The ERP team will NOT modify their WSDLs — all later impedance mismatch must be
+  absorbed by the ESB layer (Phase 2), never by editing this file. Versioned as v1;
+  any future incompatibility ships as a NEW namespace (urn:maple:erp:common:v2), never
+  as a mutation of v1. See decisions/ADR-0003-wsdl-contract-freeze.md.
+
+  Deliberately "legacy" shape: qualified local elements, verbose wrappers, an audit
+  block every business message is expected to carry, and money as
+  integer-minor-units + ISO-ish currency code (constraint C5: no floats, ever).
+-->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:mcom="urn:maple:erp:common:v1"
+            targetNamespace="urn:maple:erp:common:v1"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified"
+            version="1.0">
+
+  <xsd:complexType name="MoneyType">
+    <xsd:annotation>
+      <xsd:documentation>
+        Money per scenario constraint C5: integer minor units (cents/cents-equivalent)
+        plus an explicit currency code. Floats are forbidden in this estate.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="amountMinor" type="xsd:long">
+        <xsd:annotation><xsd:documentation>Minor units: 12999 = 129.99 in the currency.</xsd:documentation></xsd:annotation>
+      </xsd:element>
+      <xsd:element name="currency" type="mcom:CurrencyCodeType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:simpleType name="CurrencyCodeType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="CAD"/>
+      <xsd:enumeration value="SGD"/>
+      <xsd:enumeration value="CNY"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="StoreRegionCodeType">
+    <xsd:annotation>
+      <xsd:documentation>
+        Store region drives downstream content-based routing (CA = Canada HQ,
+        SG = Singapore hub, CN = mainland China). This field is load-bearing
+        for Phase 2 ESB routing — do not repurpose.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="CA"/>
+      <xsd:enumeration value="SG"/>
+      <xsd:enumeration value="CN"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="LegacyAuditType">
+    <xsd:annotation>
+      <xsd:documentation>
+        Every business message into the ERP must say who sent it. The mainframe
+        reconciliation batch downstream (fictional) depends on sourceSystem.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="sourceSystem" type="xsd:string"/>
+      <xsd:element name="receivedAt" type="xsd:dateTime"/>
+      <xsd:element name="correlationId" type="xsd:string"/>
+      <xsd:element name="entryClerk" type="xsd:string" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="ErpFaultType">
+    <xsd:annotation>
+      <xsd:documentation>
+        Base type for ALL typed ERP faults. Faults are schema-defined elements in
+        their own service namespace — generic SOAP faults are not used by this estate.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="errorCode" type="xsd:string"/>
+      <xsd:element name="errorMessage" type="xsd:string"/>
+      <xsd:element name="sourceSubsystem" type="xsd:string"/>
+      <xsd:element name="occurredAt" type="xsd:dateTime"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+</xsd:schema>

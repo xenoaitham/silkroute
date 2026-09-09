@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — Maple Retail Group (fictional) legacy ERP.
+  OrderService v1 — SOAP 1.2, document/literal (wrapped).
+
+  CONTRACT FREEZE NOTICE (constraint C6): FROZEN 2026-09-09. The ERP team will NOT
+  modify their WSDLs — impedance mismatch is absorbed in the ESB layer (Phase 2).
+  Incompatible changes require a NEW target namespace (urn:maple:erp:orders:v2).
+  See decisions/ADR-0003-wsdl-contract-freeze.md.
+
+  Endpoint (illustrative; runtime publishes per application config): /ws/orders/v1
+  Security: WS-Security UsernameToken on every operation (simulated ERP-side validation).
+-->
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  xmlns:mord="urn:maple:erp:orders:v1"
+                  xmlns:tns="urn:maple:erp:orders:v1"
+                  targetNamespace="urn:maple:erp:orders:v1"
+                  name="OrderService-v1">
+
+  <wsdl:types>
+    <xsd:schema>
+      <xsd:import namespace="urn:maple:erp:orders:v1" schemaLocation="../xsd/orders-v1.xsd"/>
+    </xsd:schema>
+  </wsdl:types>
+
+  <wsdl:message name="submitOrderRequest">
+    <wsdl:part name="parameters" element="mord:submitOrderRequest"/>
+  </wsdl:message>
+  <wsdl:message name="submitOrderResponse">
+    <wsdl:part name="parameters" element="mord:submitOrderResponse"/>
+  </wsdl:message>
+  <wsdl:message name="InvalidOrderFault">
+    <wsdl:part name="fault" element="mord:InvalidOrderFault"/>
+  </wsdl:message>
+  <wsdl:message name="getOrderStatusRequest">
+    <wsdl:part name="parameters" element="mord:getOrderStatusRequest"/>
+  </wsdl:message>
+  <wsdl:message name="getOrderStatusResponse">
+    <wsdl:part name="parameters" element="mord:getOrderStatusResponse"/>
+  </wsdl:message>
+
+  <wsdl:portType name="OrderServicePortType">
+    <wsdl:operation name="submitOrder">
+      <wsdl:documentation>Submits a legacy order into the ERP. Rejects malformed orders with a typed InvalidOrderFault.</wsdl:documentation>
+      <wsdl:input message="tns:submitOrderRequest"/>
+      <wsdl:output message="tns:submitOrderResponse"/>
+      <wsdl:fault name="InvalidOrderFault" message="tns:InvalidOrderFault"/>
+    </wsdl:operation>
+    <wsdl:operation name="getOrderStatus">
+      <wsdl:documentation>Returns the ERP-side lifecycle status of a previously submitted order. Unknown order ids fault with InvalidOrderFault (errorCode ORD-UNKNOWN).</wsdl:documentation>
+      <wsdl:input message="tns:getOrderStatusRequest"/>
+      <wsdl:output message="tns:getOrderStatusResponse"/>
+      <wsdl:fault name="InvalidOrderFault" message="tns:InvalidOrderFault"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="OrderServiceSoap12Binding" type="tns:OrderServicePortType">
+    <soap12:binding style="document" transport="http://www.w3.org/2003/05/soap/bindings/HTTP/"/>
+    <wsdl:operation name="submitOrder">
+      <soap12:operation soapAction="urn:maple:erp:orders:v1:submitOrder"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+      <wsdl:fault name="InvalidOrderFault"><soap12:fault name="InvalidOrderFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getOrderStatus">
+      <soap12:operation soapAction="urn:maple:erp:orders:v1:getOrderStatus"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+      <wsdl:fault name="InvalidOrderFault"><soap12:fault name="InvalidOrderFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="OrderService-v1">
+    <wsdl:port name="OrderServiceSoap12Endpoint" binding="tns:OrderServiceSoap12Binding">
+      <soap12:address location="http://127.0.0.1:18080/ws/orders/v1"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

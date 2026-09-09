@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — Maple Retail Group (fictional) legacy ERP, Pricing domain v1.
+
+  CONTRACT FREEZE NOTICE (constraint C6): FROZEN 2026-09-09. The ERP team will NOT
+  modify their WSDLs — impedance mismatch is absorbed in the ESB layer (Phase 2).
+  Incompatible changes require a NEW namespace: urn:maple:erp:pricing:v2.
+  See decisions/ADR-0003-wsdl-contract-freeze.md.
+-->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:mcom="urn:maple:erp:common:v1"
+            xmlns:mprc="urn:maple:erp:pricing:v1"
+            targetNamespace="urn:maple:erp:pricing:v1"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified"
+            version="1.0">
+
+  <xsd:import namespace="urn:maple:erp:common:v1" schemaLocation="common-v1.xsd"/>
+
+  <!-- ==================== priceForSku ==================== -->
+  <xsd:element name="priceForSkuRequest">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="skuId" type="xsd:string"/>
+        <xsd:element name="currency" type="mcom:CurrencyCodeType">
+          <xsd:annotation><xsd:documentation>CAD/SGD/CNY per constraint C5. Unknown SKU faults; unsupported currency faults as UnknownSkuFault with errorCode PRICING-CURRENCY-UNSUPPORTED.</xsd:documentation></xsd:annotation>
+        </xsd:element>
+        <xsd:element name="priceListCode" type="xsd:string" minOccurs="0">
+          <xsd:annotation><xsd:documentation>Omit for the default list (STD-2026).</xsd:documentation></xsd:annotation>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="priceForSkuResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="skuId" type="xsd:string"/>
+        <xsd:element name="unitPrice" type="mcom:MoneyType"/>
+        <xsd:element name="priceListCode" type="xsd:string"/>
+        <xsd:element name="effectiveFrom" type="xsd:date"/>
+        <xsd:element name="validUntil" type="xsd:date"/>
+        <xsd:element name="discountEligible" type="xsd:boolean"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="UnknownSkuFault">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="mcom:ErpFaultType">
+          <xsd:sequence>
+            <xsd:element name="skuId" type="xsd:string"/>
+            <xsd:element name="suggestion" type="xsd:string" minOccurs="0" nillable="true"/>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
+
+</xsd:schema>

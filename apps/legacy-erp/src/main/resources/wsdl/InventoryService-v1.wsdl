@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — Maple Retail Group (fictional) legacy ERP.
+  InventoryService v1 — SOAP 1.2, document/literal (wrapped).
+
+  CONTRACT FREEZE NOTICE (constraint C6): FROZEN 2026-09-09. The ERP team will NOT
+  modify their WSDLs — impedance mismatch is absorbed in the ESB layer (Phase 2).
+  Incompatible changes require a NEW target namespace (urn:maple:erp:inventory:v2).
+  See decisions/ADR-0003-wsdl-contract-freeze.md.
+
+  Endpoint (illustrative; runtime publishes per application config): /ws/inventory/v1
+  Security: WS-Security UsernameToken on every operation (simulated ERP-side validation).
+  Oversell attempts fault with the typed OutOfStockFault; unknown reservations with
+  UnknownReservationFault (the saga compensation path in Phase 2 depends on both).
+-->
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  xmlns:minv="urn:maple:erp:inventory:v1"
+                  xmlns:tns="urn:maple:erp:inventory:v1"
+                  targetNamespace="urn:maple:erp:inventory:v1"
+                  name="InventoryService-v1">
+
+  <wsdl:types>
+    <xsd:schema>
+      <xsd:import namespace="urn:maple:erp:inventory:v1" schemaLocation="../xsd/inventory-v1.xsd"/>
+    </xsd:schema>
+  </wsdl:types>
+
+  <wsdl:message name="reserveRequest">
+    <wsdl:part name="parameters" element="minv:reserveRequest"/>
+  </wsdl:message>
+  <wsdl:message name="reserveResponse">
+    <wsdl:part name="parameters" element="minv:reserveResponse"/>
+  </wsdl:message>
+  <wsdl:message name="OutOfStockFault">
+    <wsdl:part name="fault" element="minv:OutOfStockFault"/>
+  </wsdl:message>
+  <wsdl:message name="releaseRequest">
+    <wsdl:part name="parameters" element="minv:releaseRequest"/>
+  </wsdl:message>
+  <wsdl:message name="releaseResponse">
+    <wsdl:part name="parameters" element="minv:releaseResponse"/>
+  </wsdl:message>
+  <wsdl:message name="UnknownReservationFault">
+    <wsdl:part name="fault" element="minv:UnknownReservationFault"/>
+  </wsdl:message>
+  <wsdl:message name="getStockRequest">
+    <wsdl:part name="parameters" element="minv:getStockRequest"/>
+  </wsdl:message>
+  <wsdl:message name="getStockResponse">
+    <wsdl:part name="parameters" element="minv:getStockResponse"/>
+  </wsdl:message>
+
+  <wsdl:portType name="InventoryServicePortType">
+    <wsdl:operation name="reserve">
+      <wsdl:documentation>Places a quantity hold against store+SKU stock. Oversell faults with OutOfStockFault; stock is NOT over-allocated.</wsdl:documentation>
+      <wsdl:input message="tns:reserveRequest"/>
+      <wsdl:output message="tns:reserveResponse"/>
+      <wsdl:fault name="OutOfStockFault" message="tns:OutOfStockFault"/>
+    </wsdl:operation>
+    <wsdl:operation name="release">
+      <wsdl:documentation>Releases all or part of a prior reservation (saga compensation path). Unknown reservationId faults with UnknownReservationFault.</wsdl:documentation>
+      <wsdl:input message="tns:releaseRequest"/>
+      <wsdl:output message="tns:releaseResponse"/>
+      <wsdl:fault name="UnknownReservationFault" message="tns:UnknownReservationFault"/>
+    </wsdl:operation>
+    <wsdl:operation name="getStock">
+      <wsdl:documentation>Returns on-hand / reserved / available quantities for a store+SKU, plus the store region (CA/SG/CN — load-bearing for Phase 2 routing).</wsdl:documentation>
+      <wsdl:input message="tns:getStockRequest"/>
+      <wsdl:output message="tns:getStockResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="InventoryServiceSoap12Binding" type="tns:InventoryServicePortType">
+    <soap12:binding style="document" transport="http://www.w3.org/2003/05/soap/bindings/HTTP/"/>
+    <wsdl:operation name="reserve">
+      <soap12:operation soapAction="urn:maple:erp:inventory:v1:reserve"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+      <wsdl:fault name="OutOfStockFault"><soap12:fault name="OutOfStockFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="release">
+      <soap12:operation soapAction="urn:maple:erp:inventory:v1:release"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+      <wsdl:fault name="UnknownReservationFault"><soap12:fault name="UnknownReservationFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getStock">
+      <soap12:operation soapAction="urn:maple:erp:inventory:v1:getStock"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="InventoryService-v1">
+    <wsdl:port name="InventoryServiceSoap12Endpoint" binding="tns:InventoryServiceSoap12Binding">
+      <soap12:address location="http://127.0.0.1:18080/ws/inventory/v1"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>
