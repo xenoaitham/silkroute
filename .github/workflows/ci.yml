@@ -39,8 +39,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Build legacy-erp fat jar (skip unit tests, the contract suite is the gate)
-        run: ./mvnw -B -f apps/legacy-erp/pom.xml package -DskipTests
+      - name: Build legacy-erp fat jar (unit tests included, contract suite is the second gate)
+        run: ./mvnw -B -f apps/legacy-erp/pom.xml package
       - name: Run Karate SOAP 1.2 contract suite (boots the app, 16 scenarios)
         run: ./mvnw -B -f tests/contract/pom.xml verify
       - name: Archive Karate report
