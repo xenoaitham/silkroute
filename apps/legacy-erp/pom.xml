@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 1 — legacy ERP estate (apps/legacy-erp).
+
+  Contract-first build (constraint C6): the WSDLs/XSDs under src/main/resources
+  are FROZEN. cxf-codegen-plugin (wsdl2java) generates the Java binding from them
+  at build time; nothing in this module ever edits or regenerates the contracts.
+
+  No database on purpose (recorded decision): the ERP's real store stays "behind
+  the mainframe"; this sim keeps state in in-memory ConcurrentHashMaps.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.5</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.mapleretail.silkroute</groupId>
+  <artifactId>legacy-erp</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>legacy-erp</name>
+  <description>Maple Retail (fictional) legacy ERP sim: SOAP 1.2 + WS-Security services</description>
+
+  <properties>
+    <java.version>17</java.version>
+    <maven.compiler.release>17</maven.compiler.release>
+    <cxf.version>4.0.5</cxf.version>
+  </properties>
+
+  <dependencies>
+    <!-- Servlet stack: CXFServlet + actuator health are served over embedded Tomcat. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.cxf</groupId>
+      <artifactId>cxf-spring-boot-starter-jaxws</artifactId>
+      <version>${cxf.version}</version>
+    </dependency>
+    <!-- WS-Security UsernameToken (WSS4J) on every endpoint. -->
+    <dependency>
+      <groupId>org.apache.cxf</groupId>
+      <artifactId>cxf-rt-ws-security</artifactId>
+      <version>${cxf.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <!-- Keep tooling state files (.mimosa) out of the shipped jar. -->
+        <excludes>
+          <exclude>.mimosa/**</exclude>
+        </excludes>
+      </resource>
+    </resources>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.cxf</groupId>
+        <artifactId>cxf-codegen-plugin</artifactId>
+        <version>${cxf.version}</version>
+        <executions>
+          <execution>
+            <id>generate-contract-sources</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>wsdl2java</goal>
+            </goals>
+            <configuration>
+              <sourceRoot>${project.build.directory}/generated-sources/wsdl2java</sourceRoot>
+              <wsdlOptions>
+                <wsdlOption>
+                  <wsdl>${project.basedir}/src/main/resources/wsdl/OrderService-v1.wsdl</wsdl>
+                  <bindingFiles>
+                    <bindingFile>${project.basedir}/src/main/jaxb/orders-contract-bindings.xml</bindingFile>
+                  </bindingFiles>
+                </wsdlOption>
+                <wsdlOption>
+                  <wsdl>${project.basedir}/src/main/resources/wsdl/InventoryService-v1.wsdl</wsdl>
+                  <bindingFiles>
+                    <bindingFile>${project.basedir}/src/main/jaxb/inventory-contract-bindings.xml</bindingFile>
+                  </bindingFiles>
+                </wsdlOption>
+                <wsdlOption>
+                  <wsdl>${project.basedir}/src/main/resources/wsdl/PricingService-v1.wsdl</wsdl>
+                  <bindingFiles>
+                    <bindingFile>${project.basedir}/src/main/jaxb/pricing-contract-bindings.xml</bindingFile>
+                  </bindingFiles>
+                </wsdlOption>
+              </wsdlOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,35 @@
+# SILKROUTE Phase 1 — legacy ERP sim configuration.
+# Host bind policy: the sim stack listens on loopback only (same rule as the shared
+# sim compose stack). server.address is intentionally NOT env-overridable.
+server:
+  address: 127.0.0.1
+  port: ${SERVER_PORT:18080}
+
+spring:
+  application:
+    name: legacy-erp
+
+# Health only — this estate exposes nothing else.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC} %-5level %logger{40} - %msg%n"
+  level:
+    root: INFO
+
+erp:
+  # WS-Security UsernameToken credentials, resolved from the environment with sim
+  # dummies as defaults (same ${VAR:-default} indirection policy as the sim compose
+  # stack). Never a real-looking secret; the password is never logged.
+  wss:
+    username: ${ERP_WSS_USERNAME:esb-client}
+    password: ${ERP_WSS_PASSWORD:erp-wss-pass-2026}
+  # Demo order generator (ApplicationRunner). 0 = off; >0 submits that many seeded
+  # orders through the service layer at boot.
+  demo:
+    generate-orders: ${ERP_DEMO_GENERATE_ORDERS:0}

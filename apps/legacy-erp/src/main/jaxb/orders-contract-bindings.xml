@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  JAXB external bindings for the OrderService WSDL run (constraint C6).
+
+  Only code-generation cosmetics are customized: the two namespaces this
+  compilation participates in (common + orders) are mapped into Java packages
+  under the module's package root. The contracts themselves (elements, types,
+  namespaces) are untouched. schemaLocation paths are resolved relative to this
+  file and land on the same files the WSDLs import.
+
+  Passed to cxf-codegen-plugin (wsdl2java -b) via the pom.
+-->
+<jaxb:bindings version="3.0"
+               xmlns:jaxb="https://jakarta.ee/xml/ns/jaxb"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <jaxb:bindings schemaLocation="../resources/xsd/common-v1.xsd" node="/xsd:schema">
+    <jaxb:schemaBindings>
+      <jaxb:package name="com.mapleretail.silkroute.legacyerp.contract.common"/>
+    </jaxb:schemaBindings>
+  </jaxb:bindings>
+
+  <jaxb:bindings schemaLocation="../resources/xsd/orders-v1.xsd" node="/xsd:schema">
+    <jaxb:schemaBindings>
+      <jaxb:package name="com.mapleretail.silkroute.legacyerp.contract.orders"/>
+    </jaxb:schemaBindings>
+  </jaxb:bindings>
+
+</jaxb:bindings>
