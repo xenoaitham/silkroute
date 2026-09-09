@@ -1,19 +1,33 @@
-=== ORCH-LEAD self-audit re-run (post daemon-restart recovery) ===
+=== E-003 re-capture 2026-09-09 (S2, post cycle-3 critic fixes) ===
+smoke v3 now also asserts HOST-side forwards (127.0.0.1:16379/3306/39092/9000/8474) via /dev/tcp probes.
+
 --- positive: make smoke ---
-redis     OK (PING->PONG)
-mysql     OK (VERSION()=8.0.46)
-kafka     OK (broker-api)
-minio     OK (health/live)
-toxiproxy OK (/version=2.11.0)
-smoke OK (all 5 services) in 2s
+redis     OK (host:16379, PING->PONG)
+mysql     OK (host:3306, VERSION()=8.0.46)
+kafka     OK (host:39092, broker-api)
+minio     OK (host:9000, health/live)
+toxiproxy OK (host:8474, /version=2.11.0)
+smoke OK (all 5 services, host forwards + in-container) in 2s
 exit: 0
---- negative: stop redis ---
+
+--- negative: docker compose stop redis, then make smoke (stderr included) ---
+FAIL: redis host forward 127.0.0.1:16379 not reachable
+make: *** [Makefile:30: smoke] Error 1
 exit: 2
---- restore ---
-redis     OK (PING->PONG)
-mysql     OK (VERSION()=8.0.46)
-kafka     OK (broker-api)
-minio     OK (health/live)
-toxiproxy OK (/version=2.11.0)
-smoke OK (all 5 services) in 2s
+
+--- restore: docker compose start redis, wait healthy, make smoke ---
+redis     OK (host:16379, PING->PONG)
+mysql     OK (host:3306, VERSION()=8.0.46)
+kafka     OK (host:39092, broker-api)
+minio     OK (host:9000, health/live)
+toxiproxy OK (host:8474, /version=2.11.0)
+smoke OK (all 5 services, host forwards + in-container) in 1s
 exit: 0
+
+--- final stack state ---
+NAME            STATUS
+sim-kafka       Up About an hour (healthy)
+sim-minio       Up About an hour (healthy)
+sim-mysql       Up About an hour (healthy)
+sim-redis       Up 4 seconds (health: starting)
+sim-toxiproxy   Up About an hour

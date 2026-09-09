@@ -1,18 +1,18 @@
 # SILKROUTE STATE
 
-current_phase: 0
+current_phase: 1
 next_actions:
-  1. S2 START: spawn a FRESH CRITIC for Phase 0 cycle 3 (spawn failed twice on 09-09: quota/model errors — gate is OPEN, phase stays REVIEW until PASS). Prompt template: §5 with cycle-1/2 history from ROADMAP gate log.
-  2. Phase 1 kickoff (after gate PASS): install JDK 17 + Maven wrapper; author WSDLs/XSDs first (OrderService, InventoryService, PricingService, typed faults)
-  3. Phase 1: implement Spring Boot + Apache CXF services against those WSDLs (WSDL-first, contract frozen immediately after tests pass — C6 begins)
-  4. Phase 1: seed data (50 SKUs, 8 stores, order generator) + Karate SOAP contract tests incl. fault paths
+  1. Phase 1 (S2): Maven wrapper bootstrap (pinned version) + root pom; author WSDLs/XSDs FIRST, xmllint-validate, commit before any Java
+  2. Phase 1: BUILD-LEGACY subagent — Spring Boot 3 + Apache CXF WSDL-first, WS-Security UsernameToken, seed data (50 SKUs, 8 stores CA/SG/CN), typed faults
+  3. Phase 1: BUILD-QA subagent — Karate SOAP contract tests (happy + fault paths), CI wiring
+  4. Phase 1: freeze WSDLs (C6) once contract tests pass; ADR-0003; evidence rows E-004+
 open_risks:
-  - CRITIC gate for Phase 0 is OPEN (cycle 3 pending) — do NOT start Phase 1 build work before a fresh-agent PASS
-  - System Java is 11; Spring Boot 3.x needs 17+ → provision JDK 17 before Phase 1 (apt or tarball; record in session log)
-  - No Maven/Gradle on host → repo must carry Maven Wrapper (mvnw) so builds self-provision
+  - RESOLVED 2026-09-09 (S2): Phase 0 gate — cycle 3 fresh-critic PASS 8.50; boundary-exact (1 med + 3 low) must-fixes applied same session before Phase 1 build work
+  - RESOLVED 2026-09-09 (S2): "Java 11" risk was stale — host now ships Temurin Java 21 (≥17, Spring Boot 3.x-ready) and Maven 3.9.9 at /home/potato/tools; repo still carries the Maven Wrapper so builds self-provision regardless of host state
   - Docker daemon is rootless (user-level) and does NOT auto-restart containers after a daemon/host restart (no restart policies on sim) — run `make up` to restore; forwards may need full down/up (see S1-resume war story)
   - No AliCloud account currently available → Phase 4 will run in validated-plans mode per ADR-0002 unless an account materializes
   - CI workflow (.github/workflows/ci.yml) is UNVERIFIED — no git remote exists yet; steps were validated locally only. Owner must push to a remote; first green Actions run becomes an evidence row.
+  - Shared host gained other stacks (busforge at ~/ESB, helios at ~/ETL+ on the same rootless daemon) — host ports scarcer than at S1; never touch/restart those stacks; check `ss -ltn` before binding anything new
 evidence_rows_added: [E-001, E-002, E-003]
 
 ## Session Log
