@@ -1,0 +1,30 @@
+=== E-004: WSDL/XSD contract validation (Phase 1, BEFORE any Java written) ===
+date: 2026-09-09 · toolchain: xmllint (miniconda libxml2), Java 21, Maven 3.9.9 via ./mvnw (wrapper, pinned)
+
+--- files validated (7) ---
+wsdl/:
+InventoryService-v1.wsdl
+OrderService-v1.wsdl
+PricingService-v1.wsdl
+
+xsd/:
+common-v1.xsd
+inventory-v1.xsd
+orders-v1.xsd
+pricing-v1.xsd
+
+--- xmllint --noout well-formedness: all 7 ---
+OK  xsd/common-v1.xsd
+OK  xsd/inventory-v1.xsd
+OK  xsd/orders-v1.xsd
+OK  xsd/pricing-v1.xsd
+OK  wsdl/InventoryService-v1.wsdl
+OK  wsdl/OrderService-v1.wsdl
+OK  wsdl/PricingService-v1.wsdl
+
+--- instance validation positive (schemas constrain real payloads; imports resolve) ---
+/tmp/price-req.xml validates
+/tmp/reserve-req.xml validates
+
+--- instance validation negative (USD not in CAD/SGD/CNY enum -> must fail) ---
+exit: 3 (non-zero expected)
