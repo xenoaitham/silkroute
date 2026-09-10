@@ -69,5 +69,5 @@ check "?wsdl serves frozen contract ns" 'urn:maple:erp:orders:v1' "$R"
 check "  ... soap12 binding" 'soap12' "$R"
 
 echo "----"
-echo "ORCH-LEAD verify: PASS=$pass FAIL=$failed"
+echo "erp-verify: PASS=$pass FAIL=$failed"
 exit $failed
