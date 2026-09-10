@@ -1,5 +1,7 @@
 # SilkRoute — Multi-Region Alibaba Cloud Integration Platform
 
+[![ci](https://github.com/xenoaitham/silkroute/actions/workflows/ci.yml/badge.svg)](https://github.com/xenoaitham/silkroute/actions/workflows/ci.yml)
+
 > **Self-directed reference implementation (2026).** The scenario company **Maple Retail Group** is **fictional** — see [docs/scenario-charter.md](docs/scenario-charter.md) and MASTER_PROMPT §9 integrity rules. This project lives under "Projects," never "Experience."
 
 A multi-region enterprise integration platform for a fictional Canadian retailer expanding into **Singapore** (international hub) and **mainland China** (PIPL data-residency partition), built to demonstrate — with measured evidence:

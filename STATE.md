@@ -7,12 +7,12 @@ next_actions:
   3. Phase 2 acceptance: ESB must map ERP ErpFaultType detail elements → Sender-class semantics (ERP business faults arrive as soap:Receiver — see ADR-0003 last consequence).
   4. Phase 2: toxiproxy fault-injection tests proving retry/DLQ/compensation fire; measured p95 (C3); consider root pom aggregator when the esb Maven module lands (the S2 "root pom" next_action was dropped — builds use `-f` module paths; strike done, aggregator optional).
 open_risks:
-  - CI workflow (.github/workflows/ci.yml) still UNVERIFIED-on-Actions — no git remote exists; both jobs validated locally only (same commands executed). Owner must push; first green Actions run becomes an evidence row.
+  - RESOLVED 2026-09-10: CI verified on GitHub Actions — repo is PUBLIC at https://github.com/xenoaitham/silkroute; first run 34525438436 GREEN on both jobs (sim smoke 38s, Karate contract 1m27s, sha 59088d7) → evidence row E-007; actions bumped v4→v5 after runner deprecation warnings. Every session now ends with a push to origin/main.
   - Docker daemon is rootless (user-level) and does NOT auto-restart containers after a daemon/host restart — run `make up`; a lost port forward needs full `down`+`up`, not `restart` (see S1-resume war story).
   - Shared host stacks grew (busforge at ~/ESB, helios at ~/ETL+ on the same daemon) — ports 8080/8000/9040/9050/29092 etc. are theirs; ERP took 18080/18090 after an `ss -ltn` check; NEVER touch/restart those stacks; check `ss -ltn` before any new bind.
   - No AliCloud account → Phase 4 runs validated-plans mode per ADR-0002.
   - Subagent spawn reliability: S2 hit a `user concurrency limit exceeded` on the first BUILD-QA spawn (S1 hit quota errors on critic spawns). A failed spawn can leave HALF-BUILT artifacts behind (the retry found a red 16/16 suite with debug prints from the dead first attempt) — after any spawn failure, `git status` and inspect before re-spawning; instruct the retry to inherit-and-fix rather than assume a clean slate.
-evidence_rows_added: [E-001, E-002, E-003, E-004, E-005, E-006]
+evidence_rows_added: [E-001, E-002, E-003, E-004, E-005, E-006, E-007]
 
 ## Session Log
 
@@ -39,6 +39,13 @@ evidence_rows_added: [E-001, E-002, E-003, E-004, E-005, E-006]
 - handoff: Phase 1 frozen — Phase 2 (ESB core) starts with the 2 deferred contract-suite scenarios (next_actions #1), then canonical model + Camel. ERP runs on 18080, tests on 18090; sim creds esb-client / erp-wss-pass-2026 (sim dummies). CXF serves the frozen contract re-serialized (comments stripped, imports rewritten) — contract tests are the integrity check, NOT byte-diffing the served WSDL.
 - stack state at session end: **LEFT HEALTHY AND RUNNING** (choice): sim-mysql/kafka/redis/minio (healthy) + sim-toxiproxy, `make smoke` exit 0 with host-forward probes; no ERP processes left; ports 18080/18090 released; unrelated busforge/helios stacks untouched.
 - critic: Phase 0 cycle 3 **PASS 8.50** (fresh agent; ran stop-redis negative path itself). Phase 1 cycle 1 **PASS 8.85** (fresh agent; re-ran builds + own wire probes + dead-port falsifiability + freeze-tag diff). Both verdicts in ROADMAP gate log. Standing obligation: first green GitHub Actions run becomes an evidence row once a remote exists.
+
+### S2-addendum — 2026-09-10 (same session, post-wrap-up)
+- slice: publish the repo + discharge the CI standing obligation
+- done: repo created PUBLIC at https://github.com/xenoaitham/silkroute (gh CLI, account xenoaitham); pre-push secrets scan clean (no .env ever committed, only documented sim dummies tracked); pushed main + tag `contract-freeze-erp-v1`; the push triggered the workflow's FIRST-EVER Actions run → GREEN (run 34525438436: sim job 38s, contract job 1m27s) → E-007 + artifact evidence/runs/E-007-first-actions-run.txt; bumped actions checkout/setup-java/upload-artifact v4→v5 (runner deprecation warnings); README CI badge added
+- measured: `gh api .../runs/34525438436` → conclusion=success, sha 59088d7; both jobs ✓
+- handoff: S3 (Phase 2 ESB) starts with the same 2 deferred contract-suite follow-ups as before (next_actions #1) — unchanged by the GitHub push; future sessions must `git push origin main` at session end
+- stack state: sim stack still healthy and running (unchanged)
 
 ## Working agreements (from MASTER_PROMPT.md — reminders)
 - One session = one phase-slice. Update this file BEFORE committing, at session end, or immediately if context runs low.

@@ -1,0 +1,17 @@
+=== E-007: first green GitHub Actions run (discharges the S1/S2 standing obligation) ===
+repo: https://github.com/xenoaitham/silkroute (public, created 2026-09-10)
+
+{"conclusion":"success","created_at":"2026-09-10T20:17:01Z","event":"push","run_url":"https://github.com/xenoaitham/silkroute/actions/runs/34525438436","runner":"2026-09-10T20:17:01Z","sha":"59088d7c3c5a7a2c9fa172511c06bca3aa091b95","updated_at":"2026-09-10T20:18:33Z"}
+
+
+✓ main ci · 34525438436
+Triggered via push about 5 minutes ago
+
+JOBS
+✓ sim compose + smoke (mirrors README quickstart) in 38s (ID 103033064927)
+✓ legacy-erp SOAP contract tests (Karate, frozen WSDLs) in 1m27s (ID 103033065289)
+
+
+--- reproduce (anyone): ---
+  gh run list --repo xenoaitham/silkroute --limit 3   # latest main push = green
+  (or: push any commit to main; both jobs must stay green)
