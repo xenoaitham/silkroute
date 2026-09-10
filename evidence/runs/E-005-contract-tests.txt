@@ -1,22 +1,35 @@
-=== E-005: legacy-erp build + Karate SOAP contract tests (ORCH-LEAD re-run) ===
-date: 2026-09-09 · Java 21 (Temurin), Maven 3.9.9 via ./mvnw (pinned wrapper)
+=== E-005: legacy-erp build + Karate SOAP contract tests (S3 refresh) ===
+date: 2026-09-11 · Java 21 (Temurin), Maven 3.9.9 via ./mvnw (pinned wrapper)
+S3 delta: +2 security scenarios (cross-endpoint auth on /ws/orders/v1, nonce replay rejection) = 18 contract scenarios; +ErpFaultsTest (2 unit tests) pinning xsi:nil marshalling for absent nillable invalidValue
 
 --- step 1: ./mvnw -f apps/legacy-erp/pom.xml clean package (unit tests included) ---
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.mapleretail.silkroute.legacyerp.PriceListTest
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in com.mapleretail.silkroute.legacyerp.InventoryLedgerTest
-[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.144 s -- in com.mapleretail.silkroute.legacyerp.OrderServiceImplTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.491 s -- in com.mapleretail.silkroute.legacyerp.LegacyErpApplicationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.mapleretail.silkroute.legacyerp.PriceListTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in com.mapleretail.silkroute.legacyerp.InventoryLedgerTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in com.mapleretail.silkroute.legacyerp.ErpFaultsTest
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 
 --- step 2: ./mvnw -f tests/contract/pom.xml verify (boots jar on 127.0.0.1:18090, black-box) ---
-[THYMELEAF]             * [* {th:with}] [600]: com.intuit.karate.template.KarateWithTagProcessor
-[THYMELEAF]             * [* {th:each}] [200]: com.intuit.karate.template.KarateEachTagProcessor
-[THYMELEAF]             * [* {th:with}] [600]: com.intuit.karate.template.KarateWithTagProcessor
-[THYMELEAF]             * [* {th:each}] [200]: com.intuit.karate.template.KarateEachTagProcessor
-[THYMELEAF]             * [* {th:with}] [600]: com.intuit.karate.template.KarateWithTagProcessor
-[THYMELEAF]         * "StandardExpressionParser": com.intuit.karate.template.KarateStandardDialect@3bd1c7f0
-[THYMELEAF]         * "StandardVariableExpressionEvaluator": com.intuit.karate.template.KarateStandardDialect@3bd1c7f0
-[THYMELEAF] * Dialect [2 of 2]: karate (com.intuit.karate.template.KarateScriptDialect)
-HTML report: (paste into browser to view) | Karate version: 1.5.2
-[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.22 s -- in com.mapleretail.silkroute.contract.LegacyErpContractTest
-[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
+scenarios:  4 | passed:  4 | failed:  0 | time: 1.0925
+scenarios:    4 | passed:     4 | failed: 0
+scenarios:  6 | passed:  6 | failed:  0 | time: 0.2792
+scenarios:    6 | passed:     6 | failed: 0
+scenarios:  4 | passed:  4 | failed:  0 | time: 0.1565
+scenarios:    4 | passed:     4 | failed: 0
+scenarios:  4 | passed:  4 | failed:  0 | time: 0.1108
+scenarios:    4 | passed:     4 | failed: 0
+[INFO] Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.274 s -- in com.mapleretail.silkroute.contract.LegacyErpContractTest
+[INFO] Tests run: 18, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
+
+--- karate summary (per feature) ---
+scenarios:  4 | passed:  4 | failed:  0 | time: 1.1321
+scenarios:    4 | passed:     4 | failed: 0
+scenarios:  6 | passed:  6 | failed:  0 | time: 0.3501
+scenarios:    6 | passed:     6 | failed: 0
+scenarios:  4 | passed:  4 | failed:  0 | time: 0.1963
+scenarios:    4 | passed:     4 | failed: 0
+scenarios:  4 | passed:  4 | failed:  0 | time: 0.1072
+scenarios:    4 | passed:     4 | failed: 0

@@ -44,8 +44,9 @@ public final class ErpFaults {
         InvalidOrderFault detail = new InvalidOrderFault();
         populate(detail, errorCode, message, SOURCE_SUBSYSTEM_ORDERS);
         detail.setInvalidField(invalidField);
-        // invalidValue is required-but-nillable in the contract; always send text.
-        detail.setInvalidValue(invalidValue == null ? "" : invalidValue);
+        // invalidValue is required-but-nillable in the contract: an absent value
+        // marshals as xsi:nil, never as "" masquerading as the offending value.
+        detail.setInvalidValue(invalidValue);
         if (externalOrderRef != null) {
             detail.setExternalOrderRef(externalOrderRef);
         }
