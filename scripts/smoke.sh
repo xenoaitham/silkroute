@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# SILKROUTE sim smoke — asserts connectivity to ALL five sim services,
-# both in-container AND from the host (published 127.0.0.1 forwards).
+# SILKROUTE sim smoke — asserts connectivity to ALL six sim services
+# (incl. the Phase-2 esb-toxiproxy), both in-container AND from the host
+# (published 127.0.0.1 forwards).
 # The host-forward probes exist because rootlesskit forwards are the one
 # failure mode this host has produced repeatedly (war stories: dead 8474,
 # leaked 29092) — a forward can die while the container stays healthy.
@@ -47,4 +48,12 @@ curl -fsS http://127.0.0.1:8474/version | grep -q 2.11.0 \
   || fail "toxiproxy /version did not report 2.11.0"
 ok "toxiproxy OK (host:8474, /version=2.11.0)"
 
-echo "smoke OK (all 5 services, host forwards + in-container) in ${SECONDS}s"
+# 6. esb-toxiproxy (Phase 2) — host-network container: the API port IS a host port.
+# ALL Phase-2 fault injection binds through it, and a silent death here is exactly
+# the rootlesskit failure mode the host-forward probes exist for.
+host_tcp 18474 || fail "esb-toxiproxy API 127.0.0.1:18474 not reachable"
+curl -fsS http://127.0.0.1:18474/version | grep -q 2.11.0 \
+  || fail "esb-toxiproxy /version did not report 2.11.0"
+ok "esb-toxiproxy OK (host:18474, /version=2.11.0)"
+
+echo "smoke OK (all 6 services, host forwards + in-container) in ${SECONDS}s"

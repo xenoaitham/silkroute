@@ -1,7 +1,9 @@
 === E-009 provenance (v2 — rewritten after critic cycle 1; supersedes the multi-run v1) ===
-run of record: ONE suite run, 2026-09-11 04:0x local, maven summary in the
-transcript tail: "Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 — BUILD
-SUCCESS" (~83s). The transcript in E-009-esb-int-suite.txt is EXACTLY this run:
+run of record: ONE suite run, 2026-09-11 04:0x local (~83s). The maven summary
+("Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS") printed on
+that run's stdout and is quoted in the EVIDENCE.md E-009 row; the transcript
+artifact captures the suite log itself (not maven's stdout). The transcript in
+E-009-esb-int-suite.txt is EXACTLY this run:
 it contains a single "mode: FULL" line and the process pids it booted
 (erp pid=2651043, esb pid=<see transcript>), killed by PID files at the end.
 The v1 artifact mixed three runs from an earlier suite revision (including a

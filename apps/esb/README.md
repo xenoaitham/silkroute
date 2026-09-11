@@ -125,6 +125,7 @@ curl -s -X POST http://127.0.0.1:18081/api/v1/orders -H 'Content-Type: applicati
 | `SERVER_PORT` | `18081` | REST (binds 127.0.0.1 only via `server.address`) |
 | `MANAGEMENT_PORT` | `18082` | actuator health/info (binds 127.0.0.1 only) |
 | `ERP_BASEURL` | `http://127.0.0.1:18180` | ERP via toxiproxy proxy "erp" |
+| `PII_MASK_SECRET` | `sim-egress-secret` | keyed-HMAC secret for CN egress pseudonymization (C1); move to a real secret store in Phase 5 |
 | `ERP_WSS_USERNAME` / `ERP_WSS_PASSWORD` | `esb-client` / `erp-wss-pass-2026` | sim dummies (documented) |
 | ERP timeouts | connect `500ms` / read `2000ms` | per-call, chosen for the C3 budget (retry ladder adds 200+400ms worst case) |
 | retry | `3` attempts, `200ms` initial, `x2.0` | INFRA failures only (timeout/connect), never business faults |

@@ -20,7 +20,7 @@ docker context use rootless   # if applicable
 cp .env.example .env          # optional — sim-only dummy credentials
 make up        # starts sim network: MySQL 8, Kafka (KRaft), Redis, MinIO, Toxiproxy
 make ps        # all services should show Up; 4/5 report (healthy), toxiproxy is distroless (no healthcheck)
-make smoke     # asserts connectivity to ALL five services (fails non-zero on any failure)
+make smoke     # asserts connectivity to ALL six services (fails non-zero on any failure)
 make down      # stop and wipe volumes
 ```
 
