@@ -1,0 +1,18 @@
+=== E-011: first GitHub Actions run of the Phase-2 esb job (ORCH-LEAD capture) ===
+date: 2026-09-11 · run 34550280537 · sha 214e429 (push "gate log for the esb phase")
+
+command: gh run view 34550280537 --repo xenoaitham/silkroute (or push any commit to main)
+
+--- all three jobs GREEN on ubuntu-latest ---
+legacy-erp SOAP contract tests (Karate, frozen WSDLs): success  (01:20:38Z -> 01:22:05Z,  ~87s)
+sim compose + smoke (mirrors README quickstart):        success  (01:20:38Z -> 01:21:31Z,  ~53s)
+esb saga/retry/DLQ/compensation suite:                  success  (01:20:38Z -> 01:23:44Z, ~186s)
+
+notes:
+- The esb job is NEW in this phase (additive; the two existing jobs untouched).
+  It builds both jars and runs tests/esb-int (8 fault-injection scenarios) on the
+  runner: the suite boots its own ERP(18080)+ESB(18081), creates the toxiproxy
+  "erp" proxy (host-network esb-toxiproxy, API 18474) and the kafka topics itself.
+- The timing-sensitive scenarios (s4b transient-latency retry recovery, s5
+  circuit-breaker fail-fast) passed on a shared CI runner, not only locally.
+- run URL: https://github.com/xenoaitham/silkroute/actions/runs/34550280537
