@@ -1,0 +1,33 @@
+== S5 re-verification capture — 2026-09-12 ==
+
+$ make smoke
+redis     OK (host:16379, PING->PONG)
+mysql     OK (host:3306, VERSION()=8.0.46)
+kafka     OK (host:39092, broker-api)
+minio     OK (host:9000, health/live)
+toxiproxy OK (host:8474, /version=2.11.0)
+esb-toxiproxy OK (host:18474, /version=2.11.0)
+smoke OK (all 6 services, host forwards + in-container) in 2s
+smoke exit=0
+
+$ make plan-sg (terraform 1.16.2, provider aliyun/alicloud 1.285.0, offline init)
+plan-sg exit=0
+-- plan summary lines --
+Plan: 79 to add, 0 to change, 0 to destroy.
+-- fmt/validate/lint lines --
+	&& /home/potato/tools/terraform/terraform fmt -check -recursive \
+	&& /home/potato/tools/terraform/terraform validate -no-color \
+Success! The configuration is valid, but there were some validation warnings
+-- last 12 lines of plan output --
+
+Warning: "notification_list": [DEPRECATED] Deprecated from 1.161.0+, use policy_configuration for notification
+
+  with module.observability.alicloud_log_alert.dlq_depth,
+  on observability/main.tf line 133, in resource "alicloud_log_alert" "dlq_depth":
+ 133: resource "alicloud_log_alert" "dlq_depth" {
+
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
