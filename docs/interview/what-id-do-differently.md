@@ -1,0 +1,37 @@
+# What I'd do differently
+
+Maple Retail Group is a fictional company; SilkRoute is a self-directed reference implementation (2026).
+
+Eight answers, each grounded in a real recorded event from the build log — not generic advice. Each ends with what actually changed or is queued to change.
+
+## 1. I'd verify an API name against the docs before writing it, not after.
+
+During the budget-alarm work I schema-grepped the Terraform provider but wrote the BSS API name from memory — `SetBudgets` — and it doesn't exist. The real contract is `CreateBudget` in BssOpenApi 2023-09-30, and I only found it because the review demanded a citable source; the script header now carries the doc URL verbatim. The embarrassing part is the pattern: one layer of verification (the provider schema) made me skip the next (the API reference). The fix I've adopted is mechanical, not aspirational — any artifact that calls an external API cites the doc URL in the same file, so "trust me" never becomes the artifact. That correction is recorded in the evidence row itself, not quietly patched. (War story 19; E-014.)
+
+## 2. I'd write wire-level black-box tests from the first slice, not after the unit suite "passed".
+
+Two serialization bugs shipped green past 32 unit tests: the REST response body and the success-event publish were both JSON-in-JSON — `writeValueAsString()` applied to an already-serialized string, at two different boundaries. Neither bug was visible to any test that ran inside the same process as the producer. The fault-injection suite over the real endpoint caught both. If I restarted, the integration harness would exist before the first route does, because the lesson generalizes: shape-of-the-payload is a black-box concern, and the boundary is where bugs live — the same principle later caught the idempotency lockout defect that my own suite had missed. (War story 11; E-008, E-009.)
+
+## 3. I'd enforce placement constraints at the layer that actually enforces them — and distrust any claim enforced by naming or tags.
+
+The CN partition had every `cn-beijing` string correct, and the placement was still Singapore: one unaliased provider, tags-only "enforcement". Terraform places resources at the provider graph; names and tags are descriptions. It took an independent review's single HIGH finding to fix — aliased `alicloud.cn` provider plus the `providers` meta-argument — and until that fix, every plan "proving" CN design was proving schema, not placement. I'd go further: the general form of this mistake is writing a constraint where it can be read but not enforced. Region pinning belongs in the provider meta-argument, API rules belong in a lint, apply ordering belongs in `depends_on` — each at its own layer. (War story 15; E-013.)
+
+## 4. I'd prove every check can fail before trusting it — a negative control is part of the artifact.
+
+My first smoke test was structurally incapable of failing: in a `set -e` script, a failing command that is a non-final member of an `&&` list is exempt from errexit, so `check && echo OK` lines never propagated failure. It reported all green while the reviewer had stopped Redis out from under it. The rewrite (`scripts/smoke.sh`, explicit `|| fail` on every assertion) mattered less than the discipline that came with it: a committed negative-control transcript — Redis stopped → exit 2, restored → exit 0 — so the check's falsifiability is evidence, not a claim. That smoke has since caught a dead toxiproxy host-forward after a host restart that would otherwise have looked green all day. Every new check I write now ships with its "seen failing" proof. (War story 4; E-003.)
+
+## 5. I'd pin the registry, not just the tag.
+
+The sim stack broke mid-build with zero repo changes: MinIO purged its old release tags from Docker Hub, and identical CI runs went from green at 19:14 to `pull access denied` at 19:43 — a sim that "runs fine on my machine" was CI-dead an hour later. The fix was the same tag on quay.io (`quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z`) plus a CI retry wrapper and the flake recorded in the evidence artifact, because red CI at HEAD is a discipline failure even when the flake isn't my code. The durable lesson: version pinning includes the registry, the same way ADR-0001's parity concern applies to where an image comes from, not just which one. I now treat third-party tag churn as a supply-chain dependency with the same rigor as any other pin. (War story 23; E-012.)
+
+## 6. I'd design for ambiguous timeouts up front, instead of discovering them through the ERP's guard rail.
+
+Under injected latency, submitOrder attempt 1 timed out while the delayed ERP actually committed the order; attempt 2 hit the frozen ERP's duplicate-ref guard. My suite handled it honestly — it asserts both endings (201 recovery, or 422 ORD-DUP-REF with attempts in range), proving retry fired and no duplicate order exists. But the right fix is reconciliation: on ambiguous timeout, query by reference and adopt or compensate deliberately. That needs a lookup-by-ref operation the frozen contract doesn't offer — a v2 contract is now a recorded follow-up, and I'd have asked for it before building the retry ladder. Related deferred item I'd pull forward: distinct, short INFLIGHT idempotency TTLs so a failed saga's claim releases promptly instead of relying on the release path alone. (War story 13; E-009; STATE.md next_actions #2.)
+
+## 7. I'd put the secret store in the first slice, not the fifth phase.
+
+Two secrets currently exist as environment defaults by design: the WSS sim dummies (documented as dummies — esb-client / erp-wss-pass-2026) and the keyed-HMAC secret for CN egress pseudonymization, `PII_MASK_SECRET`. The masking itself is proven — the suite asserts the clear value absent and the masked value present in DLQ events — but a keyed transform is only as strong as where the key lives, and mine lives in an env var. The parity doc already specifies the cloud answer (KMS-backed injection at deploy, no secret material in IaC or state), and the infra README's activation checklist flags `random_password` values landing in Terraform state as a known issue to move to KMS-managed secrets. If I sequenced again, the secret-store interface would be phase-one work so nothing ever touches an env default — even in sim. (E-009; `docs/infra-env-parity.md`; `infra/README.md` activation checklist.)
+
+## 8. I'd write the limitation into the code comment the day I learn it — honesty is cheaper when it's not retrofitted.
+
+Two examples from the same week. Basic AliCloud security groups are default-allow on egress, and my original comment claimed "egress denied by default" — prose, not enforcement; the review called it the same genre as the region-pinning bug, and the comment now states the limitation with advanced groups deferred to activation. In the same spirit, when the provider turned out to have zero budget resources, the honest mechanism (executable script + dry-run + schema-gap proof) only became good material because the schema grep came first and the README says plainly "the alarm is implemented outside Terraform". I'd institutionalize the reflex: when code can't do what its surrounding prose implies, fix the prose immediately and record the deferral — the alternative is a claim waiting to be caught by someone less friendly than a reviewer. (War stories 16/20; E-014; `infra/network/main.tf` comments.)
