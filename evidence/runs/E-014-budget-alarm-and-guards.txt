@@ -1,0 +1,39 @@
+# E-014 — budget alarm mechanism + guarded cloud targets (S4, 2026-09-11T19:09:09Z)
+
+## provider-gap proof (why the alarm is NOT a terraform resource)
+resource names matching budget|bss|billing: 0
+
+## scripts/budget-alarm.sh dry run (default mode — performs no API call)
+DRY RUN (default) — no API call performed. To execute against a real account:
+  LIVE=1 ALICLOUD_ACCESS_KEY_ID=... ALICLOUD_ACCESS_KEY_SECRET=... bash scripts/budget-alarm.sh
+
+BSSOpenAPI SetBudgets payload (amount $20, alert at 100%):
+{
+  "BudgetName": "silkroute-monthly",
+  "BudgetType": "MONTHLY",
+  "BudgetAmount": "20",
+  "BudgetLimitType": "Cost",
+  "AlertThresholdList": [
+    {"BudgetLimitType": "Cost", "AlertThreshold": 100}
+  ],
+  "AlertTypeList": ["EmailAndSms"]
+}
+exit=0
+
+## negative path: make deploy-sg WITHOUT guard env (must refuse, exit 2)
+REFUSING: this target touches a real AliCloud account (billable).
+It requires SILKROUTE_CLOUD_CONFIRM=YES and ALICLOUD_ACCESS_KEY(_ID)/SECRET in the env.
+Validated-plans mode (ADR-0002): use 'make plan-sg' — plans create nothing.
+make: *** [Makefile:108: deploy-sg] Error 2
+exit=2
+
+## negative path: make destroy WITHOUT guard env (must refuse, exit 2)
+REFUSING: this target touches a real AliCloud account (billable).
+It requires SILKROUTE_CLOUD_CONFIRM=YES and ALICLOUD_ACCESS_KEY(_ID)/SECRET in the env.
+Validated-plans mode (ADR-0002): use 'make plan-sg' — plans create nothing.
+make: *** [Makefile:112: destroy] Error 2
+exit=2
+
+## positive control: make plan-sg (the guarded alternative — must succeed, creates nothing)
+Plan: 75 to add, 0 to change, 0 to destroy.
+exit=0
