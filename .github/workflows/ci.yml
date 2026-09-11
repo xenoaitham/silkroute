@@ -90,3 +90,31 @@ jobs:
       - name: Tear down
         if: always()
         run: make down
+
+  # Phase 4: AliCloud landing zone — validated-plans mode (ADR-0002). fmt +
+  # validate + plan with placeholder credentials; plans perform NO AliCloud API
+  # calls (resources only, no API-calling data sources) and apply nothing. The
+  # CN partition is plan-validated but never applied (ADR-0005).
+  terraform-landing-zone:
+    name: terraform fmt + validate + plan (validated-plans, ADR-0002)
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_access_key: tf-placeholder-access-key
+      TF_VAR_secret_key: tf-placeholder-secret-key
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Terraform 1.16.2
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.2
+          terraform_wrapper: false
+      - name: fmt (check mode)
+        run: terraform -chdir=infra fmt -check -recursive
+      - name: init
+        run: terraform -chdir=infra init -input=false
+      - name: validate
+        run: terraform -chdir=infra validate
+      - name: plan (SG hub only, creates nothing)
+        run: terraform -chdir=infra plan -input=false -no-color
+      - name: plan (CN partition design — validated, never applied)
+        run: terraform -chdir=infra plan -input=false -no-color -var enable_cn_region=true

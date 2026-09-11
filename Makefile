@@ -1,4 +1,6 @@
-# SILKROUTE — task runner. Sim-first per ADR-0001; cloud targets land with Phase 4 (see ADR-0002).
+# SILKROUTE — task runner. Sim-first per ADR-0001; cloud targets are
+# validated-plans mode per ADR-0002 (no AliCloud account: plans prove the HCL,
+# nothing is ever applied; deploy targets are guarded).
 SHELL := /bin/bash
 
 .PHONY: help up down ps logs restart smoke clean
@@ -77,3 +79,38 @@ load-orders: ## run the k6 orders load profile (needs ERP+proxy+ESB from esb-run
 	@test -x $(K6_BIN) || { echo "ERROR: k6 not at $(K6_BIN) (override with K6_BIN=...)"; exit 1; }
 	@mkdir -p tests/load/results
 	$(K6_BIN) run tests/load/k6-orders.js --summary-export=tests/load/results/k6-orders-summary.json
+
+# --- Phase 4: AliCloud landing zone (validated-plans mode, ADR-0002) ---------
+TF_BIN ?= $(HOME)/tools/terraform/terraform
+TF_DIR := infra
+# deploy/destroy are HARD-GUARDED: they create/destroy real billable resources,
+# so they refuse to run unless you set SILKROUTE_CLOUD_CONFIRM=YES AND have
+# AliCloud credentials in the environment (ADR-0002: validated-plans until an
+# account exists; §8: never leave billable resources running).
+CLOUD_GUARD = @if [ "$${SILKROUTE_CLOUD_CONFIRM:-}" != "YES" ] || [ -z "$${ALICLOUD_ACCESS_KEY:-}$${ALICLOUD_ACCESS_KEY_ID:-}" ]; then \
+	echo "REFUSING: this target touches a real AliCloud account (billable)."; \
+	echo "It requires SILKROUTE_CLOUD_CONFIRM=YES and ALICLOUD_ACCESS_KEY(_ID)/SECRET in the env."; \
+	echo "Validated-plans mode (ADR-0002): use 'make plan-sg' — plans create nothing."; exit 2; fi
+
+.PHONY: plan-sg deploy-sg destroy budget-alarm tf-fmt-check
+
+plan-sg: ## one-command reproducibility proof: init + validate + plan (creates nothing)
+	@test -x $(TF_BIN) || { echo "ERROR: terraform not at $(TF_BIN) (override with TF_BIN=...)"; exit 1; }
+	cd $(TF_DIR) && $(TF_BIN) init -input=false -no-color \
+		&& $(TF_BIN) fmt -check -recursive \
+		&& $(TF_BIN) validate -no-color \
+		&& $(TF_BIN) plan -input=false -no-color
+
+tf-fmt-check: ## terraform fmt check only (fast CI-style gate)
+	cd $(TF_DIR) && $(TF_BIN) fmt -check -recursive
+
+deploy-sg: ## GUARDED: terraform apply of the SG hub (real billable resources)
+	$(CLOUD_GUARD)
+	cd $(TF_DIR) && $(TF_BIN) init -input=false -no-color && $(TF_BIN) apply -input=false -no-color -var enable_cn_region=false
+
+destroy: ## GUARDED: terraform destroy of whatever the account holds (§8 hygiene)
+	$(CLOUD_GUARD)
+	cd $(TF_DIR) && $(TF_BIN) destroy -input=false -no-color
+
+budget-alarm: ## budget alarm (~$20): dry-run by default; `make budget-alarm LIVE=1` + creds to execute
+	@bash scripts/budget-alarm.sh
