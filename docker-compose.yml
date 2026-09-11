@@ -120,3 +120,19 @@ services:
     # NOTE: ghcr.io/shopify/toxiproxy images are distroless (no shell/wget), so an
     # in-container healthcheck is impossible. Readiness is the API answering GET /version
     # on 8474; the Makefile/CI wait loop counts it healthy when State==running and Health=="".
+
+  esb-toxiproxy:
+    # Phase 2 fault-injection path for the ESB: a SECOND toxiproxy on the HOST
+    # network. The bridge-mode sim-toxiproxy above cannot upstream to a
+    # host-loopback service (the ERP jar binds 127.0.0.1:18080 on the host; a
+    # container's 127.0.0.1 is the container itself, and this rootless setup has
+    # no slirp host alias) — so the proxy that the ESB's ERP calls flow through
+    # must run where the host loopback is real. API on 18474 (8474/8475 are the
+    # sim/busforge toxiproxies), proxy "erp" binds 127.0.0.1:18180 -> 127.0.0.1:18080.
+    image: ghcr.io/shopify/toxiproxy:2.11.0
+    container_name: sim-esb-toxiproxy
+    network_mode: host
+    command: ["--host", "127.0.0.1", "--port", "18474"]
+    # NOTE: ghcr.io/shopify/toxiproxy images are distroless (no shell/wget), so an
+    # in-container healthcheck is impossible. Readiness is the API answering GET /version
+    # on 8474; the Makefile/CI wait loop counts it healthy when State==running and Health=="".

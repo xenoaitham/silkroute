@@ -1,0 +1,71 @@
+# SILKROUTE Phase 2 — Camel ESB (apps/esb) configuration.
+#
+# Loopback-only bind policy for the shared sim host. Every environment knob uses
+# ${VAR:default} indirection; defaults are the documented sim dummies.
+server:
+  address: 127.0.0.1
+  port: ${SERVER_PORT:18081}
+
+spring:
+  application:
+    name: silkroute-esb
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:16379}
+
+# Management/actuator split off the API port (health/info on 18082, loopback only).
+management:
+  server:
+    port: ${MANAGEMENT_PORT:18082}
+    address: 127.0.0.1
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+camel:
+  springboot:
+    name: silkroute-esb
+
+silkroute:
+  erp:
+    # ALL ERP calls go through toxiproxy (proxy "erp": 18180 -> upstream 18080)
+    # so network faults are injectable. scripts/esb-toxiproxy.sh manages it.
+    base-url: ${ERP_BASEURL:http://127.0.0.1:18180}
+    wss:
+      username: ${ERP_WSS_USERNAME:esb-client}
+      password: ${ERP_WSS_PASSWORD:erp-wss-pass-2026}
+    # Per-call ERP HTTP timeouts (chosen: fast-fail keeps the synchronous saga
+    # inside the C3 budget; the retry ladder below adds 200ms+400ms worst case).
+    connect-timeout-ms: 500
+    receive-timeout-ms: 2000
+    retry:
+      max-attempts: 3          # per ERP call, INFRA failures only (never business faults)
+      initial-backoff-ms: 200  # exponential ladder: 200ms, 400ms, ...
+      multiplier: 2.0
+  circuit-breaker:
+    failure-rate-threshold: 50
+    sliding-window-size: 10
+    minimum-number-of-calls: 6
+    wait-duration-in-open-state-ms: 2000
+    permitted-number-of-calls-in-half-open-state: 3
+  kafka:
+    brokers: ${KAFKA_BOOTSTRAP:127.0.0.1:39092}
+    orders-topic: silkroute.orders.events
+    dlq-topic: silkroute.esb.dlq
+    max-block-ms: 3000        # bounded publish so a dead broker cannot hang the response
+  idempotency:
+    ttl-hours: 24
+  # Fault-injection test hook (see README): when true, header X-Fault-Injection:
+  # fail-pricing / fail-confirm makes that saga step throw a synthetic infra
+  # error (as if the call timed out) on EVERY attempt.
+  fault-injection: ${ESB_FAULT_INJECTION:false}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC} %-5level %logger{40} - %msg%n"
+  level:
+    root: INFO
+    org.apache.camel: WARN
+    org.apache.cxf: WARN
