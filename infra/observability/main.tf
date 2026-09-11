@@ -76,6 +76,7 @@ resource "alicloud_log_dashboard" "overview" {
   ])
 }
 
+# Contacts (e.g. ops-oncall) are console-managed at activation; the group itself is IaC.
 resource "alicloud_cms_alarm_contact_group" "ops" {
   alarm_contact_group_name = "silkroute-ops"
   contacts                 = ["ops-oncall"]

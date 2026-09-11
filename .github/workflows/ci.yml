@@ -13,8 +13,14 @@ jobs:
       - uses: actions/checkout@v5
       - name: Validate compose file
         run: docker compose config -q
-      - name: Bring up sim network via the documented path
-        run: make up
+      - name: Bring up sim network via the documented path (retried — Docker Hub anonymous pull denials are intermittent)
+        run: |
+          for i in 1 2 3; do
+            if make up; then exit 0; fi
+            echo "make up attempt $i failed (often a transient minio pull denial); retrying in 45s"
+            sleep 45
+          done
+          exit 1
       - name: Status
         run: make ps
       - name: Smoke test (all five services)
@@ -69,8 +75,14 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Bring up sim network (toxiproxy + kafka + redis)
-        run: make up
+      - name: Bring up sim network (toxiproxy + kafka + redis; retried against pull flake)
+        run: |
+          for i in 1 2 3; do
+            if make up; then exit 0; fi
+            echo "make up attempt $i failed (often a transient minio pull denial); retrying in 45s"
+            sleep 45
+          done
+          exit 1
       - name: Build legacy-erp fat jar (unit tests run in the contract-tests job)
         run: ./mvnw -B -f apps/legacy-erp/pom.xml package -DskipTests
       - name: Build esb fat jar

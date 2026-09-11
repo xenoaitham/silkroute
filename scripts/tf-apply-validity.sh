@@ -18,6 +18,8 @@ violations=$(awk '
       v = substr($0, RSTART + 1, RLENGTH - 2)
       ok = (v ~ /^[A-Za-z0-9_-]+$/) && length(v) >= 3 && length(v) <= 64
       if (!ok) print "FAIL: " FILENAME ":" FNR " alikafka topic [" v "] violates the ApsaraMQ naming rule (letters/digits/_/- , 3-64 chars) — CreateTopic rejects it at apply."
+    } else {
+      print "FAIL: " FILENAME ":" FNR " alikafka topic is not a compliant literal (variable/expr reference) — the referenced value escapes this lint; inline a compliant literal or lint the default."
     }
   }
 ' $(find . -name '*.tf' -not -path './.terraform/*'))

@@ -29,8 +29,8 @@ export PATH="$HOME/tools/terraform:$PATH"
 terraform fmt -check -recursive            # must be clean
 terraform init                             # downloads aliyun/alicloud 1.285.0
 terraform validate                         # schema check
-terraform plan                             # flag false: "Plan: 75 to add..."
-terraform plan -var enable_cn_region=true  # CN design: "Plan: 106 to add..."
+terraform plan                             # flag false: "Plan: 79 to add..."
+terraform plan -var enable_cn_region=true  # CN design: "Plan: 110 to add..."
 ```
 
 Plans perform **no AliCloud API calls** (placeholder credentials, local empty

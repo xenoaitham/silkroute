@@ -33,3 +33,19 @@ cn-partition/main.tf:240:  topic         = "silkroute-esb-dlq"
 
 ## snat entries
 2
+
+## UPDATE 2026-09-11T20:0x — critic cycle-2 corrections in tree
+# + depends_on=[alicloud_eip_association.nat] on both snat_entries (apply-ordering race)
+# + lint hardened: variable-reference topic RHS now FAILs (negative control proven)
+# + docs: ADR-0004/STATE alicloud_sls_alert schema claim corrected; 75/106 -> 79/110 everywhere
+# CI at 69361cb: run 34640392548 sim job FAILED twice (attempt 1 + rerun) on 'pull access denied
+# for minio/minio' — Docker Hub anonymous-pull denial, infra flake not code (identical compose green
+# on 34637654107 at 0e953a2; terraform job green both times). Fix: retry wrapper (3x, 45s) around
+# 'make up' in both docker CI jobs.
+
+## re-verify after corrections
+fmt clean
+tf-apply-validity: OK — no known apply-time violations in infra/.
+Success! The configuration is valid, but there were some validation warnings
+Plan: 79 to add, 0 to change, 0 to destroy.
+Plan: 110 to add, 0 to change, 0 to destroy.

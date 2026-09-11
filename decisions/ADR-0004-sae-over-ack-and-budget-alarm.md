@@ -26,4 +26,4 @@ Separately, ORCH-LEAD verified against the actual provider 1.285.0 schema (1161 
 - (+) Pay-per-use only; no idle cluster cost; deploy path (jar → OSS → SAE) is one command away from real.
 - (+) The budget-alarm mechanism exists as a falsifiable artifact without inventing provider resources.
 - (−) Raw Kubernetes depth (PDBs, node pools, spot interrupts) is not demonstrated by this phase — acknowledged; ACK exposure can be a Phase 6/7 amplifier if time allows.
-- (−) The SLS alert on DLQ depth uses the deprecated `notification_list` argument (replacement `policy_configuration` resource family does not exist in 1.285.0); trade-off recorded in `infra/observability/README.md`.
+- (−) The SLS alert on DLQ depth uses the deprecated `notification_list` argument. CORRECTED per critic cycle 2: the modern `alicloud_sls_alert` resource DOES exist in provider 1.285.0 (schema-verified); migrating to it is a small follow-up, deferred — trade-off recorded in `infra/observability/README.md`.

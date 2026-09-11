@@ -57,16 +57,20 @@ resource "alicloud_nat_gateway" "egress" {
   tags          = local.common_tags
 }
 
+# CreateSnatEntry requires the EIP to be ASSOCIATED with the gateway already,
+# so the association is an explicit dependency (apply-ordering is plan-invisible).
 resource "alicloud_snat_entry" "private_1" {
   snat_table_id     = alicloud_nat_gateway.egress.snat_table_ids
   source_vswitch_id = alicloud_vswitch.private_1.id
   snat_ip           = alicloud_eip.nat.ip_address
+  depends_on        = [alicloud_eip_association.nat]
 }
 
 resource "alicloud_snat_entry" "private_2" {
   snat_table_id     = alicloud_nat_gateway.egress.snat_table_ids
   source_vswitch_id = alicloud_vswitch.private_2.id
   snat_ip           = alicloud_eip.nat.ip_address
+  depends_on        = [alicloud_eip_association.nat]
 }
 
 resource "alicloud_eip" "nat" {
