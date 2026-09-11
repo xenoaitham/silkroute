@@ -17,4 +17,11 @@ public interface IdempotencyStore {
 
     /** Persists the final response JSON after a successful saga (TTL 24h). */
     void storeCompleted(String key, String finalResponseJson);
+
+    /**
+     * Releases a claim whose saga did NOT succeed (compensated failure, business
+     * fault, infra exhaustion): the client is allowed to retry the same key. A
+     * claim for a FAILED outcome must never lock the key out for the TTL.
+     */
+    void release(String key);
 }

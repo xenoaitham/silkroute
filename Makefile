@@ -57,7 +57,7 @@ esb-run: ## convenience: ensure toxiproxy erp proxy, boot ERP(18080) + ESB(18081
 			-d '{"name":"erp","listen":"127.0.0.1:18180","upstream":"127.0.0.1:18080","enabled":true}' >/dev/null; fi
 	@bash tests/chaos/esb-faults.sh reset || true
 	SERVER_PORT=18080 ERP_DEMO_GENERATE_ORDERS=0 nohup java -jar $(ESB_ERP_JAR) > /tmp/silkroute-esb-erp.log 2>&1 & echo $$! > $(ESB_ERP_PID)
-	ESB_FAULT_INJECTION=true nohup java -jar $(ESB_APP_JAR) > /tmp/silkroute-esb-app.log 2>&1 & echo $$! > $(ESB_APP_PID)
+	ESB_FAULT_INJECTION=false nohup java -jar $(ESB_APP_JAR) > /tmp/silkroute-esb-app.log 2>&1 & echo $$! > $(ESB_APP_PID)
 	@echo "waiting for ERP(18080) + ESB(18081) health..."
 	@timeout 180 bash -c 'until curl -sf http://127.0.0.1:18080/actuator/health | grep -q UP; do sleep 2; done'
 	@timeout 180 bash -c 'until curl -sf http://127.0.0.1:18082/actuator/health | grep -q UP; do sleep 2; done'

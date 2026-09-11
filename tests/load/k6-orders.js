@@ -10,7 +10,7 @@
  * and the orchestrator copies it into evidence/ together with the hardware
  * context. Stock safety: iterations round-robin over 150 sku/store combos
  * (SKU-0001..0050 x ST-SG-01..03), so a 70 s run at 20 RPS puts ~9 orders on
- * each seeded stock row and cannot exhaust the estate.
+ * each seeded stock row and minimizes stock pressure; low-stock rows (seeded 5..100) can still legitimately exhaust (recorded in E-010).
  *
  * Run (ERP 18080 + toxiproxy 18180 + ESB 18081 must be up):
  *   k6 run tests/load/k6-orders.js --summary-export=tests/load/results/k6-orders-summary.json

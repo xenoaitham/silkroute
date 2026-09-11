@@ -41,6 +41,11 @@ class IdempotencyLogicTest {
         public void storeCompleted(String key, String finalResponseJson) {
             done.put(key, finalResponseJson);
         }
+
+        @Override
+        public void release(String key) {
+            inflight.remove(key);
+        }
     }
 
     private CanonicalOrder order(String sourceSystem, String externalOrderRef) {

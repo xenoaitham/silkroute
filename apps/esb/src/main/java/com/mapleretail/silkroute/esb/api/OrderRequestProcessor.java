@@ -96,9 +96,14 @@ public class OrderRequestProcessor implements Processor {
         SagaOutcome outcome = orchestrator.run(order, faultCommand);
         respond(exchange, outcome.httpStatus(), outcome.responseJson());
 
-        // 4) remember the final outcome for duplicate replays
         if (outcome.isSuccess()) {
+            // remember the final outcome for duplicate replays
             idempotencyStore.storeCompleted(key, outcome.responseJson());
+        } else {
+            // A FAILED saga (compensated, business fault, infra exhaustion) must
+            // release its claim: the client retrying the same key is exactly what
+            // an idempotency key is for. Only SUCCESSFUL outcomes stay claimed.
+            idempotencyStore.release(key);
         }
     }
 

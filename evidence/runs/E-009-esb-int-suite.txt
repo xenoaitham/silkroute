@@ -1,13 +1,13 @@
 [esb-int] mode: FULL (ERP + toxiproxy + kafka + ESB)
 [esb-int] infra: toxiproxy {"version": "2.11.0"}
 [esb-int] infra: kafka:39092 and redis:16379 reachable
-[esb-int] erp: launched java -jar /home/potato/Haitham/ALIBABA/apps/legacy-erp/target/legacy-erp-1.0.0-SNAPSHOT.jar (env {SERVER_PORT=18080, ERP_DEMO_GENERATE_ORDERS=0}), pid=2314983, log=/home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-int-erp.log
-[esb-int] erp: healthy on 18080, seed verified, pid=2314983 (file /home/potato/Haitham/ALIBABA/tests/esb-int/target/erp-18080.pid)
+[esb-int] erp: launched java -jar /home/potato/Haitham/ALIBABA/apps/legacy-erp/target/legacy-erp-1.0.0-SNAPSHOT.jar (env {SERVER_PORT=18080, ERP_DEMO_GENERATE_ORDERS=0}), pid=2651043, log=/home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-int-erp.log
+[esb-int] erp: healthy on 18080, seed verified, pid=2651043 (file /home/potato/Haitham/ALIBABA/tests/esb-int/target/erp-18080.pid)
 [esb-int] toxiproxy: proxy erp enabled=true
 [esb-int] kafka: topic silkroute.esb.dlq ensured
 [esb-int] kafka: topic silkroute.orders.events ensured
-[esb-int] esb: launched java -jar /home/potato/Haitham/ALIBABA/apps/esb/target/esb-1.0.0-SNAPSHOT.jar (env {ESB_FAULT_INJECTION=true}), pid=2317124, log=/home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-int-esb.log
-[esb-int] esb: healthy rest=18081 mgmt=18082, pid=2317124 (file /home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-18081.pid)
+[esb-int] esb: launched java -jar /home/potato/Haitham/ALIBABA/apps/esb/target/esb-1.0.0-SNAPSHOT.jar (env {ESB_FAULT_INJECTION=true}), pid=2653214, log=/home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-int-esb.log
+[esb-int] esb: healthy rest=18081 mgmt=18082, pid=2653214 (file /home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-18081.pid)
 [esb-int] target dir for orchestrator evidence: /home/potato/Haitham/ALIBABA/tests/esb-int/target
 [esb-int] kafka: topic silkroute.esb.dlq ensured
 [esb-int] kafka: topic silkroute.orders.events ensured
@@ -15,89 +15,22 @@
 [esb-int] s1: CN events masking proven (customerRef -> msk-*, clear value absent)
 [esb-int] s2: 400 SCHEMA-VIOLATION/SENDER + duplicate blocked (422 ERP ORD-DUP-REF backstop)
 [esb-int] s3: 422 INV-OUT-OF-STOCK/BUSINESS, stock untouched (13 -> 13)
-[esb-int] s3: DLQ carries no record for s3biz-18255827457468
-[esb-int] toxiproxy: added latency toxic 2500 ms
-[esb-int] s4a: persistent latency -> 503 UPSTREAM-UNAVAILABLE, attempts=3 (measured)
-[esb-int] toxiproxy: added latency toxic 600 ms
-[esb-int] toxiproxy: proxy erp enabled=false
-[esb-int] s5: CIRCUIT-OPEN after 5 exhausted orders, fail-fast measured at 4 ms (limit 100)
-[esb-int] s5: DLQ holds corr-s5down0-18271287188412 and corr-s5down1-18271911613254
-[esb-int] toxiproxy: proxy erp enabled=true
-[esb-int] s5: recovered with order s5recover0-18291758509627 after proxy re-enabled
-[esb-int] s6: 503 SAGA-COMPENSATED releasedReservationId=RES-2026-000008, stock 19 -> 19 (release proven)
-[esb-int] s6: DLQ CN masking proven (msk-* on dlq record, clear value absent)
-[esb-int] s7: ST-SG-01 -> region=SG route={"region":"SG","customerRefMasked":false}
-[esb-int] s7: ST-CN-01 -> region=CN route={"region":"CN","customerRefMasked":true}
-[esb-int] s7: ST-CA-01 -> region=CA route={"region":"CA","customerRefMasked":false}
-[esb-int] toxiproxy: proxy erp enabled=true
-[esb-int] esb: stopped (pid 2317124)
-[esb-int] erp: stopped (pid 2314983)
-[esb-int] mode: FULL (ERP + toxiproxy + kafka + ESB)
-[esb-int] infra: toxiproxy {"version": "2.11.0"}
-[esb-int] infra: kafka:39092 and redis:16379 reachable
-[esb-int] erp: launched java -jar /home/potato/Haitham/ALIBABA/apps/legacy-erp/target/legacy-erp-1.0.0-SNAPSHOT.jar (env {SERVER_PORT=18080, ERP_DEMO_GENERATE_ORDERS=0}), pid=2336982, log=/home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-int-erp.log
-[esb-int] erp: healthy on 18080, seed verified, pid=2336982 (file /home/potato/Haitham/ALIBABA/tests/esb-int/target/erp-18080.pid)
-[esb-int] toxiproxy: proxy erp enabled=true
-[esb-int] kafka: topic silkroute.esb.dlq ensured
-[esb-int] kafka: topic silkroute.orders.events ensured
-[esb-int] esb: launched java -jar /home/potato/Haitham/ALIBABA/apps/esb/target/esb-1.0.0-SNAPSHOT.jar (env {ESB_FAULT_INJECTION=true}), pid=2338634, log=/home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-int-esb.log
-[esb-int] esb: healthy rest=18081 mgmt=18082, pid=2338634 (file /home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-18081.pid)
-[esb-int] target dir for orchestrator evidence: /home/potato/Haitham/ALIBABA/tests/esb-int/target
-[esb-int] kafka: topic silkroute.esb.dlq ensured
-[esb-int] kafka: topic silkroute.orders.events ensured
-[esb-int] s0: harness self-check passed (erp soap, pricing 624/3268/637, toxiproxy, kafka)
-[esb-int] s1: CN events masking proven (customerRef -> msk-*, clear value absent)
-[esb-int] s2: 400 SCHEMA-VIOLATION/SENDER + duplicate blocked (422 ERP ORD-DUP-REF backstop)
-[esb-int] s3: 422 INV-OUT-OF-STOCK/BUSINESS, stock untouched (13 -> 13)
-[esb-int] s3: DLQ carries no record for s3biz-18381346196276
-[esb-int] toxiproxy: added latency toxic 2500 ms
-[esb-int] s4a: persistent latency -> 503 UPSTREAM-UNAVAILABLE, attempts=3 (measured)
-[esb-int] toxiproxy: added latency toxic 2500 ms
-[esb-int] toxiproxy: proxy erp enabled=false
-[esb-int] s5: CIRCUIT-OPEN after 4 exhausted orders, fail-fast measured at 4 ms (limit 100)
-[esb-int] s5: DLQ holds corr-s5down0-18396621646951 and corr-s5down1-18397242707719
-[esb-int] toxiproxy: proxy erp enabled=true
-[esb-int] s5: recovered with order s5recover0-18416066439617 after proxy re-enabled
-[esb-int] s6: 503 SAGA-COMPENSATED releasedReservationId=RES-2026-000007, stock 19 -> 19 (release proven)
-[esb-int] s6: DLQ CN masking proven (msk-* on dlq record, clear value absent)
-[esb-int] s7: ST-SG-01 -> region=SG route={"region":"SG","customerRefMasked":false}
-[esb-int] s7: ST-CN-01 -> region=CN route={"region":"CN","customerRefMasked":true}
-[esb-int] s7: ST-CA-01 -> region=CA route={"region":"CA","customerRefMasked":false}
-[esb-int] toxiproxy: proxy erp enabled=true
-[esb-int] esb: stopped (pid 2338634)
-[esb-int] erp: stopped (pid 2336982)
-[esb-int] mode: FULL (ERP + toxiproxy + kafka + ESB)
-[esb-int] infra: toxiproxy {"version": "2.11.0"}
-[esb-int] infra: kafka:39092 and redis:16379 reachable
-[esb-int] erp: launched java -jar /home/potato/Haitham/ALIBABA/apps/legacy-erp/target/legacy-erp-1.0.0-SNAPSHOT.jar (env {SERVER_PORT=18080, ERP_DEMO_GENERATE_ORDERS=0}), pid=2361965, log=/home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-int-erp.log
-[esb-int] erp: healthy on 18080, seed verified, pid=2361965 (file /home/potato/Haitham/ALIBABA/tests/esb-int/target/erp-18080.pid)
-[esb-int] toxiproxy: proxy erp enabled=true
-[esb-int] kafka: topic silkroute.esb.dlq ensured
-[esb-int] kafka: topic silkroute.orders.events ensured
-[esb-int] esb: launched java -jar /home/potato/Haitham/ALIBABA/apps/esb/target/esb-1.0.0-SNAPSHOT.jar (env {ESB_FAULT_INJECTION=true}), pid=2363356, log=/home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-int-esb.log
-[esb-int] esb: healthy rest=18081 mgmt=18082, pid=2363356 (file /home/potato/Haitham/ALIBABA/tests/esb-int/target/esb-18081.pid)
-[esb-int] target dir for orchestrator evidence: /home/potato/Haitham/ALIBABA/tests/esb-int/target
-[esb-int] kafka: topic silkroute.esb.dlq ensured
-[esb-int] kafka: topic silkroute.orders.events ensured
-[esb-int] s0: harness self-check passed (erp soap, pricing 624/3268/637, toxiproxy, kafka)
-[esb-int] s1: CN events masking proven (customerRef -> msk-*, clear value absent)
-[esb-int] s2: 400 SCHEMA-VIOLATION/SENDER + duplicate blocked (422 ERP ORD-DUP-REF backstop)
-[esb-int] s3: 422 INV-OUT-OF-STOCK/BUSINESS, stock untouched (13 -> 13)
-[esb-int] s3: DLQ carries no record for s3biz-18528619056611
+[esb-int] s3: DLQ carries no record for s3biz-20590129455622
 [esb-int] toxiproxy: added latency toxic 2500 ms
 [esb-int] s4a: persistent latency -> 503 UPSTREAM-UNAVAILABLE, attempts=3 (measured)
 [esb-int] toxiproxy: added latency toxic 2500 ms
 [esb-int] s4b: transient latency + heal -> 422 ORD-DUP-REF (ambiguous timeout, ERP guard held), attempts=2 (measured)
 [esb-int] toxiproxy: proxy erp enabled=false
-[esb-int] s5: CIRCUIT-OPEN after 4 exhausted orders, fail-fast measured at 5 ms (limit 100)
-[esb-int] s5: DLQ holds corr-s5down0-18544063240526 and corr-s5down1-18544683434180
+[esb-int] s5: CIRCUIT-OPEN after 4 exhausted orders, fail-fast measured at 4 ms (limit 100)
+[esb-int] s5: DLQ holds corr-s5down0-20605321025884 and corr-s5down1-20605945523987
 [esb-int] toxiproxy: proxy erp enabled=true
-[esb-int] s5: recovered with order s5recover0-18563799438174 after proxy re-enabled
+[esb-int] s5: recovered with order s5recover0-20624933201323 after proxy re-enabled
 [esb-int] s6: 503 SAGA-COMPENSATED releasedReservationId=RES-2026-000007, stock 19 -> 19 (release proven)
 [esb-int] s6: DLQ CN masking proven (msk-* on dlq record, clear value absent)
+[esb-int] s6: same-key retry after 503 re-executed (ERP backstop, not a lockout): ORD-DUP-REF -> 422
 [esb-int] s7: ST-SG-01 -> region=SG route={"region":"SG","customerRefMasked":false}
 [esb-int] s7: ST-CN-01 -> region=CN route={"region":"CN","customerRefMasked":true}
 [esb-int] s7: ST-CA-01 -> region=CA route={"region":"CA","customerRefMasked":false}
 [esb-int] toxiproxy: proxy erp enabled=true
-[esb-int] esb: stopped (pid 2363356)
-[esb-int] erp: stopped (pid 2361965)
+[esb-int] esb: stopped (pid 2653214)
+[esb-int] erp: stopped (pid 2651043)

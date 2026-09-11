@@ -1,30 +1,43 @@
-=== E-009 suite provenance (appended by ORCH-LEAD) ===
+=== E-009 provenance (v2 — rewritten after critic cycle 1; supersedes the multi-run v1) ===
+run of record: ONE suite run, 2026-09-11 04:0x local, maven summary in the
+transcript tail: "Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 — BUILD
+SUCCESS" (~83s). The transcript in E-009-esb-int-suite.txt is EXACTLY this run:
+it contains a single "mode: FULL" line and the process pids it booted
+(erp pid=2651043, esb pid=<see transcript>), killed by PID files at the end.
+The v1 artifact mixed three runs from an earlier suite revision (including a
+red s4b); it was superseded per critic finding — history lives in git.
+
 command: make esb-int   (= build both jars + ./mvnw -f tests/esb-int/pom.xml verify)
-result:  Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS (~80s)
 setup:   the suite boots its own ERP(18080) + ESB(18081, ESB_FAULT_INJECTION=true),
          creates the toxiproxy "erp" proxy (host-network sim-esb-toxiproxy, API
          127.0.0.1:18474, proxy 127.0.0.1:18180 -> 127.0.0.1:18080) and both kafka
          topics itself, and kills the apps by recorded PID files afterwards.
 artifacts: tests/esb-int/target/{suite-transcript.log, esb-int-erp.log, esb-int-esb.log}
 
-measured highlights (from this transcript):
+measured highlights (this run):
 - s0  harness self-check: ERP SOAP ground truth (SGD 624 / CNY 3268 / CAD 637), toxiproxy, kafka
 - s1  happy SG 201 exact 1248 SGD minor (2 x HALF_UP(637x0.98)); CN 201 CNY total;
-      events topic record for the CN order carries customerRef msk-*, clear value absent
+      events topic record for the CN order carries customerRef msk-* (keyed HMAC
+      pseudonymization), clear value absent
 - s2  400 SCHEMA-VIOLATION/SENDER; same Idempotency-Key -> 409 DUPLICATE; same
       sourceSystem+externalOrderRef with a different key -> 422 ORD-DUP-REF (ERP backstop)
 - s3  422 INV-OUT-OF-STOCK/BUSINESS at demand=stock+1 (schema-legal); ERP stock
-      untouched (13 -> 13); no DLQ record for the business fault
+      untouched; no DLQ record for the business fault
 - s4a persistent 2500ms latency toxic (> the ESB's documented 2000ms read timeout)
-      -> 503 UPSTREAM-UNAVAILABLE with attempts.order == 3 (measured, not asserted into existence)
+      -> 503 UPSTREAM-UNAVAILABLE with attempts.order == 3 (measured)
 - s4b transient toxic deleted as attempt 2 starts -> attempts.order == 2 (measured);
-      ending was 422 ORD-DUP-REF at step order — attempt 1's submit was an AMBIGUOUS
+      ending 422 ORD-DUP-REF at step order — attempt 1's submit was an AMBIGUOUS
       TIMEOUT (the delayed ERP had already created the order; its frozen duplicate-ref
       guard refused attempt 2). Retry proven fired; no duplicate order possible.
 - s5  proxy disabled -> retries exhaust -> CIRCUIT-OPEN fail-fast measured at 4 ms
       (limit 100 ms); DLQ holds the exhausted correlationIds; proxy re-enabled ->
       recovery 201 (half-open probes)
-- s6  X-Fault-Injection: fail-pricing -> 503 SAGA-COMPENSATED compensated:true
-      releasedReservationId=RES-2026-000008; ERP stock 19 -> 19 proves the hold was
-      REALLY released; DLQ record compensated:true; CN variant's DLQ customerRef masked
+- s6  X-Fault-Injection: fail-pricing -> 503 SAGA-COMPENSATED compensated:true,
+      releasedReservationId; ERP stock 19 -> 19 proves the hold was REALLY released;
+      releases ride the breaker-free direct:erp-release route (critic cycle-1 med:
+      compensation must work while the breaker is OPEN); DLQ record compensated:true
+      with masked CN customerRef
+- s6b idempotency-release regression (critic cycle-1 HIGH): same Idempotency-Key
+      retried after the 503 RE-EXECUTES the saga — outcome 422 ORD-DUP-REF (ERP
+      backstop), never 409 DUPLICATE lockout
 - s7  CBR visible: ST-SG-01->SG, ST-CN-01->CN (customerRefMasked:true), ST-CA-01->CA

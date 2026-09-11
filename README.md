@@ -60,7 +60,7 @@ Sim WSS credentials (env-indirected dummies, never real secrets): username `esb-
 | [STATE.md](STATE.md) | Current state, session log, war stories |
 | [evidence/EVIDENCE.md](evidence/EVIDENCE.md) | Claim → artifact → reproduce command → measured result |
 | [decisions/](decisions/) | ADRs |
-| apps/ | legacy-erp (SOAP), esb (Camel), modern-oms, cdc, batch — *lands Phases 1–3* |
+| apps/ | legacy-erp (SOAP, Phase 1), esb (Camel ESB, Phase 2), modern-oms, cdc, batch — *lands Phases 1–3* |
 | infra/ | Terraform alicloud modules (network/security/data/compute/observability) — *lands Phase 4* |
 | compliance/ | PII masking, residency tests, control matrix, ICP runbook, STRIDE — *lands Phase 5* |
 | tests/ | Karate contract, Testcontainers, k6 load, chaos — *lands Phases 1–6* |

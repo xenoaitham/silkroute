@@ -54,7 +54,7 @@ public class OrderResponseAssembler {
 
         response.getRoute().setRegion(ctx.getRegion().code());
         response.getRoute().setCustomerRefMasked(
-                masking.applied(ctx.getOrder().getCustomerRef(), ctx.getRegion().code()));
+                masking.wouldMask(ctx.getOrder().getCustomerRef(), ctx.getRegion().code()));
 
         response.getAudit().setSourceSystem(ctx.getOrder().getAudit().getSourceSystem());
         response.getAudit().setCorrelationId(ctx.getOrder().getAudit().getCorrelationId());

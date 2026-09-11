@@ -63,4 +63,13 @@ public class RedisIdempotencyStore implements IdempotencyStore {
             LOG.warn("Redis unavailable for idempotency completion: {}", e.getMessage());
         }
     }
+
+    @Override
+    public void release(String key) {
+        try {
+            redis.delete(CLAIM_PREFIX + key);
+        } catch (Exception e) {
+            LOG.warn("Redis unavailable for idempotency release: {}", e.getMessage());
+        }
+    }
 }

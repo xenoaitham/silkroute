@@ -58,7 +58,7 @@ jobs:
     name: esb saga/retry/DLQ/compensation suite (boots ERP + ESB itself)
     runs-on: ubuntu-latest
     # Black-box: the suite boots the legacy-erp (18080) and esb (18081) fat jars
-    # itself against the sim containers (toxiproxy 8474, kafka 39092, redis
+    # itself against the sim containers (toxiproxy 18474, kafka 39092, redis
     # 16379). Fails loudly if a jar is missing or an app does not become
     # healthy — never skips (falsifiable by construction).
     steps:

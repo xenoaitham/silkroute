@@ -32,7 +32,7 @@ import com.mapleretail.silkroute.esb.saga.SagaContext;
 class ResponseAssemblyTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final OrderResponseAssembler assembler = new OrderResponseAssembler(new PiiMaskingPolicy());
+    private final OrderResponseAssembler assembler = new OrderResponseAssembler(new PiiMaskingPolicy("test-egress-secret"));
 
     private CanonicalOrder order(String storeId, String customerRef) {
         CanonicalOrder order = new CanonicalOrder();

@@ -416,6 +416,22 @@ class EsbIntegrationTest {
         }
         assertFalse(dlqCn.contains(cnClearRef), "clear CN customerRef must not reach the DLQ");
         Transcript.log("s6: DLQ CN masking proven (msk-* on dlq record, clear value absent)");
+
+        // Regression (critic cycle-1 high): a FAILED saga must release its Redis
+        // idempotency claim — retrying the SAME Idempotency-Key after the 503 is
+        // exactly what the key exists for. The saga re-executes; because the first
+        // attempt's submitOrder already committed at the ERP (fail-pricing fires
+        // AFTER submit), the ERP's own duplicate-ref guard backstops the re-submit
+        // (422 ORD-DUP-REF) — a fresh 201 is equally acceptable. A 409 DUPLICATE
+        // for this key would be the defect.
+        Wire.Resp retrySameKey = Wire.post(Wire.ORDERS_URL,
+                Wire.orderBody(store, sku, 1, "cust-ca-" + tokCa, tokCa), "Idempotency-Key", "corr-" + tokCa);
+        boolean lockout = retrySameKey.status() == 409
+                && "DUPLICATE".equals(retrySameKey.json().path("code").asText());
+        assertFalse(lockout, "failed saga must release the idempotency claim; same key got locked out. Body: "
+                + retrySameKey.body());
+        Transcript.log("s6: same-key retry after 503 re-executed (ERP backstop, not a lockout): %s -> %d",
+                retrySameKey.json().path("code").asText(), retrySameKey.status());
     }
 
     // ------------------------------------------------------------------ 7

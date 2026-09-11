@@ -78,7 +78,7 @@ public class SagaOrchestrator {
         try {
             // ---- (1) order --------------------------------------------------
             currentStep[0] = "order";
-            ErpCallResult submitted = erp(ErpCall.submitOrder(ctx));
+            ErpCallResult submitted = erp("direct:erp", ErpCall.submitOrder(ctx));
             if (submitted.isBusinessError()) {
                 return businessNoCompensation(submitted.getBusinessError(), currentStep[0], ctx);
             }
@@ -90,7 +90,7 @@ public class SagaOrchestrator {
             currentStep[0] = "reserve";
             for (int i = 0; i < order.getLines().size(); i++) {
                 var line = order.getLines().get(i);
-                ErpCallResult reserved = erp(ErpCall.reserve(ctx, line.getSkuId(), line.getQuantity(), i + 1));
+                ErpCallResult reserved = erp("direct:erp", ErpCall.reserve(ctx, line.getSkuId(), line.getQuantity(), i + 1));
                 if (reserved.isBusinessError()) {
                     // Literal contract: OutOfStockFault on the reserve step itself →
                     // 422, NO compensation, NO DLQ (handled Sender-class outcome).
@@ -104,7 +104,7 @@ public class SagaOrchestrator {
             currentStep[0] = "pricing";
             List<CanonicalUnitPrice> unitPrices = new ArrayList<>();
             for (int i = 1; i <= order.getLines().size(); i++) {
-                ErpCallResult priced = erp(ErpCall.price(ctx, i));
+                ErpCallResult priced = erp("direct:erp", ErpCall.price(ctx, i));
                 if (priced.isBusinessError()) {
                     return businessAfterReserve(priced.getBusinessError(), currentStep[0], ctx);
                 }
@@ -114,7 +114,7 @@ public class SagaOrchestrator {
 
             // ---- (4) confirm -------------------------------------------------
             currentStep[0] = "confirm";
-            ErpCallResult confirmation = erp(ErpCall.orderStatus(ctx));
+            ErpCallResult confirmation = erp("direct:erp", ErpCall.orderStatus(ctx));
             if (confirmation.isBusinessError()) {
                 return businessAfterReserve(confirmation.getBusinessError(), currentStep[0], ctx);
             }
@@ -191,7 +191,11 @@ public class SagaOrchestrator {
         }
         for (String reservationId : ctx.getReservationIds()) {
             try {
-                erp(ErpCall.release(ctx, reservationId));
+                // Compensation MUST be possible exactly when the breaker is OPEN —
+                // that is when a saga holding reservations fails — so releases ride
+                // the dedicated breaker-free route (direct:erp-release), never the
+                // guarded direct:erp funnel.
+                erp("direct:erp-release", ErpCall.release(ctx, reservationId));
                 ctx.getReleasedReservationIds().add(reservationId);
                 LOG.info("Compensated reservation {}", reservationId);
             } catch (Exception e) {
@@ -237,9 +241,9 @@ public class SagaOrchestrator {
                 ctx.getOrder().getAudit().getCorrelationId(), ctx.getAttempts());
     }
 
-    private ErpCallResult erp(ErpCall call) {
+    private ErpCallResult erp(String endpoint, ErpCall call) {
         try {
-            Object result = producer.requestBody("direct:erp", call);
+            Object result = producer.requestBody(endpoint, call);
             return (ErpCallResult) result;
         } catch (CamelExecutionException e) {
             throw unwrap(e);

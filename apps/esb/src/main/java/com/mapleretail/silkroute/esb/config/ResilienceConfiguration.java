@@ -72,6 +72,14 @@ public class ResilienceConfiguration {
                                 .throwExceptionWhenHalfOpenOrOpenState(true))
                         .bean(erpGateway, "dispatch")
                         .end();
+
+                // Compensation route, deliberately OUTSIDE the breaker: a saga that
+                // is rolling back DURING an outage must still be able to release its
+                // ERP holds — the breaker is exactly what is open at that moment.
+                // Releases are still retried-per-call by the gateway itself.
+                from("direct:erp-release")
+                        .routeId("erp-release-compensation")
+                        .bean(erpGateway, "dispatch");
             }
         };
     }
