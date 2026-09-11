@@ -1,0 +1,28 @@
+# backend-remote.tf.example
+#
+# State is LOCAL by default (no backend block) because validated-plans mode has
+# no AliCloud account to hold state. Rename this file to backend-remote.tf and
+# fill in real values ONLY once an account exists - the built-in `oss` backend
+# below stores state in OSS and locks via TableStore.
+#
+# Prerequisites at activation time:
+#   1. An OSS bucket (e.g. silkroute-tfstate) in the hub region, private ACL,
+#      SSE enabled.
+#   2. A TableStore instance + table for state locking (tablestore_endpoint
+#      and lock_table below). terraform init then runs a state migration.
+
+terraform {
+  backend "oss" {
+    # bucket             = "silkroute-tfstate"              # created out-of-band, private + SSE
+    # prefix             = "silkroute/landing-zone/singapore"
+    # region             = "ap-southeast-1"
+    # encrypt            = true
+    #
+    # TableStore (state locking - mandatory once more than one operator exists):
+    # tablestore_endpoint = "https://silkroute-tflock.ap-southeast-1.ots.aliyuncs.com"
+    # lock_table          = "terraform-locks"
+    #
+    # Backend credentials are read from the environment
+    # (ALICLOUD_ACCESS_KEY / ALICLOUD_SECRET_KEY) - never committed.
+  }
+}

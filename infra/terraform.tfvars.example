@@ -1,0 +1,22 @@
+# terraform.tfvars.example - copy to terraform.tfvars and edit ONLY once a real
+# AliCloud account exists. Every value below has a working default so a bare
+# `terraform plan` completes credential-free (ADR-0002 validated-plans mode).
+
+# region              = "ap-southeast-1"       # SG hub (C2); CN partition pins its own region
+# vpc_cidr            = "10.60.0.0/16"         # SG hub; CN uses 10.70.0.0/16
+# az1                 = "ap-southeast-1a"      # verify AZ IDs against the account at apply time
+# az2                 = "ap-southeast-1b"
+# admin_cidr          = "10.60.1.0/24"         # office/VPN CIDR for ESB admin endpoints; never 0.0.0.0/0
+# account_id          = "123456789012345678"   # real 16-digit AliCloud account ID (placeholder today)
+
+# Credentials: do NOT put real keys in tfvars. In a real account remove the
+# placeholder variables and let the provider read
+# ALICLOUD_ACCESS_KEY / ALICLOUD_SECRET_KEY from the environment.
+
+# enable_cn_region    = false                  # ADR-0005: CN partition is designed and
+#                                              # plan-validated, applied only from a
+#                                              # CN-registered account (real-name
+#                                              # verification; ICP for public endpoints, C2)
+# cn_region           = "cn-beijing"
+# cn_az1              = "cn-beijing-g"
+# cn_az2              = "cn-beijing-h"
