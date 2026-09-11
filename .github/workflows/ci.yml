@@ -50,3 +50,43 @@ jobs:
           name: karate-contract-report
           path: tests/contract/target/karate-reports
           retention-days: 7
+
+  # Phase 2: ESB proof suite — retry / circuit-breaker / DLQ / saga compensation
+  # under induced failure (toxiproxy), plus k6 p95 measurement happens on demand
+  # via `make load-orders` (see tests/load/).
+  esb-integration-tests:
+    name: esb saga/retry/DLQ/compensation suite (boots ERP + ESB itself)
+    runs-on: ubuntu-latest
+    # Black-box: the suite boots the legacy-erp (18080) and esb (18081) fat jars
+    # itself against the sim containers (toxiproxy 8474, kafka 39092, redis
+    # 16379). Fails loudly if a jar is missing or an app does not become
+    # healthy — never skips (falsifiable by construction).
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Temurin JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Bring up sim network (toxiproxy + kafka + redis)
+        run: make up
+      - name: Build legacy-erp fat jar (unit tests run in the contract-tests job)
+        run: ./mvnw -B -f apps/legacy-erp/pom.xml package -DskipTests
+      - name: Build esb fat jar
+        run: ./mvnw -B -f apps/esb/pom.xml package -DskipTests
+      - name: Run ESB integration suite (boots ERP + ESB, injects faults)
+        run: ./mvnw -B -f tests/esb-int/pom.xml verify
+      - name: Archive surefire reports + boot logs + suite transcript
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: esb-int-artifacts
+          path: |
+            tests/esb-int/target/surefire-reports
+            tests/esb-int/target/*.log
+            tests/esb-int/target/*.pid
+          retention-days: 7
+      - name: Tear down
+        if: always()
+        run: make down

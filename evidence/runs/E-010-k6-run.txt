@@ -1,0 +1,35 @@
+=== E-010: k6 load run transcript (C3 sync-path p95) ===
+date: 2026-09-11 · ORCH-LEAD run · k6 v0.57.0 (~/tools/k6/k6)
+
+command: make esb-run && make load-orders && make esb-stop
+profile: tests/load/k6-orders.js — ramping-arrival-rate, 10s ramp + 60s hold at target
+  20 RPS, unique externalOrderRef/correlationId per iteration, round-robin over
+  150 sku/store combos (any SKU/store pair repeats at most ~9 times).
+host:    potato-linux, Intel Core i5-10400F (12 threads @ 2.90GHz), 16GB RAM;
+  sim mode — ERP(18080), ESB(18081), toxiproxy erp proxy (18180->18080), Kafka
+  (39092) and Redis (16379) all on localhost. Machine also ran unrelated
+  busforge/helios docker stacks (not idle — recorded for honesty).
+
+--- console tail ---
+     checks.........................: 98.61% 1286 out of 1304
+     http_req_duration..............: avg=22.48ms min=8.81ms med=18.24ms max=199.37ms
+                                      p(90)=34.47ms p(95)=44.24ms
+     http_req_failed................: 1.38%  18 out of 1304
+     http_reqs......................: 1304   18.63/s
+     iteration_duration.............: avg=23.05ms min=9.02ms med=18.5ms
+     vus_max........................: 20
+running (1m10.0s), 000/020 VUs, 1304 complete and 0 interrupted iterations
+
+--- summary-export ---
+see evidence/runs/E-010-k6-summary.json (metrics.http_req_duration["p(95)"] = 44.2480541)
+
+--- diagnosis of the 18 non-201 responses (ESB app log during the run window) ---
+18 of 1304 responses were 422 INV-OUT-OF-STOCK: the ERP seeds stock at 5..100
+units per row (Random(42), ON_HAND_FLOOR=5, ON_HAND_SPAN=96), so ~1300 qty-1
+orders over 150 combos legitimately exhausted some rows mid-run. These are
+BUSINESS outcomes — the ESB correctly mapped them to Sender-class 422s; they are
+NOT latency or infra failures. grep counts on the ESB log for the window:
+INV-OUT-OF-STOCK=18, ORD-DUP=0, UPSTREAM-UNAVAILABLE/CIRCUIT-OPEN/INTERNAL=0.
+
+RESULT (C3): sync SOAP-mediation p95 = 44.25ms < 300ms budget at ~18.6 RPS
+achieved throughput, sim mode, consumer-grade desktop hardware. Medians: 18.25ms.

@@ -31,3 +31,49 @@ smoke: ## assert connectivity to ALL five sim services (exit non-zero on any fai
 
 clean: ## remove stray compose artifacts
 	docker compose down -v --remove-orphans --rmi local 2>/dev/null || true
+
+# --- Phase 2: ESB proof layer (tests/esb-int, tests/load, tests/chaos) -------
+ESB_ERP_JAR := apps/legacy-erp/target/legacy-erp-1.0.0-SNAPSHOT.jar
+ESB_APP_JAR := apps/esb/target/esb-1.0.0-SNAPSHOT.jar
+K6_BIN ?= $(HOME)/tools/k6/k6
+ESB_ERP_PID := /tmp/silkroute-esb-erp.pid
+ESB_APP_PID := /tmp/silkroute-esb-app.pid
+
+.PHONY: esb-int esb-run esb-stop load-orders
+
+esb-int: ## build legacy-erp + esb jars, then run the esb-int suite (it boots both apps itself)
+	./mvnw -B -f apps/legacy-erp/pom.xml package -DskipTests
+	./mvnw -B -f apps/esb/pom.xml package -DskipTests
+	./mvnw -B -f tests/esb-int/pom.xml verify
+
+esb-run: ## convenience: ensure toxiproxy erp proxy, boot ERP(18080) + ESB(18081) with PID files under /tmp, print healths
+	@command -v jq >/dev/null || { echo "ERROR: jq is required by 'make esb-run'."; exit 1; }
+	@test -f $(ESB_ERP_JAR) || { echo "ERROR: missing $(ESB_ERP_JAR) — run: ./mvnw -B -f apps/legacy-erp/pom.xml package -DskipTests"; exit 1; }
+	@test -f $(ESB_APP_JAR) || { echo "ERROR: missing $(ESB_APP_JAR) — run: ./mvnw -B -f apps/esb/pom.xml package -DskipTests"; exit 1; }
+	@if [ -f scripts/esb-toxiproxy.sh ]; then bash scripts/esb-toxiproxy.sh; \
+	else curl -sf http://127.0.0.1:18474/version >/dev/null || { echo "ERROR: esb toxiproxy not on 18474 — run: make up"; exit 1; }; \
+		curl -sf -o /dev/null http://127.0.0.1:18474/proxies/erp || \
+		curl -s -X POST http://127.0.0.1:18474/proxies -H 'Content-Type: application/json' \
+			-d '{"name":"erp","listen":"127.0.0.1:18180","upstream":"127.0.0.1:18080","enabled":true}' >/dev/null; fi
+	@bash tests/chaos/esb-faults.sh reset || true
+	SERVER_PORT=18080 ERP_DEMO_GENERATE_ORDERS=0 nohup java -jar $(ESB_ERP_JAR) > /tmp/silkroute-esb-erp.log 2>&1 & echo $$! > $(ESB_ERP_PID)
+	ESB_FAULT_INJECTION=true nohup java -jar $(ESB_APP_JAR) > /tmp/silkroute-esb-app.log 2>&1 & echo $$! > $(ESB_APP_PID)
+	@echo "waiting for ERP(18080) + ESB(18081) health..."
+	@timeout 180 bash -c 'until curl -sf http://127.0.0.1:18080/actuator/health | grep -q UP; do sleep 2; done'
+	@timeout 180 bash -c 'until curl -sf http://127.0.0.1:18082/actuator/health | grep -q UP; do sleep 2; done'
+	@echo "ERP  health: $$(curl -s http://127.0.0.1:18080/actuator/health)  (pid $$(cat $(ESB_ERP_PID)))"
+	@echo "ESB  health: $$(curl -s http://127.0.0.1:18082/actuator/health)  (pid $$(cat $(ESB_APP_PID)))"
+	@echo "ESB REST:  http://127.0.0.1:18081/api/v1/orders"
+	@echo "PID files: $(ESB_ERP_PID) $(ESB_APP_PID)  (stop with: make esb-stop)"
+
+esb-stop: ## stop the esb-run processes by their recorded PID files only (never pkill)
+	@for f in $(ESB_APP_PID) $(ESB_ERP_PID); do \
+		if [ -f $$f ]; then pid=$$(cat $$f); \
+			echo "esb-stop: killing pid $$pid from $$f"; \
+			kill $$pid 2>/dev/null || echo "esb-stop: pid $$pid already gone"; \
+			rm -f $$f; else echo "esb-stop: no $$f (nothing to stop)"; fi; done
+
+load-orders: ## run the k6 orders load profile (needs ERP+proxy+ESB from esb-run); records REAL p95 into tests/load/results/
+	@test -x $(K6_BIN) || { echo "ERROR: k6 not at $(K6_BIN) (override with K6_BIN=...)"; exit 1; }
+	@mkdir -p tests/load/results
+	$(K6_BIN) run tests/load/k6-orders.js --summary-export=tests/load/results/k6-orders-summary.json

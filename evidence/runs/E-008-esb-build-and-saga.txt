@@ -1,0 +1,16 @@
+=== E-008: apps/esb build + unit tests + live saga happy path (ORCH-LEAD re-run, S3) ===
+date: 2026-09-11 · Java 21 (Temurin), Maven 3.9.9 wrapper · Camel 4.10.3 LTS + Spring Boot 3.4.5 + CXF 4.0.5 client
+
+--- ./mvnw -f apps/esb/pom.xml clean package ---
+[INFO] Tests run: 32, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+--- make esb-run (ERP 18080 + ESB 18081; ALL ERP calls via toxiproxy erp 127.0.0.1:18180 -> 127.0.0.1:18080) ---
+ERP  health: {"status":"UP"}   ESB health: {"status":"UP"}   (PID files /tmp/silkroute-esb-*.pid, stopped after capture)
+
+--- POST http://127.0.0.1:18081/api/v1/orders (ST-CA-01 / SKU-0001 x1) -> expect 201, CAD 500, 4-step saga ---
+{"orderId":"ORD-2026-000001","status":"SUBMITTED","externalOrderRef":"E8-627","storeId":"ST-CA-01","region":"CA","channel":"WEB_STORE","reservationId":"RES-2026-000001","totalAmount":{"amountMinor":500,"currency":"CAD"},"unitPrices":[{"skuId":"SKU-0001","amountMinor":500,"currency":"CAD"}],"saga":[{"step":"order","status":"COMPLETED"},{"step":"reserve","status":"COMPLETED"},{"step":"pricing","status":"COMPLETED"},{"step":"confirm","status":"COMPLETED"}],"attempts":{"order":1,"reserve":1,"pricing":1,"confirm":1},"route":{"region":"CA","customerRefMasked":false},"audit":{"sourceSystem":"EVIDENCE","correlationId":"corr-e8"}}
+[HTTP 201]
+
+--- same request again (same Idempotency-Key) -> expect 409 DUPLICATE ---
+(already claimed key proven in E-009 transcript s2; single-key replay shown in apps/esb README)

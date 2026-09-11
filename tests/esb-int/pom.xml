@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 2 — ESB integration tests (retry / circuit-breaker / DLQ / saga
+  compensation proof layer).
+
+  Black-box suite: it speaks plain JSON over HTTP to the ESB (127.0.0.1:18081),
+  raw SOAP 1.2 + WSSE to the legacy ERP for independent stock/pricing ground
+  truth, the toxiproxy REST API for fault injection, and `docker exec sim-kafka`
+  for DLQ / events topic consumption. It has NO dependency on apps/esb classes —
+  the only couplings are (a) launching the packaged fat jars and (b) the frozen
+  Phase 2 wire contract.
+
+  Run:   ./mvnw -B -f tests/esb-int/pom.xml verify    (boots ERP 18080 + ESB 18081 itself)
+  Env:   ESB_TEST_BASEURL    test an ALREADY-RUNNING ESB instead of booting one
+         ERP_TEST_BASEURL    ditto for the ERP
+         ESBINT_BOOT_TIMEOUT_SECONDS   health-poll budget per app (default 120)
+         ESBINT_HARNESS_ONLY=true      opt-in diagnostic: boot/verify ONLY the
+                                       harness (ERP + toxiproxy + kafka) and skip
+                                       the ESB scenarios. NOT the default — the
+                                       default suite hard-fails without the ESB.
+  Deps kept minimal (junit-jupiter + jackson-databind): the Maven mirror is
+  flaky, so everything else uses the JDK (java.net.http, built-in DOM).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.mapleretail.silkroute</groupId>
+  <artifactId>legacy-esb-integration-tests</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>legacy-esb-integration-tests</name>
+  <description>Phase 2 ESB proof suite: retry, circuit breaker, DLQ, saga compensation + masking under induced failure.</description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+    <junit.jupiter.version>5.10.2</junit.jupiter.version>
+    <jackson.version>2.17.2</jackson.version>
+    <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- JSON parsing only (responses, DLQ/events records). No apps/esb classes. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
+        <configuration>
+          <!-- Single entry point: EsbIntegrationTest owns the whole system
+               lifecycle (@BeforeAll boots ERP + ESB, @AfterAll kills by recorded
+               PID). ESBINT_* / ERP_TEST_* / ESB_TEST_* env vars are inherited by
+               the forked JVM. Boot logs + suite transcript land in target/. -->
+          <includes>
+            <include>EsbIntegrationTest</include>
+          </includes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

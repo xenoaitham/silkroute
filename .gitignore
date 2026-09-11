@@ -39,3 +39,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# ESB QA artifacts (k6 measured summaries are copied into evidence/ by the orchestrator)
+tests/load/results/
