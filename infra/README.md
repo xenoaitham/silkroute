@@ -17,7 +17,7 @@ deployment. The CN partition (`var.enable_cn_region`) is plan-validated only
 | `network/`       | VPC 10.60.0.0/16, 2 private + 1 public vSwitch, enhanced NAT + EIP, `sg-esb`/`sg-erp`/`sg-data` with allowlist rules (no 0.0.0.0/0 inbound) |
 | `security/`      | 2 KMS keys + aliases (`silkroute-sg-oss`, `silkroute-sg-rds`), ESB runtime role (SAE trust, least-privilege policy), `silkroute-ci` user + `silkroute-ci-deploy` assume-role |
 | `data/`          | RDS MySQL 8.0 (Postpaid, utf8mb4, UTC) + `silkroute_oms` DB/account, OSS lake `silkroute-sg-{artifacts,bronze,silver,gold}` with SSE-KMS, versioning, public-access block, SecureTransport-deny bucket policies |
-| `compute/`       | SAE namespace + `silkroute-esb` / `silkroute-erp` apps (ADR-0004), AliCloud Kafka instance + sim-identical topics `silkroute.orders.events` / `silkroute.esb.dlq` + SASL user |
+| `compute/`       | SAE namespace + `silkroute-esb` / `silkroute-erp` apps (ADR-0004), AliCloud Kafka instance + dot-free topics `silkroute-orders-events` / `silkroute-esb-dlq` (ApsaraMQ forbids dots in topic names; the ESB selects them via `KAFKA_ORDERS_TOPIC`/`KAFKA_DLQ_TOPIC`) + SASL user |
 | `observability/` | Log project `silkroute-sg` (stores: `esb-app` 30d, `audit` 180d, `orders-events` 30d), ActionTrail -> audit store, overview dashboard, CMS contact group + SAE-CPU / RDS-connection alarms, SLS DLQ-depth alert |
 | `cn-partition/`  | Mirror of the SG hub at small scale in `cn-beijing`, every taggable resource tagged `residency=cn`, `data-classification=pipl-restricted`, region pinned via the aliased `alicloud.cn` provider - **design only, see its README** |
 
@@ -29,8 +29,8 @@ export PATH="$HOME/tools/terraform:$PATH"
 terraform fmt -check -recursive            # must be clean
 terraform init                             # downloads aliyun/alicloud 1.285.0
 terraform validate                         # schema check
-terraform plan                             # flag false: "Plan: 73 to add..."
-terraform plan -var enable_cn_region=true  # CN design: "Plan: 104 to add..."
+terraform plan                             # flag false: "Plan: 75 to add..."
+terraform plan -var enable_cn_region=true  # CN design: "Plan: 106 to add..."
 ```
 
 Plans perform **no AliCloud API calls** (placeholder credentials, local empty
@@ -54,7 +54,7 @@ is schema evidence only, never proof of deployment.
 ## Budget alarm (provider gap - honest note)
 
 The ~\$20 budget alarm is implemented **outside Terraform** via the BSSOpenAPI
-`SetBudgets` API (script: `scripts/budget-alarm.sh`, owned by ORCH-LEAD),
+`CreateBudget` API of BssOpenApi 2023-09-30 (script: `scripts/budget-alarm.sh`),
 because provider 1.285.0 ships **no** budget/BSS resource type (verified by
 case-insensitive grep over all 1161 resource names in `terraform providers
 schema -json`). Console path if you prefer clicking: BSS console -> Budgets ->
@@ -98,7 +98,7 @@ Create budget (amount ~\$20, alert at 80%/100%).
 
 ## Activation checklist (when a real account exists)
 
-1. Budget alarm first: `scripts/budget-alarm.sh` (BSSOpenAPI `SetBudgets`, ~$20).
+1. Budget alarm first: `scripts/budget-alarm.sh` (BssOpenApi `CreateBudget`, ~$20).
 2. Replace placeholder credentials/account-id with env/profile auth + real
    account id; move RDS/Kafka passwords from `random_password` state into KMS
    secrets, and restrict state access.

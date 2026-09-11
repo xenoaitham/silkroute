@@ -19,7 +19,7 @@ Separately, ORCH-LEAD verified against the actual provider 1.285.0 schema (1161 
 ## Decision
 
 1. **Compute = SAE.** `infra/compute` models two SAE applications (`silkroute-esb`, `silkroute-erp`) in namespace `silkroute-sg`, plus the CN twins in `infra/cn-partition` behind `var.enable_cn_region`. Jar artifact path points at the `silkroute-sg-artifacts` OSS bucket; package upload is an out-of-band deploy step.
-2. **Budget alarm = `scripts/budget-alarm.sh`** wrapping the BSSOpenAPI `SetBudgets` API (monthly amount threshold $20 → alert at 100%, contact = the `silkroute-ops` CloudMonitor group). The script is dry-run by default (prints the exact request payload) and refuses to run against real credentials unless explicitly invoked — in validated-plans mode it is the documented, executable mechanism, and it becomes a real alarm the day an account exists. The provider gap is documented in `infra/observability/README.md`.
+2. **Budget alarm = `scripts/budget-alarm.sh`** wrapping the BssOpenApi `CreateBudget` API (2023-09-30; doc-verified after critic cycle 1 caught the original draft targeting an uncitable `SetBudgets` action) — monthly cap $20, warn at 100% via `WarnConfs`. The script is dry-run by default (prints the exact request payload) and refuses to run against real credentials unless explicitly invoked — in validated-plans mode it is the documented, executable mechanism, and it becomes a real alarm the day an account exists. The provider gap is documented in `infra/observability/README.md`.
 
 ## Consequences
 

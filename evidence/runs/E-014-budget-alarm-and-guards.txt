@@ -1,39 +1,52 @@
-# E-014 — budget alarm mechanism + guarded cloud targets (S4, 2026-09-11T19:09:09Z)
+# E-014 v2 — budget alarm (CreateBudget retarget) + guards (S4, 2026-09-11T19:41:21Z)
+# corrected per critic cycle 1: SetBudgets (uncitable) -> CreateBudget BssOpenApi 2023-09-30
+# doc: https://help.aliyun.com/en/user-center/developer-reference/api-bssopenapi-2023-09-30-createbudget
 
-## provider-gap proof (why the alarm is NOT a terraform resource)
+## provider-gap proof
 resource names matching budget|bss|billing: 0
 
-## scripts/budget-alarm.sh dry run (default mode — performs no API call)
+## scripts/budget-alarm.sh dry run (default — no API call)
 DRY RUN (default) — no API call performed. To execute against a real account:
   LIVE=1 ALICLOUD_ACCESS_KEY_ID=... ALICLOUD_ACCESS_KEY_SECRET=... bash scripts/budget-alarm.sh
 
-BSSOpenAPI SetBudgets payload (amount $20, alert at 100%):
+BssOpenApi CreateBudget (2023-09-30) payload: monthly cap $20, warn at 100%:
 {
   "BudgetName": "silkroute-monthly",
-  "BudgetType": "MONTHLY",
-  "BudgetAmount": "20",
-  "BudgetLimitType": "Cost",
-  "AlertThresholdList": [
-    {"BudgetLimitType": "Cost", "AlertThreshold": 100}
-  ],
-  "AlertTypeList": ["EmailAndSms"]
-}
+  "BudgetType": "CONSUME",
+  "Metric": "REQUIRE_AMOUNT",
+  "CycleType": "MONTHLY",
+  "CycleStartPeriod": "2026-01",
+  "CycleEndPeriod": "2026-12",
+  "QuotaType": "SPECIFY",
+  "CycleQuota": [
+    {"CyclePeriod": "2026-01", "Quota": "20"},
+    {"CyclePeriod": "2026-02", "Quota": "20"},
+    {"CyclePeriod": "2026-03", "Quota": "20"},
+    {"CyclePeriod": "2026-04", "Quota": "20"},
+    {"CyclePeriod": "2026-05", "Quota": "20"},
+    {"CyclePeriod": "2026-06", "Quota": "20"},
+    {"CyclePeriod": "2026-07", "Quota": "20"},
+    {"CyclePeriod": "2026-08", "Quota": "20"},
+    {"CyclePeriod": "2026-09", "Quota": "20"},
+    {"CyclePeriod": "2026-10", "Quota": "20"},
+    {"CyclePeriod": "2026-11", "Quota": "20"},
+...
 exit=0
 
-## negative path: make deploy-sg WITHOUT guard env (must refuse, exit 2)
+## negative path: make deploy-sg without guard env
 REFUSING: this target touches a real AliCloud account (billable).
 It requires SILKROUTE_CLOUD_CONFIRM=YES and ALICLOUD_ACCESS_KEY(_ID)/SECRET in the env.
 Validated-plans mode (ADR-0002): use 'make plan-sg' — plans create nothing.
 make: *** [Makefile:108: deploy-sg] Error 2
 exit=2
 
-## negative path: make destroy WITHOUT guard env (must refuse, exit 2)
+## negative path: make destroy without guard env
 REFUSING: this target touches a real AliCloud account (billable).
 It requires SILKROUTE_CLOUD_CONFIRM=YES and ALICLOUD_ACCESS_KEY(_ID)/SECRET in the env.
 Validated-plans mode (ADR-0002): use 'make plan-sg' — plans create nothing.
 make: *** [Makefile:112: destroy] Error 2
 exit=2
 
-## positive control: make plan-sg (the guarded alternative — must succeed, creates nothing)
-Plan: 75 to add, 0 to change, 0 to destroy.
+## positive control: make plan-sg
+Plan: 79 to add, 0 to change, 0 to destroy.
 exit=0

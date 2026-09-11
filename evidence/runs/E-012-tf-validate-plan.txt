@@ -1,55 +1,35 @@
-# E-012 — terraform fmt/validate/plan after SEC-1 fixes, ORCH-LEAD re-run (S4, 2026-09-11T19:05:47Z)
+# E-012 — terraform fmt/validate/plan after SEC-1 fixes AND critic cycle-1 fixes (S4, 2026-09-11T19:42:16Z)
 # terraform: Terraform v1.16.2
-# pre-fix run + findings: compliance/iam-review-phase4.md (SEC-4-01..-10), SEC-4-01 was HIGH
+# fixes: dot-free alikafka topics, egress honesty + snat_entries, KMS trim, data->private_2, CreateBudget retarget
 
-/bin/bash: line 3: cd: infra: No such file or directory
-## terraform fmt -check -recursive
+## apply-validity lint
+tf-apply-validity: OK — no known apply-time violations in infra/.
 exit=0
 
-## terraform providers (root — shows the CN alias wiring, SEC-4-01)
+## fmt -check -recursive
+clean
+exit=0
 
-Providers required by configuration:
-.
-├── provider[registry.terraform.io/aliyun/alicloud] 1.285.0
-├── provider[registry.terraform.io/hashicorp/random] ~> 3.7
-├── module.security
-│   └── provider[registry.terraform.io/aliyun/alicloud] 1.285.0
-├── module.network
-│   └── provider[registry.terraform.io/aliyun/alicloud] 1.285.0
-├── module.cn_partition
-│   ├── provider[registry.terraform.io/aliyun/alicloud] 1.285.0
-│   └── provider[registry.terraform.io/hashicorp/random] ~> 3.7
-├── module.observability
-│   └── provider[registry.terraform.io/aliyun/alicloud] 1.285.0
-├── module.compute
-│   ├── provider[registry.terraform.io/hashicorp/random] ~> 3.7
-│   └── provider[registry.terraform.io/aliyun/alicloud] 1.285.0
-└── module.data
-    ├── provider[registry.terraform.io/hashicorp/random] ~> 3.7
-    └── provider[registry.terraform.io/aliyun/alicloud] 1.285.0
-
-
-## terraform validate (root)
-
-
- 132: resource "alicloud_log_alert" "dlq_depth" {
-
+## validate (root)
 Success! The configuration is valid, but there were some validation warnings
-as shown above.
 
-exit=0
+## plan (enable_cn_region=false)
+Plan: 79 to add, 0 to change, 0 to destroy.
 
-## terraform plan (enable_cn_region=false, placeholder creds, local empty state — NO AliCloud API calls)
-Plan: 75 to add, 0 to change, 0 to destroy.
-exit=0
+## plan -var enable_cn_region=true (never applied — ADR-0005)
+Plan: 110 to add, 0 to change, 0 to destroy.
 
-## terraform plan -var enable_cn_region=true (CN: designed + plan-able, NEVER applied — ADR-0005)
-Plan: 106 to add, 0 to change, 0 to destroy.
-exit=0
-
-## CN plan region-bearing planned values (zone ids / namespace id — placement visible)
+## CN placement values
       + zone_id                     = "cn-beijing-g"
       + namespace_id                     = "cn-beijing:silkroute-cn"
       + namespace_id              = "cn-beijing:silkroute-cn"
       + zone_id              = "cn-beijing-g"
-      + zone_id              = "cn-beijing-h"
+
+## alikafka topics (dot-free)
+compute/main.tf:88:  topic         = "silkroute-orders-events"
+compute/main.tf:95:  topic         = "silkroute-esb-dlq"
+cn-partition/main.tf:232:  topic         = "silkroute-orders-events"
+cn-partition/main.tf:240:  topic         = "silkroute-esb-dlq"
+
+## snat entries
+2

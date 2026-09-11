@@ -79,10 +79,12 @@ resource "alicloud_ram_policy" "esb_runtime" {
       {
         # SSE-KMS uploads need GenerateDataKey, not just Decrypt (SEC-4-03);
         # without it every bronze PutObject against the encrypted bucket fails.
+        # Only the OSS key is granted: RDS consumes its TDE key internally —
+        # the application never touches it (critic cycle 1).
         Sid      = "EncryptDecryptWithLandingZoneKeys"
         Effect   = "Allow"
         Action   = ["kms:Decrypt", "kms:GenerateDataKey"]
-        Resource = [alicloud_kms_key.oss.arn, alicloud_kms_key.rds.arn]
+        Resource = [alicloud_kms_key.oss.arn]
       },
       {
         Sid    = "WriteAppLogs"

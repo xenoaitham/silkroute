@@ -108,6 +108,8 @@ jobs:
         with:
           terraform_version: 1.16.2
           terraform_wrapper: false
+      - name: Apply-validity lint (plan-invisible API constraints, e.g. ApsaraMQ topic naming)
+        run: bash scripts/tf-apply-validity.sh
       - name: fmt (check mode)
         run: terraform -chdir=infra fmt -check -recursive
       - name: init

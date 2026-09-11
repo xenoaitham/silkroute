@@ -13,6 +13,11 @@ output "private_vswitch_id_1" {
   value       = alicloud_vswitch.private_1.id
 }
 
+output "private_vswitch_id_2" {
+  description = "Second-AZ private vSwitch; RDS is pinned here (replica spread)."
+  value       = alicloud_vswitch.private_2.id
+}
+
 output "public_vswitch_id" {
   description = "Public vSwitch hosting the NAT gateway."
   value       = alicloud_vswitch.public.id

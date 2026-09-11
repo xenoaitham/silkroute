@@ -12,7 +12,7 @@ C1 (PIPL: Chinese-customer PII stays in the China region) and C2 (Singapore is t
 
 1. **Singapore-only** — simplest, but deletes the residency story (C1) and half the Asia-rollout credibility of the project.
 2. **Apply the CN partition** — blocked twice over: no international account (ADR-0002) and no CN-registered account; applying is not available at any spend level in this environment.
-3. **Design + validate the CN partition in Terraform behind `var.enable_cn_region`, never apply** — the partition becomes concrete, plan-able HCL (`Plan: 104 to add` with the flag on, vs `73` off — evidence E-012), with residency enforced by construction: separate region (`cn-beijing` default), separate VPC (10.70.0.0/16), CN-only KMS keys, CN-only OSS buckets with SSE-KMS, no cross-region replication resources anywhere, and `residency=cn` + `data-classification=pipl-restricted` tags on every CN resource for machine-checkable audits (CI residency tests are Phase 5 work).
+3. **Design + validate the CN partition in Terraform behind `var.enable_cn_region`, never apply** — the partition becomes concrete, plan-able HCL (`Plan: 106 to add` with the flag on, vs `75` off post-SEC-1-fix — evidence E-012), with residency enforced by construction: separate region (`cn-beijing` default), separate VPC (10.70.0.0/16), CN-only KMS keys, CN-only OSS buckets with SSE-KMS, no cross-region replication resources anywhere, and `residency=cn` + `data-classification=pipl-restricted` tags on every CN resource for machine-checkable audits (CI residency tests are Phase 5 work).
 
 ## Decision
 

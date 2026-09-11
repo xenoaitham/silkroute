@@ -177,3 +177,24 @@ Blocker list (must be fixed before Phase 4 can claim the C1 residency hook and t
 4. **SEC-4-04 (MED)** — `silkroute-ci` user lacks its minimal `sts:AssumeRole` grant; trust chain non-functional as documented.
 
 All four fixes are small, local, and spec'd precisely above; ORCH-LEAD owns applying them and re-running `terraform fmt/validate/plan` (73/104) as the updated evidence rows. The "no wildcard IAM" acceptance criterion itself **passes** under the interpretation stated verbatim in §1: zero wildcard actions, zero wildcard principals outside conditioned Deny statements, and every Resource wildcard adjudicated OK/OK★ in §2.
+
+---
+
+## Addendum (2026-09-11, post critic cycle 1) — corrections to this review
+
+Point-in-time honesty: two claims in this review did not survive the Phase 4
+critic gate and are corrected here rather than silently rewritten above.
+
+1. **§4 "Egress is explicit and minimal" was wrong.** These are BASIC security
+   groups (`security_group_type = "normal"`), and AliCloud basic groups are
+   DEFAULT-ALLOW on egress — the explicit egress rules document intent, they do
+   not deny anything. The critic classified the gap HIGH (same claim-vs-graph
+   genre as SEC-4-01). Fixed in `infra/network/main.tf`: honest comments, an
+   added ESB→Kafka 9092/9093 egress intent rule, and the missing
+   `alicloud_snat_entry` resources for both private vSwitches. Deny-all-else
+   requires `advanced` security groups — deferred to activation with a note in
+   the network module.
+2. **§1/§3 KMS Decrypt scope:** the SEC-4-08/03 fix left the runtime holding
+   `kms:Decrypt` on the RDS TDE key; RDS consumes TDE internally and the
+   application never touches that key. Trimmed to the OSS key only (critic med).
+

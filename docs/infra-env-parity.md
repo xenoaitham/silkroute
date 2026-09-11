@@ -19,13 +19,13 @@ directly.
 
 | sim (docker-compose) | managed AliCloud | terraform source | app env var | notes |
 |---|---|---|---|---|
-| `sim-kafka`, Kafka 3.8 KRaft, `KAFKA_BOOTSTRAP=127.0.0.1:39092` | Message Queue for Apache Kafka (VPC instance) | `infra/compute` -> `alicloud_alikafka_instance` + `alicloud_alikafka_topic` (`silkroute.orders.events`, `silkroute.esb.dlq` - identical names) + `alicloud_alikafka_sasl_user` | `KAFKA_BOOTSTRAP` | Managed brokers speak the Kafka wire protocol, so 3.x clients interoperate (3.x-compatible topic protocol); topic names byte-identical to the sim so no reconfiguration beyond the bootstrap URL; SASL PLAIN `esb-client` replaces sim's no-auth. Validated IaC, sim runtime. |
+| `sim-kafka`, Kafka 3.8 KRaft, `KAFKA_BOOTSTRAP=127.0.0.1:39092` | Message Queue for Apache Kafka (VPC instance) | `infra/compute` -> `alicloud_alikafka_instance` + `alicloud_alikafka_topic` (`silkroute-orders-events`, `silkroute-esb-dlq`) + `alicloud_alikafka_sasl_user` | `KAFKA_BOOTSTRAP`, `KAFKA_ORDERS_TOPIC`, `KAFKA_DLQ_TOPIC` | Managed brokers speak the Kafka wire protocol, so 3.x clients interoperate. CORRECTED per critic cycle 1: ApsaraMQ for Kafka CreateTopic FORBIDS dots in topic names (letters/digits/`_`/`-` only), so cloud topics are dot-free and the ESB selects them via the two topic env vars (`${KAFKA_ORDERS_TOPIC:...}` indirection in application.yml); the sim keeps its dotted defaults — the swap stays configuration-only via env indirection, NOT name identity. Guarded by scripts/tf-apply-validity.sh in CI. SASL PLAIN `esb-client` replaces sim's no-auth. Validated IaC, sim runtime. |
 
 ## Redis (cache/idempotency)
 
 | sim (docker-compose) | managed AliCloud | terraform source | app env var | notes |
 |---|---|---|---|---|
-| `sim-redis` on 16379, Redis 7 | ApsaraDB for Redis | landing-zone SG: endpoint supplied via `var.redis_host` / `var.redis_port` (instance lands with the SG hub data tier; CN partition pins its own endpoint) | `REDIS_HOST`, `REDIS_PORT` | Sim port 16379 vs managed 6379 - both flow through the same two env vars; reachable from `sg-esb` only. Validated IaC, sim runtime. |
+| `sim-redis` on 16379, Redis 7 | ApsaraDB for Redis | NOT MODELED in IaC (honest gap, critic cycle 1): the ESB's idempotency backend has no `alicloud_kvstore_instance` yet — network path exists (`sg-data` 6379 rules) but the instance shape is region-availability-dependent, so it is chosen at activation and its endpoint flows via `var.redis_host` / `var.redis_port` | `REDIS_HOST`, `REDIS_PORT` | Sim port 16379 vs managed 6379 - both flow through the same two env vars; reachable from `sg-esb` only. Validated IaC, sim runtime. |
 
 ## Object storage (data lake + artifacts)
 

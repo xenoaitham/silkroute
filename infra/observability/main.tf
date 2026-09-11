@@ -57,11 +57,11 @@ resource "alicloud_log_dashboard" "overview" {
       }
     },
     {
-      title = "DLQ depth (silkroute.esb.dlq)"
+      title = "DLQ depth (silkroute-esb-dlq)"
       type  = "linePro"
       search = {
         logstore     = "orders-events"
-        topic        = "silkroute.esb.dlq"
+        topic        = "silkroute-esb-dlq"
         query        = "* | select count(*) as dlq_depth, date_trunc('minute', __time__) as t group by t order by t asc limit 1440"
         start        = "-3600"
         end          = "0"
@@ -133,7 +133,7 @@ resource "alicloud_log_alert" "dlq_depth" {
   project_name      = alicloud_log_project.sg.project_name
   alert_name        = "dlq-depth-alert"
   alert_displayname = "DLQ depth alert"
-  alert_description = "Fires when silkroute.esb.dlq accumulates more than 100 messages in the window."
+  alert_description = "Fires when silkroute-esb-dlq accumulates more than 100 messages in the window."
 
   query_list {
     project        = alicloud_log_project.sg.project_name
@@ -141,7 +141,7 @@ resource "alicloud_log_alert" "dlq_depth" {
     region         = var.region
     store_type     = "log"
     chart_title    = "DLQ depth"
-    query          = "topic: silkroute.esb.dlq | select count(*) as dlq_depth"
+    query          = "topic: silkroute-esb-dlq | select count(*) as dlq_depth"
     start          = "-600"
     end            = "0"
     time_span_type = "Relative"
@@ -168,7 +168,7 @@ resource "alicloud_log_alert" "dlq_depth" {
     # Plan-time validator accepts only SMS/DingTalk/Email/MessageCenter; the
     # ops webhook rides the DingTalk channel via service_uri.
     type        = "DingTalk"
-    content     = "SilkRoute SG: silkroute.esb.dlq depth exceeded 100 in the last 10 minutes."
+    content     = "SilkRoute SG: silkroute-esb-dlq depth exceeded 100 in the last 10 minutes."
     service_uri = var.ops_webhook_url
   }
 }

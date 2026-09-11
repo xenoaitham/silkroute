@@ -52,8 +52,12 @@ silkroute:
     permitted-number-of-calls-in-half-open-state: 3
   kafka:
     brokers: ${KAFKA_BOOTSTRAP:127.0.0.1:39092}
-    orders-topic: silkroute.orders.events
-    dlq-topic: silkroute.esb.dlq
+    # Topic names are env-indirected because ApsaraMQ for Kafka (the managed
+    # cloud broker) forbids dots in topic names: the landing zone provisions
+    # silkroute-orders-events / silkroute-esb-dlq and selects them via these
+    # vars (ADR-0001 swap = configuration only). Sim keeps the dotted defaults.
+    orders-topic: ${KAFKA_ORDERS_TOPIC:silkroute.orders.events}
+    dlq-topic: ${KAFKA_DLQ_TOPIC:silkroute.esb.dlq}
     max-block-ms: 3000        # bounded publish so a dead broker cannot hang the response
   idempotency:
     ttl-hours: 24

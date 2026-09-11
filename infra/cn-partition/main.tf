@@ -195,9 +195,13 @@ resource "alicloud_sae_application" "esb_cn" {
   security_group_id = alicloud_security_group.cn_esb.id
   tags              = local.cn_tags
 
-  # Every endpoint below resolves inside the CN partition - C1.
+  # Every endpoint below resolves inside the CN partition - C1. Topic names are
+  # the dot-free ApsaraMQ forms (ApsaraMQ forbids dots; sim keeps dotted
+  # defaults, selected here via env indirection).
   envs = jsonencode({
     KAFKA_BOOTSTRAP     = var.cn_kafka_bootstrap
+    KAFKA_ORDERS_TOPIC  = "silkroute-orders-events"
+    KAFKA_DLQ_TOPIC     = "silkroute-esb-dlq"
     REDIS_HOST          = var.cn_redis_endpoint
     REDIS_PORT          = var.cn_redis_port
     ERP_BASEURL         = var.cn_erp_baseurl
@@ -207,12 +211,14 @@ resource "alicloud_sae_application" "esb_cn" {
   })
 }
 
-# CN Kafka: identical topic names to SG and to the sim (ADR-0001 parity).
+# CN Kafka: same topic NAMES as the cloud SG partition (dot-free ApsaraMQ
+# constraint — dots are rejected by CreateTopic; the sim keeps its dotted
+# defaults selected via env indirection).
 resource "alicloud_alikafka_instance" "cn" {
   name        = "silkroute-cn-kafka"
   deploy_type = 4
   disk_size   = var.cn_kafka_disk_size_gb
-  disk_type   = "0"
+  disk_type   = 0
   spec_type   = "normal"
   paid_type   = "PostPaid"
   vpc_id      = alicloud_vpc.cn.id
@@ -223,16 +229,16 @@ resource "alicloud_alikafka_instance" "cn" {
 
 resource "alicloud_alikafka_topic" "cn_orders_events" {
   instance_id   = alicloud_alikafka_instance.cn.id
-  topic         = "silkroute.orders.events"
+  topic         = "silkroute-orders-events"
   partition_num = 12
-  remark        = "CN order events; same topic name as SG/sim, separate broker, no replication to SG (C1)."
+  remark        = "CN order events; dot-free ApsaraMQ name, same as the SG cloud topics, separate broker, no replication to SG (C1)."
   tags          = local.cn_tags
 }
 
 resource "alicloud_alikafka_topic" "cn_esb_dlq" {
   instance_id   = alicloud_alikafka_instance.cn.id
-  topic         = "silkroute.esb.dlq"
+  topic         = "silkroute-esb-dlq"
   partition_num = 6
-  remark        = "CN ESB DLQ; same topic name as SG/sim, no cross-region replication (C1)."
+  remark        = "CN ESB DLQ; dot-free ApsaraMQ name, same as the SG cloud topics, no cross-region replication (C1)."
   tags          = local.cn_tags
 }

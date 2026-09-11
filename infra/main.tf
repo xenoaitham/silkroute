@@ -22,9 +22,11 @@ module "security" {
 module "data" {
   source = "./data"
 
-  region               = var.region
-  vpc_cidr             = var.vpc_cidr
-  vswitch_id           = module.network.private_vswitch_id_1
+  region   = var.region
+  vpc_cidr = var.vpc_cidr
+  # RDS sits in the second AZ's private vSwitch (replica spread; the SAE apps
+  # and Kafka live on private_1).
+  vswitch_id           = module.network.private_vswitch_id_2
   security_group_ids   = [module.network.security_group_data_id]
   oss_kms_key_id       = module.security.oss_key_id
   rds_kms_key_arn      = module.security.rds_key_arn
