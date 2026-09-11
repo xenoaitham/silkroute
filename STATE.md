@@ -1,6 +1,6 @@
 # SILKROUTE STATE
 
-current_phase: 4 (built + SEC-1 reviewed + fixes applied; critic gate in flight)
+current_phase: 4 DONE (gate cycle 3 PASS 8.57, 2026-09-11) — next build phase: 8 (resume/interview pack, fast-path) or 5 (compliance) or 3 (ETL); owner's call
 next_actions:
   1. Phase 4 CRITIC gate (fresh agent, §5) on artifacts: infra/ modules, evidence E-012..E-014, compliance/iam-review-phase4.md, ADR-0004/0005. PASS → mark Phase 4 DONE in ROADMAP. FAIL → fix blockers same session (max 3 cycles).
   2. ESB follow-ups deferred from S3 (unchanged): (a) ambiguous-timeout reconciliation needs a v2 lookup-by-ref contract; (b) explicit release-on-partial multi-line reserve; (c) PII_MASK_SECRET → real secret store (Phase 5); (d) short INFLIGHT TTL distinct from the done-TTL (smallest — a candidate for any spare session time).
