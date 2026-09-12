@@ -2,7 +2,7 @@
 
 Maple Retail Group is a fictional company; SilkRoute is a self-directed reference implementation (2026).
 
-Rehearse against a timer. SAY lines are first person, written to be spoken. Numbers are only from `evidence/EVIDENCE.md` (E-001…E-014) — if a number isn't in the ledger, don't say it. Say "validated IaC, sim runtime" every time cloud IaC appears; volunteer it, don't wait to be asked.
+Rehearse against a timer. SAY lines are first person, written to be spoken. Numbers are only from `evidence/EVIDENCE.md` (E-001…E-015) — if a number isn't in the ledger, don't say it. Say "validated IaC, sim runtime" every time cloud IaC appears; volunteer it, don't wait to be asked.
 
 Legend: [BOARD] = what to draw; [SAY] = what to say; [CITE] = the measured number and its evidence ID.
 

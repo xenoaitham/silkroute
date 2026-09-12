@@ -15,7 +15,7 @@ Rehearsal material. Each answer = the crisp spoken version (say it out loud), th
 | Delivery model & trade-offs | Q31–Q36 (sequencing, dual-mode, with-an-account, money, test strategy, real-team rollout) |
 | War stories (failure → root cause → fix → lesson) | Q37–Q40 (smoke that couldn't fail, double-encoding + ambiguous timeout, plan-green/apply-impossible, WSS wire) |
 
-Every number is measured and traces to `evidence/EVIDENCE.md` (E-001…E-014). The ETL answers (Q21–Q24) contain no numbers because nothing was built or measured there.
+Every number is measured and traces to `evidence/EVIDENCE.md` (E-001…E-015). The ETL answers (Q21–Q24) contain no numbers because nothing was built or measured there.
 
 ---
 
@@ -231,7 +231,7 @@ Evidence/anchor: ADR-0001; E-001/E-002 (sim convergence and smoke), E-015 (re-pr
 
 ### Q33. If I gave you an account tomorrow, what would you deploy differently?
 
-There's an activation checklist, in order. Budget alarm first — `scripts/budget-alarm.sh` live mode, ~$20 cap. Then credentials: replace placeholders with environment auth, move RDS/Kafka passwords out of Terraform state into KMS-backed secrets with restricted state access, and tighten the alikafka ARN hedge to the real ARN form. Deploy is the guarded `make deploy-sg`, evidence captured, then `make destroy` — pay-as-you-go, nothing left overnight. At activation I verify the things plans cannot: SSE-KMS uploads with `kms:GenerateDataKey` actually succeeding, SLS ingest, the CI assume-role chain, TDE enablement, and STS. Also queued: migrate the SLS alert to the modern resource, split the CI deploy role's governance powers, and wire the SAE app-to-role binding that the provider can't express. Nothing about the design would change — that was the point of keeping it interface-clean.
+There's an activation checklist, in order. Budget alarm first — `scripts/budget-alarm.sh` live mode, ~$20 cap. Then credentials: replace placeholders with environment auth, move RDS/Kafka passwords out of Terraform state into KMS-backed secrets with restricted state access, and tighten the alikafka ARN hedge to the real ARN form. Deploy is the guarded `make deploy-sg`, evidence captured, then `make destroy` — pay-as-you-go, nothing left overnight. At activation I verify the things plans cannot: SSE-KMS uploads with `kms:GenerateDataKey` actually succeeding, SLS ingest, the CI assume-role chain, TDE enablement, and STS. One gap I'll name before you find it: ApsaraDB for Redis is not modeled in the IaC at all — the idempotency backend's instance shape is region-availability-dependent, so it's chosen at activation with its endpoint flowing through `redis_host`/`redis_port` variables; the network path (`sg-data` 6379 rules) is already wired. Also queued: migrate the SLS alert to the modern resource, split the CI deploy role's governance powers, and wire the SAE app-to-role binding that the provider can't express. Nothing about the design would change — that was the point of keeping it interface-clean.
 
 Evidence/anchor: `infra/README.md` activation checklist; E-014 (guards); ADR-0004 consequences; ADR-0002 (supersede path).
 
@@ -259,7 +259,7 @@ Evidence/anchor: `decisions/` (5 ADRs); `infra/README.md` (env/backend examples,
 
 ### Q37. Tell me about a time your monitoring lied to you.
 
-**Failure:** my first `make smoke` reported all green after the reviewer stopped Redis out from under it. **Root cause:** a shell-quirk bug — in a `set -e` script, a failing command that is a non-final member of an `&&` list is exempt from errexit, so my `check && echo OK` lines could never propagate failure. The check was structurally incapable of failing; it wasn't a flake, it was theater. **Fix:** rewrote it as `scripts/smoke.sh` with an explicit `|| fail` on every assertion, container-env credentials, host-forward TCP probes for every published port, and — the important part — committed a negative-control artifact: Redis stopped → `FAIL: redis PING did not return PONG`, exit 2; restored → exit 0. That negative control has since earned its keep twice, catching a dead toxiproxy host-forward after a host restart. **Lesson:** a check you haven't seen fail is not a check. Falsifiability is proven with a negative control, not claimed.
+**Failure:** my first `make smoke` reported all green after the reviewer stopped Redis out from under it. **Root cause:** a shell-quirk bug — in a `set -e` script, a failing command that is a non-final member of an `&&` list is exempt from errexit, so my `check && echo OK` lines could never propagate failure. The check was structurally incapable of failing; it wasn't a flake, it was theater. **Fix:** rewrote it as `scripts/smoke.sh` with an explicit `|| fail` on every assertion, container-env credentials, host-forward TCP probes for every published port, and — the important part — committed a negative-control artifact: Redis stopped → `FAIL: redis host forward 127.0.0.1:16379 not reachable`, exit 2; restored → exit 0. That negative control has since earned its keep, catching a dead toxiproxy host-forward after a host restart. **Lesson:** a check you haven't seen fail is not a check. Falsifiability is proven with a negative control, not claimed.
 
 Evidence/anchor: E-003 (negative control transcript); war stories 4/6 in STATE.md.
 
