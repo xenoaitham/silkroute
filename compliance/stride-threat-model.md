@@ -1,0 +1,69 @@
+# STRIDE threat model — as-built platform
+
+Maple Retail Group is a **fictional** company; this is a self-directed reference implementation. The model covers the platform **as actually built**: sim-mode runtime (the default, everything on host loopback) plus the designed AliCloud landing zone. Honesty frame per ADR-0002: no cloud account exists, nothing is deployed — mitigations that live only in Terraform are labeled **designed, schema-validated** (E-012) and cannot be counted as runtime controls. Evidence rows (E-0xx) point at measured, re-runnable proof.
+
+## Scope and trust boundaries
+
+**In scope (sim runtime):** legacy-erp SOAP services (127.0.0.1:18080, SOAP 1.2 + WSS UsernameToken); ESB hub — REST façade 18081 + management 18082, both loopback-bound (`apps/esb/src/main/resources/application.yml:6,21`); Kafka topics selected via `KAFKA_ORDERS_TOPIC`/`KAFKA_DLQ_TOPIC` env indirection (`application.yml:59-60`); Redis SETNX+TTL idempotency store; sim MySQL/MinIO; the toxiproxy fault-injection plane (APIs 8474 / 18474, ERP path proxy on 18180); CI (4 jobs) with the residency suite and deploy guards (`SILKROUTE_CLOUD_CONFIRM` + credentials).
+
+**In scope (designed cloud):** the Terraform landing zone — network/security/data/compute/observability modules and the never-applied CN partition (E-012: `Plan: 79/110`, no API calls, never applied per ADR-0002/ADR-0005).
+
+**Trust boundaries:** (1) REST client → ESB façade; (2) ESB → ERP across the toxiproxy plane (WSS); (3) ESB → shared Kafka topics (the PII egress chokepoint); (4) CI → landing zone (the CI deploy role **is** the IAM trust boundary, infra/README.md "Trust boundaries"); (5) SG partition ↔ CN partition (none — no path by design, residency checks R3/R6).
+
+## Component inventory
+
+| Component | Where | Facts the threats depend on |
+|---|---|---|
+| legacy-erp | `apps/legacy-erp` | SOAP 1.2 on 18080; WSS4J UsernameToken (PasswordText + fresh nonce/created); typed faults; frozen WSDLs (freeze tag `contract-freeze-erp-v1`) |
+| ESB hub | `apps/esb` | REST 18081 (loopback), mgmt 18082; JSON-schema façade validation (networknt, `additionalProperties:false`); hand-rolled saga; circuit breaker on `direct:erp`; retry ladder (3×, 200ms ×2.0); DLQ publish |
+| Kafka | sim + cloud | Shared topics for success events + DLQ — the only egress chokepoint (`EventPublisher`), both wired through `PiiMaskingPolicy` |
+| Redis | sim 16379 | `SETNX esb:idem:<key>` TTL 24h; outage degrades to allow-through |
+| Sim data | MySQL 8 / MinIO | host-loopback only (E-001); MinIO pinned to `quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z` after Docker Hub purged tags (`docker-compose.yml:95-98`) |
+| toxiproxy plane | 8474 / 18474 | fault injection into the ERP path; test-only (`ESB_FAULT_INJECTION=false` default; header ignored without the flag) |
+| Landing zone | `infra/` | SG VPC allowlist SGs (no `0.0.0.0/0` inbound — grep-verified, `compliance/iam-review-phase4.md` §4), KMS×2, RAM least-privilege, OSS SSE-KMS + SecureTransport-deny + public-access block, RDS TDE, SAE, ActionTrail→SLS `audit` store (180d, designed) |
+| CI | `.github/workflows/ci.yml` | 4 jobs: sim smoke, Karate contract, ESB fault-injection suite, terraform (fmt/validate/plan + apply-validity lint + residency checks) |
+
+## Threat table
+
+Assessment legend: **Mitigated** (control proven in sim/CI), **Partially mitigated** (real control, named gap), **Accepted risk** (stated, deliberate), **Deferred with owner** (activation-time work, owned by the activation runbook).
+
+| # | Component | Threat | Letter | Existing mitigation (file:line + evidence) | Assessment |
+|---|---|---|---|---|---|
+| 1 | ERP SOAP | Replay of an intercepted SOAP envelope (UsernameToken nonce reuse) | S | Fresh nonce+created enforced on the client (`apps/esb/.../config/ErpClientConfiguration.java:33`); identical-envelope replay rejected by the live server-side WSS4J nonce cache — asserted by the contract suite's security scenarios (E-005, 18/18) | Mitigated (sim) |
+| 2 | ERP SOAP | Unauthenticated SOAP calls / forged tokens | S | WSS4J in-interceptor on every endpoint; missing/wrong credentials → SOAP security faults, tested on both ports (missing header, wrong password — E-005) | Mitigated (sim) |
+| 3 | ESB façade | Malformed/hostile JSON reaching the saga or ERP | T | `CanonicalOrderValidator` (networknt draft 2020-12, `additionalProperties:false`) rejects pre-saga → 400 `SCHEMA-VIOLATION` (E-008) | Mitigated |
+| 4 | ESB XML legs | XXE / external-entity injection via XSLT mediation | I | External entity resolution off in the XSLT legs (`apps/esb/.../xslt/XsltTransformer.java:58`); the contract suite's own SOAP parser sets `disallow-doctype-decl` (`tests/contract/src/test/resources/soap.js:147`) | Mitigated (parser-level; no XXE-specific adversarial test suite) |
+| 5 | Kafka topics | CN customer PII leaking to a shared destination | I | Single publish chokepoint through `PiiMaskingPolicy` (keyed HMAC, `PiiMaskingPolicy.java`); masked DLQ proven under fault injection — clear value absent (E-009); chokepoint uniqueness machine-checked (R7, E-016) | Partially mitigated — finding F-01 (sim dummy secret) |
+| 6 | Kafka topics | Duplicate delivery causing double execution (idempotency bypass) | T | Redis `SETNX`+TTL idempotency; duplicate → 409 `DUPLICATE` with original orderId (E-008); failed sagas release the claim so retries are never locked out (E-009); frozen ERP's duplicate-ref guard holds under ambiguous-timeout retries (E-009) | Mitigated (sim) |
+| 7 | ESB→ERP path | ERP outage cascading / resource exhaustion on sync mediation | D | Circuit breaker fail-fast measured at 4ms (< 100ms budget) with DLQ carrying exhausted correlationIds; retry ladder INFRA-only so business faults never trip the breaker (E-009, E-008) | Mitigated (sim) |
+| 8 | Kafka publish | Broker outage stalling HTTP outcomes | D | Bounded publish (`maxBlockMs 3000`), publish failure never fails the HTTP outcome (`apps/esb/README.md` deviations) | Mitigated (sim) |
+| 9 | REST/mgmt ports | Network exposure of services | I/D | All binds are loopback (`application.yml:6,21`); sim host binds 127.0.0.1-only (E-001) | Mitigated (sim) |
+| 10 | Landing zone network | Internet-originated access to ESB/ERP/data | S/I/T/R | Allowlist ingress rules only, admin CIDR placeholder, no `0.0.0.0/0` inbound anywhere (grep-verified; `compliance/iam-review-phase4.md` §4); CN security group rule-free by default (`infra/cn-partition/main.tf:31-37`) | Designed, schema-validated (E-012); runtime Verify at activation |
+| 11 | Landing zone network | Egress exfiltration from the CN partition | I | No NAT/EIP resources (R6, E-016); CN app env vars resolve only inside the CN VPC (`infra/cn-partition/main.tf:194-211`) | Partially mitigated — finding F-03 (basic SGs default-ALLOW egress) |
+| 12 | OSS buckets | Public exposure / plaintext transport | I | Public-access block + `DenyInsecureTransport` bucket policy (`Effect:"Deny"`, `Principal:["*"]`, `acs:SecureTransport=false` — `infra/data/main.tf:144`, `infra/cn-partition/main.tf:157-159`); SSE-KMS with family-owned keys | Designed, schema-validated (E-012); Verify at activation |
+| 13 | IAM | Over-privileged identities; wildcard actions | E | Explicit action lists only; zero wildcard actions (grep = 0, E-013 under its recorded interpretation); per-bucket grant matrix enforced post-SEC-4-02; runtime holds Decrypt+GenerateDataKey on the OSS key only | Designed, schema-validated (E-013); runtime Verify at activation |
+| 14 | CI/deploy | Unauthorized or accidental billable apply/destroy | R,T | Deploy double-guard: `make deploy-sg`/`make destroy` refuse without `SILKROUTE_CLOUD_CONFIRM=YES` **and** credentials, negative paths proven (E-014) | Mitigated (guard proven) — but see F-04: the guard assumes a trustworthy CI role |
+| 15 | CI/deploy | Plan-green-but-apply-invalid changes (naming rules) | T | Apply-validity lint for plan-invisible API rules (ApsaraMQ topic dots) with proven negative control, in CI (E-012) | Mitigated (lint proven) |
+| 16 | Supply chain | Dependency image vanishing/tampering (Docker Hub tag purge) | T,S | MinIO pinned to `quay.io` digest-style release tag after the real purge mid-build (`docker-compose.yml:95-98`, run 34642622532 recorded in E-012) | Applied (the incident already happened once — the fix is real) |
+| 17 | Audit | Insider/CI action denied later ("who did what") | R | ActionTrail `event_rw=All` → SLS `audit` store, 180-day retention (`infra/observability/main.tf:1-9,28-34`); query design in `compliance/audit-trail-design.md` | Designed, schema-validated (E-012); **not running** — finding F-06 |
+| 18 | Audit | A compromised CI silencing the audit trail | R | None at runtime: `actiontrail:StopLogging/DeleteTrail` sit in the CI deploy policy (`infra/security/main.tf:321-329`) | **Accepted risk today, finding F-05** — break-glass split deferred to activation (infra/README.md "Trust boundaries") |
+| 19 | IaC graph | Tampering with the residency guarantees (replication/egress silently added) | T | Residency suite R1–R7 + five-violation selftest on every push (`make residency`, E-016) | Mitigated (static); runtime residency Verify at activation |
+| 20 | Sim data stores | Theft of sim data at rest | I | Sim-only synthetic data, host-loopback binds, no real customer data exists anywhere in the project | Accepted risk (sim); cloud counterpart is rows 10–12 |
+| 21 | Sensitive ops | Undetected MFA/status anomalies on logon | S,I | Out of scope: no console-login surface is modeled in this IaC; ActionTrail would record `ConsoleSignin` events (verified event taxonomy) — alerting is F-06's activation work | Deferred with owner (activation runbook) |
+
+Not applicable, in one line each: **Spoofing of the toxiproxy plane** — it is a test fixture bound to host loopback, outside the production path; **Repudiation of REST callers** — the façade is an internal integration point whose caller identity rides the `audit{sourceSystem,correlationId}` contract fields, with no external tenants to repudiate; **Elevation of privilege inside the ESB** — a single-tenant Spring Boot process with no user-session layer to elevate within.
+
+## Honest weaknesses (the findings)
+
+The model's value is the gaps it names. F-01–F-05 map to already-recorded SEC-4 review findings; F-06 is the audit-trail gap.
+
+| ID | SEV | Finding | Exact fix | Status |
+|---|---|---|---|---|
+| F-01 | MED | `PII_MASK_SECRET` defaults to the env sim dummy `sim-egress-secret` (`PiiMaskingPolicy.java:34`); the keyed-HMAC egress control is real but the key custody is not | Inject from KMS-backed secret store at activation; keep the env default for sim only | **Deferred** (owner: activation runbook; recorded in `apps/esb/README.md` config table) |
+| F-02 | LOW | `random_password` results land in Terraform state (RDS/Kafka secrets — `infra/data/main.tf`, `infra/compute/main.tf`, `infra/cn-partition/main.tf:91-103`) | KMS-managed secrets at activation + remote state backend with restricted access (`backend-remote.tf.example`) | **Deferred** (owner: activation runbook; committed at each site) |
+| F-03 | HIGH | Basic security groups are default-ALLOW on egress — the explicit egress rules document intent, they do not deny (discovered and corrected in-repo; see the addendum in `compliance/iam-review-phase4.md`) | `advanced` security groups at activation; the network module carries the honest note | **Deferred** (owner: activation runbook; corrective comments + snat fixes applied) |
+| F-04 | MED | The CI deploy role is the IAM trust boundary: it can author and attach `silkroute-*` policies — compromise of `silkroute-ci` equals compromise of the landing zone (SEC-4-07) | Split RamGovernance into a separately-assumed governance role at activation, or explicitly re-accept | **Deferred** (owner: activation runbook; boundary stated in `infra/README.md`) |
+| F-05 | MED | `actiontrail:StopLogging`/`DeleteTrail` in the CI deploy policy (`infra/security/main.tf:321-329`) — a compromised CI can silence the audit trail (SEC-4-10a) | Move both actions to a break-glass role outside the day-2 pipeline at activation | **Deferred** (owner: activation runbook) |
+| F-06 | MED | The audit trail itself is designed-not-running: the trail and `audit` store exist as validated HCL only (no account exists) | Trail becomes real at activation (`StartLogging` + verify SLS ingest); denied-action alerting per `compliance/audit-trail-design.md` | **Deferred** (owner: activation runbook; E-012 labels it validated IaC) |
+
+Already-fixed findings surfaced by this analysis, closed with citations: XXE-hardened parsing in the XSLT legs and the contract-suite parser (applied, row 4); masked egress at the single publish chokepoint (applied and proven, row 5 / E-009); deploy double-guard (applied and negative-proven, row 14 / E-014); quay.io registry pinning after the real Docker Hub purge (applied, row 16 / E-012); CN provider-graph region pinning after SEC-4-01 (applied and CI-checked, EC rows in `control-matrix.md` / E-013, E-016).

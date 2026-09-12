@@ -41,10 +41,12 @@ Applying this module requires:
    real-name verification (business license for a corporate account), which a
    non-CN entity cannot complete overnight and this project does not have.
 2. **ICP filing for any public endpoint (C2)** - a public web presence or
-   public API in mainland China requires an ICP beian (via the CN account,
-   typically 2-4 weeks; commercial services need an ICP license, not just a
-   filing). Internal/VPC-only endpoints like everything in this module do not
-   need ICP - the design deliberately publishes nothing.
+   public API in mainland China requires an ICP beian (via the CN account;
+   commercial services need an ICP license, not just a filing). Internal/
+   VPC-only endpoints like everything in this module do not need ICP - the
+   design deliberately publishes nothing. The provider's documentation states
+   no fixed review duration; the filing gate belongs in the launch checklist
+   (see docs/icp-filing-runbook.md).
 3. **A PIPL Art. 38-40 cross-border transfer assessment (C7)** - runs before
    any SG<->CN data flow design; until then there is no cross-border path,
    which is why the env vars point only at CN endpoints.
