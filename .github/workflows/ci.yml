@@ -122,6 +122,10 @@ jobs:
           terraform_wrapper: false
       - name: Apply-validity lint (plan-invisible API constraints, e.g. ApsaraMQ topic naming)
         run: bash scripts/tf-apply-validity.sh
+      - name: C1 residency checks (static graph + wiring, with selftest negative control)
+        run: |
+          bash scripts/residency-tests.sh
+          bash scripts/residency-tests.sh --selftest
       - name: fmt (check mode)
         run: terraform -chdir=infra fmt -check -recursive
       - name: init

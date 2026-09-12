@@ -20,7 +20,7 @@ Maple Retail Group is a fictional company; SilkRoute is a self-directed referenc
 
 - Ran a 4-job GitHub Actions pipeline green on every push — sim compose+smoke, SOAP contract suite, the fault-injection saga suite booting ERP+ESB on a hosted ubuntu-latest runner (~186 s), and Terraform fmt/validate/plan — anchored by a falsifiable smoke test proven to exit non-zero when a service is down (E-011, E-012, E-003).
 
-- Designed PIPL/PDPA/PIPEDA-aware residency controls into the platform: China-pinned storage with `residency=cn` / `data-classification=pipl-restricted` tags on every taggable CN resource, masked pseudonymized PII egress from shared Kafka topics (keyed HMAC), and a PIPL Art. 38–40 cross-border transfer mechanism map at design level (E-009, E-012).
+- Designed PIPL/PDPA/PIPEDA-aware residency controls into the platform: China-pinned storage with `residency=cn` / `data-classification=pipl-restricted` tags on every taggable CN resource, masked pseudonymized PII egress from shared Kafka topics (keyed HMAC), a seven-check static residency suite in CI with an injected-violation selftest, and a PIPL Art. 38–40 cross-border transfer mechanism map at design level (E-009, E-012, E-016).
 
 - Built a dual-mode runtime: a docker-compose sim (MySQL 8, Kafka 3.8 KRaft, Redis 7, MinIO, plus two toxiproxy fault-injection proxies) converging in ~28 s from a clean start with authenticated falsifiable smoke assertions — re-proven exit 0 at six services at pack time (E-001, E-002, E-015), mapped service-for-service to the managed AliCloud stack so the cloud swap is configuration-only.
 
@@ -53,7 +53,7 @@ Rehearse these until they are reflexes. Volunteer the framing before the intervi
 | Validated IaC, sim runtime | E-012, E-014 | plans perform NO AliCloud API calls; tf-apply-validity lint OK (negative control proven); deploy-sg exit 2 REFUSING; destroy exit 2 REFUSING; plan-sg exit 0 |
 | Independent least-privilege review | E-013 | 1 HIGH + 3 MED + 6 LOW, all fixed; wildcard-action grep = 0; post-fix plans green (75/106 → 79/110) |
 | 4-job CI pipeline | E-011, E-012, E-003 | run 34550280537 success (contract ~87 s, sim ~53 s, esb suite ~186 s); run 34643255075 green at sha 0e5609f, 4/4 jobs; latest run 34645192560 at e294948; redis stopped → smoke exit 2, restored → exit 0 |
-| Residency controls | E-009, E-012 | `msk-`+HMAC-prefix customerRef on CN egress (clear value absent); `residency=cn` + `data-classification=pipl-restricted` tags; zero cross-region replication resources (grep-verified) |
+| Residency controls | E-009, E-012, E-016 | `msk-`+HMAC-prefix customerRef on CN egress (clear value absent); `residency=cn` + `data-classification=pipl-restricted` tags; zero cross-region replication resources (grep-verified); residency suite 7/7 checks + 5/5 selftest mutations caught, in CI |
 | Dual-mode sim runtime | E-001, E-002, E-015 | converged ~28 s, mysql/kafka/redis/minio (healthy); `smoke OK (all 5 services) in 2s` as captured, re-proven `smoke OK (all 6 services…) exit 0` at pack time (E-015); kafka host listener 127.0.0.1:39092 |
 | Budget alarm | E-014 | schema grep = 0 budget resources across 1161 provider resources; dry-run CreateBudget payload printed; BssOpenApi 2023-09-30 doc-verified |
 | WS-Security wire depth | E-005 | security scenarios 4/4 incl. missing-header on both endpoints, wrong password, identical-envelope nonce replay rejected by live server-side cache |

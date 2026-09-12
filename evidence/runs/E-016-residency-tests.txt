@@ -1,0 +1,24 @@
+== E-016: C1 residency CI tests — first capture (2026-09-12, S5 stretch) ==
+
+$ bash scripts/residency-tests.sh
+== C1 residency checks (static; validated-plans honesty per ADR-0002) ==
+    infra: /home/potato/Haitham/ALIBABA/infra
+ok   [R1] CN partition pinned at the provider graph (alicloud.cn alias + providers meta-argument + count flag)
+ok   [R2] CN region strings confined to wiring files + cn-partition
+ok   [R3] zero cross-region replication/backup/mirror resources
+ok   [R4] every taggable cn-partition resource carries residency=cn tags
+ok   [R5] bucket name families never cross (silkroute-cn-* vs silkroute-sg-*)
+ok   [R6] no NAT/EIP in the CN partition (no egress path)
+ok   [R7] single Kafka publish chokepoint, wired through PiiMaskingPolicy; saga masks CN customerRef
+residency OK (7/7 checks) — graph + wiring enforce C1 statically; runtime proof waits for an account
+exit=0
+
+$ bash scripts/residency-tests.sh --selftest   (negative control: 5 injected violations, each must be caught by its check id)
+== residency-tests selftest: every check must catch its own violation ==
+ok   [selftest] R1 caught: providers meta-argument deleted from the cn module
+ok   [selftest] R3 caught: cross-region replication resource added to cn-partition
+ok   [selftest] R4 caught: residency tags stripped from the CN KMS key
+ok   [selftest] R5 caught: CN bucket renamed into the SG family
+ok   [selftest] R7 caught: stray direct Kafka publish path added outside EventPublisher
+selftest OK: all five mutations caught
+exit=0

@@ -92,7 +92,7 @@ CLOUD_GUARD = @if [ "$${SILKROUTE_CLOUD_CONFIRM:-}" != "YES" ] || [ -z "$${ALICL
 	echo "It requires SILKROUTE_CLOUD_CONFIRM=YES and ALICLOUD_ACCESS_KEY(_ID)/SECRET in the env."; \
 	echo "Validated-plans mode (ADR-0002): use 'make plan-sg' — plans create nothing."; exit 2; fi
 
-.PHONY: plan-sg deploy-sg destroy budget-alarm tf-fmt-check
+.PHONY: plan-sg deploy-sg destroy budget-alarm tf-fmt-check residency
 
 plan-sg: ## one-command reproducibility proof: init + validate + plan (creates nothing)
 	@test -x $(TF_BIN) || { echo "ERROR: terraform not at $(TF_BIN) (override with TF_BIN=...)"; exit 1; }
@@ -100,6 +100,9 @@ plan-sg: ## one-command reproducibility proof: init + validate + plan (creates n
 		&& $(TF_BIN) fmt -check -recursive \
 		&& $(TF_BIN) validate -no-color \
 		&& $(TF_BIN) plan -input=false -no-color
+
+residency: ## C1 residency checks (static graph + wiring) + selftest negative control
+	@bash scripts/residency-tests.sh && bash scripts/residency-tests.sh --selftest
 
 tf-fmt-check: ## terraform fmt check only (fast CI-style gate)
 	cd $(TF_DIR) && $(TF_BIN) fmt -check -recursive
