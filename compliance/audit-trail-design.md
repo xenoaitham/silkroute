@@ -37,7 +37,7 @@ Field names follow ActionTrail's documented event structure; the mapping is stat
 | `event_time` | `eventTime` | UTC, per the management-event reference; `DATETIME(3)` leaves room for sub-second precision |
 | `event_source` | `eventSource` | Service endpoint the call targeted |
 | `event_name` | `eventName` | API operation / console operation name |
-| `resource_type` / `resource_name` | `resourceType` / `resourceName` | Both documented in the management-event reference (added to event logs per ActionTrail's 2020 field announcement); multi-value fields are semicolon-separated — split on ingest or store as delivered |
+| `resource_type` / `resource_name` | `resourceType` / `resourceName` | Both documented in the management-event reference (added to event logs per ActionTrail's 2020 field announcement); multiple resource types are semicolon-separated, multiple names of the same type are comma-separated — split on ingest or store as delivered |
 | `region` | `acsRegion` | Region where the event occurred |
 | `identity_type` | `userIdentity.type` | Documented values include `root-account`, `ram-user`, `assumed-role` |
 | `identity_name` | `userIdentity.userName` | `root` for the account itself; assumed-role sessions carry `principalId` (keep `principalId` in `request_params` if session attribution matters) |
@@ -118,7 +118,7 @@ SLS: `* | SELECT from_unixtime(__time__) AS t, json_extract_scalar(event, '$.acs
 3. **A DENIED `StopLogging` attempt by the CI identity** — `error_code` set, `error_message` populated — ties directly to STRIDE finding F-05 (the CI role currently holds `StopLogging`; this seeded event demonstrates exactly the audit signal a break-glass split would produce if the attempt were denied).
 4. **A region-anomaly event** — `region <> 'ap-southeast-1'` — the row Q5 exists to catch.
 
-It then runs the §3 cookbook queries against the seeded table and prints the results, each annotated with the SLS equivalent it mirrors. The value of the demo is narrow and honest: the query patterns, the schema round-trip, and the denied-action/region-anomaly reads behave as designed before anyone spends a cloud cent.
+It then runs the §3 cookbook queries against the seeded table and prints the results, each annotated with the SLS equivalent it mirrors. The value of the demo is narrow and honest: the query patterns, the schema round-trip, and the denied-action/region-anomaly reads behave as designed before anyone spends a cloud cent. The demo is falsifiable and re-runnable: `make audit-demo` (E-017) proves a clean bootstrap from a dropped database (exit 0), the idempotent re-run (seed skipped), and the negative path — with MySQL stopped the demo exits 2 — and its assertions bite when the seeded signal rows are tampered with (a deleted `StopLogging` denial turns the run red).
 
 ## 5. Retention and alerting notes
 

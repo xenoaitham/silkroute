@@ -1,0 +1,116 @@
+== E-017 audit-demo transcript — 2026-09-12T22:56:09Z — sim mode ==
+
+## POSITIVE PATH: make audit-demo (clean slate: DROP DATABASE first, full bootstrap must work)
+$ docker compose exec -T mysql mysql -uroot -N -e "DROP DATABASE IF EXISTS silkroute_audit;" && make audit-demo
+== audit-trail demo: schema + seed + "who did what" cookbook (sim-mode, per audit-trail-design.md) ==
+seed: 8 simulated management events inserted (2026-09-13)
+
+-- Q1: who touched KMS keys in a window --
++-------------------------+---------------+-----------------------+----------------------+------------------------+--------------+
+| event_time              | identity_type | identity_name         | event_name           | resource_name          | source_ip    |
++-------------------------+---------------+-----------------------+----------------------+------------------------+--------------+
+| 2026-09-13 09:14:03.221 | ram-user      | mrg-secops            | UpdateRotationPolicy | alias/silkroute-sg-oss | 203.0.113.17 |
+| 2026-09-13 09:15:47.808 | ram-user      | mrg-secops            | CreateKey            | alias/silkroute-sg-rds | 203.0.113.17 |
+| 2026-09-13 11:59:02.763 | assumed-role  | silkroute-esb-runtime | Decrypt              | key/silkroute-sg-oss   | 10.60.1.42   |
++-------------------------+---------------+-----------------------+----------------------+------------------------+--------------+
+
+-- Q2: all DENIED actions (who attempted what from where) --
++-------------------------+---------------+-------------+---------------+------------------+-----------------------+
+| event_time              | identity_name | event_name  | source_ip     | user_agent       | error_code            |
++-------------------------+---------------+-------------+---------------+------------------+-----------------------+
+| 2026-09-13 10:05:01.334 | silkroute-ci  | DeleteTrail | 198.51.100.42 | Terraform/1.16.2 | SubUserForbiddenError |
+| 2026-09-13 10:04:55.002 | silkroute-ci  | StopLogging | 198.51.100.42 | Terraform/1.16.2 | SubUserForbiddenError |
++-------------------------+---------------+-------------+---------------+------------------+-----------------------+
+
+-- Q3: bucket-policy changes --
++-------------------------+---------------+-----------------+---------------------+-------------------------------------------------------------------------+
+| event_time              | identity_name | event_name      | resource_name       | request_params                                                          |
++-------------------------+---------------+-----------------+---------------------+-------------------------------------------------------------------------+
+| 2026-09-13 10:02:12.519 | silkroute-ci  | PutBucketPolicy | silkroute-sg-bronze | {"BucketName": "silkroute-sg-bronze", "PolicyDigest": "sha256:9f2c…"} |
++-------------------------+---------------+-----------------+---------------------+-------------------------------------------------------------------------+
+
+-- Q4: everything a specific identity did --
++-------------------------+-----------------+---------------+---------------------+---------------+-----------------------+
+| event_time              | event_name      | resource_type | resource_name       | source_ip     | error_code            |
++-------------------------+-----------------+---------------+---------------------+---------------+-----------------------+
+| 2026-09-13 10:06:29.610 | CreatePolicy    | RAMPOLICY     | silkroute-ci-assume | 198.51.100.42 | NULL                  |
+| 2026-09-13 10:05:01.334 | DeleteTrail     | TRAIL         | silkroute-sg-trail  | 198.51.100.42 | SubUserForbiddenError |
+| 2026-09-13 10:04:55.002 | StopLogging     | TRAIL         | silkroute-sg-trail  | 198.51.100.42 | SubUserForbiddenError |
+| 2026-09-13 10:02:12.519 | PutBucketPolicy | OSSBUCKET     | silkroute-sg-bronze | 198.51.100.42 | NULL                  |
++-------------------------+-----------------+---------------+---------------------+---------------+-----------------------+
+
+-- Q5: region-anomaly canary (outside the hub region) --
++-------------------------+---------------+--------------+------------+--------------+
+| event_time              | identity_name | event_name   | region     | source_ip    |
++-------------------------+---------------+--------------+------------+--------------+
+| 2026-09-13 11:41:18.947 | mrg-secops    | CreateBucket | cn-beijing | 203.0.113.17 |
++-------------------------+---------------+--------------+------------+--------------+
+
+audit-demo OK: schema + seed + 5 cookbook queries; assertions held (2 denials visible, 1 region anomaly, rotation attributable)
+honest label: sim-mode query-pattern demonstration — the production store is SLS via the DESIGNED trail (ADR-0002; verify at activation)
+positive-path exit: 0
+
+## NEGATIVE CONTROL 1: mysql stopped -> the demo must fail (exit 2)
+$ docker compose stop mysql && make audit-demo
+FAIL: sim-mysql not running (make up first)
+make: *** [Makefile:108: audit-demo] Error 2
+negative-path exit: 2
+
+## RESTORE: mysql started, demo re-proven green (idempotent re-run, seed skipped)
+== audit-trail demo: schema + seed + "who did what" cookbook (sim-mode, per audit-trail-design.md) ==
+seed: table already holds 8 rows — skipping seed
+
+-- Q1: who touched KMS keys in a window --
++-------------------------+---------------+-----------------------+----------------------+------------------------+--------------+
+| event_time              | identity_type | identity_name         | event_name           | resource_name          | source_ip    |
++-------------------------+---------------+-----------------------+----------------------+------------------------+--------------+
+| 2026-09-13 09:14:03.221 | ram-user      | mrg-secops            | UpdateRotationPolicy | alias/silkroute-sg-oss | 203.0.113.17 |
+| 2026-09-13 09:15:47.808 | ram-user      | mrg-secops            | CreateKey            | alias/silkroute-sg-rds | 203.0.113.17 |
+| 2026-09-13 11:59:02.763 | assumed-role  | silkroute-esb-runtime | Decrypt              | key/silkroute-sg-oss   | 10.60.1.42   |
++-------------------------+---------------+-----------------------+----------------------+------------------------+--------------+
+
+-- Q2: all DENIED actions (who attempted what from where) --
++-------------------------+---------------+-------------+---------------+------------------+-----------------------+
+| event_time              | identity_name | event_name  | source_ip     | user_agent       | error_code            |
++-------------------------+---------------+-------------+---------------+------------------+-----------------------+
+| 2026-09-13 10:05:01.334 | silkroute-ci  | DeleteTrail | 198.51.100.42 | Terraform/1.16.2 | SubUserForbiddenError |
+| 2026-09-13 10:04:55.002 | silkroute-ci  | StopLogging | 198.51.100.42 | Terraform/1.16.2 | SubUserForbiddenError |
++-------------------------+---------------+-------------+---------------+------------------+-----------------------+
+
+-- Q3: bucket-policy changes --
++-------------------------+---------------+-----------------+---------------------+-------------------------------------------------------------------------+
+| event_time              | identity_name | event_name      | resource_name       | request_params                                                          |
++-------------------------+---------------+-----------------+---------------------+-------------------------------------------------------------------------+
+| 2026-09-13 10:02:12.519 | silkroute-ci  | PutBucketPolicy | silkroute-sg-bronze | {"BucketName": "silkroute-sg-bronze", "PolicyDigest": "sha256:9f2c…"} |
++-------------------------+---------------+-----------------+---------------------+-------------------------------------------------------------------------+
+
+-- Q4: everything a specific identity did --
++-------------------------+-----------------+---------------+---------------------+---------------+-----------------------+
+| event_time              | event_name      | resource_type | resource_name       | source_ip     | error_code            |
++-------------------------+-----------------+---------------+---------------------+---------------+-----------------------+
+| 2026-09-13 10:06:29.610 | CreatePolicy    | RAMPOLICY     | silkroute-ci-assume | 198.51.100.42 | NULL                  |
+| 2026-09-13 10:05:01.334 | DeleteTrail     | TRAIL         | silkroute-sg-trail  | 198.51.100.42 | SubUserForbiddenError |
+| 2026-09-13 10:04:55.002 | StopLogging     | TRAIL         | silkroute-sg-trail  | 198.51.100.42 | SubUserForbiddenError |
+| 2026-09-13 10:02:12.519 | PutBucketPolicy | OSSBUCKET     | silkroute-sg-bronze | 198.51.100.42 | NULL                  |
++-------------------------+-----------------+---------------+---------------------+---------------+-----------------------+
+
+-- Q5: region-anomaly canary (outside the hub region) --
++-------------------------+---------------+--------------+------------+--------------+
+| event_time              | identity_name | event_name   | region     | source_ip    |
++-------------------------+---------------+--------------+------------+--------------+
+| 2026-09-13 11:41:18.947 | mrg-secops    | CreateBucket | cn-beijing | 203.0.113.17 |
++-------------------------+---------------+--------------+------------+--------------+
+
+audit-demo OK: schema + seed + 5 cookbook queries; assertions held (2 denials visible, 1 region anomaly, rotation attributable)
+honest label: sim-mode query-pattern demonstration — the production store is SLS via the DESIGNED trail (ADR-0002; verify at activation)
+restore-path exit: 0
+
+## STACK HEALTH: make smoke after the stop/start cycle
+redis     OK (host:16379, PING->PONG)
+mysql     OK (host:3306, VERSION()=8.0.46)
+kafka     OK (host:39092, broker-api)
+minio     OK (host:9000, health/live)
+toxiproxy OK (host:8474, /version=2.11.0)
+esb-toxiproxy OK (host:18474, /version=2.11.0)
+smoke OK (all 6 services, host forwards + in-container) in 2s
+smoke exit: 0

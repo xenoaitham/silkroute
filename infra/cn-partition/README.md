@@ -44,9 +44,11 @@ Applying this module requires:
    public API in mainland China requires an ICP beian (via the CN account;
    commercial services need an ICP license, not just a filing). Internal/
    VPC-only endpoints like everything in this module do not need ICP - the
-   design deliberately publishes nothing. The provider's documentation states
-   no fixed review duration; the filing gate belongs in the launch checklist
-   (see docs/icp-filing-runbook.md).
+   design deliberately publishes nothing. The provider's process overview
+   publishes a typical, non-binding review window and states the
+   communications-administration review cannot be expedited; this project
+   deliberately records no duration figure - gate the launch on the filing
+   number being issued (see docs/icp-filing-runbook.md).
 3. **A PIPL Art. 38-40 cross-border transfer assessment (C7)** - runs before
    any SG<->CN data flow design; until then there is no cross-border path,
    which is why the env vars point only at CN endpoints.
