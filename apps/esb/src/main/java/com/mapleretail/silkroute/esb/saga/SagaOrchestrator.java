@@ -127,7 +127,8 @@ public class SagaOrchestrator {
 
             // ---- success -----------------------------------------------------
             OrderSubmissionResponse response = assembler.assemble(ctx, confirmed, unitPrices);
-            publisher.publishSuccess(response, assembler.egressCustomerRef(ctx));
+            publisher.publishSuccess(response, assembler.egressCustomerRef(ctx),
+                    order.getLines(), unitPrices);
             return new SagaOutcome(201, json(response));
 
         } catch (CircuitOpenException e) {

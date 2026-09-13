@@ -62,6 +62,12 @@ route{region,customerRefMasked},audit{sourceSystem,correlationId}`.
 `attempts` is ALWAYS present and counts real per-ERP-call attempts per step
 (`reserve`/`pricing` count one per order line).
 
+The **Kafka success-event copy** on `silkroute.orders.events` is the REST body
+PLUS two fields the REST body never carries: `customerRef` (C1-masked for CN)
+and `lines[]` (`{skuId,quantity,unitPriceMinor,currency}` per line — integer
+minor units, C5). Downstream consumers (the Phase-3 OMS event store) rebuild
+`fact_order_lines` from `lines[]`.
+
 ## What lives where (ESB pattern → class)
 
 | ESB pattern | class(es) |

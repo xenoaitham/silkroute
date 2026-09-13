@@ -1,6 +1,7 @@
 package com.mapleretail.silkroute.esb.events;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mapleretail.silkroute.esb.api.OrderSubmissionResponse;
+import com.mapleretail.silkroute.esb.canonical.order.v1.CanonicalLine;
+import com.mapleretail.silkroute.esb.canonical.order.v1.CanonicalUnitPrice;
 import com.mapleretail.silkroute.esb.config.EsbProperties;
 
 import org.apache.camel.ProducerTemplate;
@@ -53,14 +56,34 @@ public class EventPublisher {
     /**
      * Publishes the canonical confirmed order to the event topic. The event
      * copy carries customerRef as the C1-masked value (masked for CN, clear
-     * otherwise) — the REST body never carries customerRef.
+     * otherwise) — the REST body never carries customerRef. The event copy is
+     * also the only payload that carries the order LINES (skuId, quantity,
+     * per-line unit price as integer minor units + currency, C5): downstream
+     * consumers (the Phase-3 OMS event store) rebuild fact_order_lines from
+     * it. The REST body stays unchanged.
      */
-    public void publishSuccess(OrderSubmissionResponse response, String egressCustomerRef) {
+    public void publishSuccess(OrderSubmissionResponse response, String egressCustomerRef,
+            List<CanonicalLine> canonicalLines, List<CanonicalUnitPrice> unitPrices) {
         try {
             var tree = mapper.valueToTree(response);
             if (egressCustomerRef != null) {
                 // customerRef is absent from the REST body by design; only the event copy carries it.
                 ((com.fasterxml.jackson.databind.node.ObjectNode) tree).put("customerRef", egressCustomerRef);
+            }
+            if (canonicalLines != null) {
+                var linesNode = mapper.createArrayNode();
+                for (int i = 0; i < canonicalLines.size(); i++) {
+                    CanonicalLine line = canonicalLines.get(i);
+                    var node = mapper.createObjectNode();
+                    node.put("skuId", line.getSkuId());
+                    node.put("quantity", line.getQuantity());
+                    if (unitPrices != null && i < unitPrices.size() && unitPrices.get(i) != null) {
+                        node.put("unitPriceMinor", unitPrices.get(i).getAmountMinor());
+                        node.put("currency", unitPrices.get(i).getCurrency());
+                    }
+                    linesNode.add(node);
+                }
+                ((com.fasterxml.jackson.databind.node.ObjectNode) tree).set("lines", linesNode);
             }
             // pass the TREE, not a pre-serialized string: publish() serializes its
             // payload, so a String here would be double-encoded on the wire.
