@@ -110,7 +110,7 @@ jobs:
   # data plane are heavy for a shared runner); the decision is recorded in the
   # Phase-3 evidence rows.
   etl-unit-tests:
-    name: etl data-plane unit tests (oms + cdc + batch: DQ predicates, window evaluator, recon math)
+    name: "etl data-plane unit tests (oms + cdc + batch: DQ predicates, window evaluator, recon math)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
