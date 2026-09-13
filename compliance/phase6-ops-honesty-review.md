@@ -1,0 +1,47 @@
+# SEC-1 Review — Phase 6 ops-honesty sweep: sign-off review
+
+- **Reviewer:** SEC-1 (security/compliance, ops-honesty mandate)
+- **Date:** 2026-09-13
+- **Repo:** /home/potato/Haitham/ALIBABA, branch `main`, HEAD under review `2704a22`
+- **Mode:** READ-ONLY review; ORCH-LEAD applied the fixes. Validated-plans honesty (ADR-0002) applies throughout: no AliCloud account exists; nothing reviewed was verified against a live cloud.
+
+## 1. Scope & method
+
+Phase-6 artifacts in full: `docs/slo-report.md`, `docs/cost-model.md`, `tests/chaos/README.md` (runbook), `tests/chaos/chaos-run.sh` + `tests/load/k6-orders-stress.js` (harness), `infra/observability/` (alert layer), `evidence/EVIDENCE.md` E-019..E-025 + their `evidence/runs/` artifacts, the ESB config changes (`apps/esb/src/main/resources/application.yml`), and the interview-pack deltas.
+
+Independent verification performed (not trusted from prior claims): every figure in the SLO report and runbook re-derived from the raw JSONs/transcripts (k6 summaries, probe JSONLs, kill/recovery timestamps, PID chains); all 10 cost-sheet lines re-computed; **7 pricing URLs re-fetched same-day** and quoted figures checked; provider 1.285.0 binary greps for the schema claims (`run_immdiately`, `no_group`/`labels_auto` vs `no_condition`); hypothesis-discipline proven via git (hypotheses committed in `0e6be2e` before results in `e5d8ed2`); resource-count reconciliation for 87/118; harness falsifiability checks (PID-file-only lifecycle, status-0 window declarations, selftest).
+
+## 2. FINDINGS (as returned to ORCH-LEAD)
+
+| ID | SEV | file:line | Problem | Exact fix | Status after same-session fixes |
+|---|---|---|---|---|---|
+| SEC-6-01 | **HIGH** | evidence/runs/E-019-sls-alerts-and-plans.txt (whole file), cited at EVIDENCE.md E-019, cost-model, slo-report, infra READMEs, pack | The artifact contained neither `Plan: 87 to add` nor `Plan: 118 to add` nor the residency/lint outputs the ledger row asserts — the headline number everything cites traced to no artifact (numbers themselves re-derived correct by SEC-1 statically). | Re-run plans + `make residency` + lint and paste the real outputs into E-019. | **FIXED** (post-review re-run appended: residency 7/7 + selftest 5/5, lint OK, `Plan: 87 to add` / `Plan: 118 to add` grep-captured; the first supplement's `tail -1` boilerplate labeled as such) |
+| SEC-6-02 | **HIGH** | docs/slo-report.md (SLO capacity line); source error at evidence/runs/E-021-k6-stress.txt | "segment A: every step's 201-only p95 ≤ ~30 ms, p99 ≤ ~33 ms" contradicted the artifact's own per-step table (cold-start step1_r10 = 39.18/86.24 ms; the ~33 ms was the exploratory run's aggregate misapplied). Budget conclusion unaffected. | Re-word to the artifact's actual per-step bounds. | **FIXED** (both files: "p95 ≤ ~40 ms / p99 ≤ ~87 ms — cold-start r10 the worst (39.2/86.2 ms), warm steps ≤ 20.5/24.8 ms") |
+| SEC-6-03 | MED | docs/cost-model.md L2 + evidence/runs/E-025-cost-pricing-fetches.txt | Kafka partition line (5.75 USD/mo) a confirmed over-count: same-day re-fetch shows Standard hw.2xlarge includes **1,000 free partitions** (18 configured → 0 billable). The fetch note's "no included-partition quota captured" was contradicted by its own source page. | Zero the partition line, restate total 955.39 → **949.64** (range ≈ 924–950), record the re-fetch in E-025. | **FIXED** (all three sites, with the first-draft over-count explicitly recorded as a delta) |
+| SEC-6-04 | MED | docs/interview/qa-deep-drill-40.md Q6 | Stale pre-S7 state presented as current ("deprecated `notification_list`… migrating is a recorded follow-up", 3-store project, single DLQ alert) — contradicted by E-019. An interviewee would misstate the shipped layer. | Rewrite Q6 for the migrated layer (4 `alicloud_sls_alert`, 4 store indexes, 4 stores incl. pipeline-metrics, action-policy placeholder); keep ADR-0004 as history. | **FIXED** |
+| SEC-6-05 | MED | apps/esb/src/main/resources/application.yml (task-pool comment) | "Measured after the fix: k6 p95 3.25s" traced to nothing committed — the preserved canonical export shows p95 4078 ms / med 3690 ms (3.25 s was the untracked fix-test run's number). | Correct the comment to the canonical artifact numbers (k6 p95 4.08 s / med 3.69 s; solo probe 3.22 s). | **FIXED** |
+| SEC-6-06 | LOW | evidence/runs/E-021-k6-stress.txt | The "first exploratory run" corroboration line quoted counters digit-identical to the canonical run's (7349/4354) — two independent k6 runs cannot produce identical stock-exhaustion counts. | Strike the exploratory line's counters (keep percentiles); the canonical counters are the record. | **FIXED** |
+| SEC-6-07 | LOW | docs/slo-report.md + evidence/runs/E-021-k6-stress.txt | "~41 k requests" reconciled to nothing (A+B = 38,074; A+B+warm-110 = 43,856). | Use 43.9 k (A+B+warm) consistently. | **FIXED** |
+| SEC-6-08 | LOW | evidence/runs/E-024-chaos-stop-redis.txt | "Post-heal 15× 500s" vs the same artifact's analyze histogram showing 19. | 15 → 19. | **FIXED** |
+| SEC-6-09 | LOW | evidence/runs/E-024-chaos-stop-redis.txt + application.yml | "allow-through engages ~0.5 s" vs the canonical measured 0.9 s. | Align both on the measured 0.9 s. | **FIXED** |
+| SEC-6-10 | LOW | docs/interview/whiteboard-walkthrough-25min.md:53 | Board header still `? 110 : 79` while the SAY/CITE lines below say 87/118 — the board is what gets drawn. | `? 118 : 87`. | **FIXED** |
+| SEC-6-11 | LOW | qa-deep-drill-40.md:18 + whiteboard:5 | "(E-001…E-015)" ranges while the same files cite E-019/E-025. | E-001…E-025. | **FIXED** |
+| SEC-6-12 | LOW | docs/slo-report.md (SLO-1) | "3 704 iterations over 180 s" inconsistent with its own rate (3704 ÷ 19.49 = 190 s wall). Also "p95(201-only)" claimed from the sustained profile, which emits no 201-only trend. | "190 s wall (10 s ramp + 180 s hold)"; 201-only correctness via the 1:1 422 accounting, tag-split percentile provenance named (stress profile, r20 = 20.4 ms). | **FIXED** |
+| SEC-6-13 | LOW | docs/slo-report.md (SLO-3) vs E-022/E-023 transcripts | "every replayed key surfaced as 409 DUPLICATE" over-states: 409 STATUS is proven but the code/orderId carry was not observable (probe parser records no bodies) — the orderId-carrying proof is E-008. | Re-word to status-verified + E-008 lineage. | **FIXED** |
+
+## 3. Checked and clean (non-findings, re-derived)
+
+- Cost sheet: all 10 lines re-computed correctly (SAE CU math, Kafka spec/disk, SLS index/storage/r-w incl. 180-day audit store arithmetic, NAT/EIP, minor-units rounding); KMS 52–53% / Kafka 32–33% shares correct; the "reference only / buy page prevails" caveat carried.
+- Pricing re-fetches (7 URLs, same day): SAE 0.00001069 USD/CU SG + coefficients; OSS 0.0173; SLS 0.0875/0.002875/0.045 + free quotas; KMS 500/mo instance; NAT 0.0215/0.034; EIP 0.006/0.081; Kafka 0.335/0.03/0.000444 — all match the fetch record.
+- Chaos falsifiability: kill-window 1.9 ms re-derived exactly (n=44 median); kill/restart/health/first-201 timestamp chain self-consistent; PID chain across E-022→E-023→E-024 consistent; DLQ 0→59; allow-through 0.9 s re-derived (0.878 s); outage-window 18/18 201 med 1025 ms; pre-fix refutation transcripts preserved.
+- Stress tables digit-for-digit from the summary JSONs (all steps, both segments, warm-110); threshold flags match exit codes; 78.9 sagas/s = 4734/60.
+- Hypothesis discipline git-provable (hypotheses at 0e6be2e, results at e5d8ed2); OBSERVED sections record H1/H3 refuted-first without rewriting hypotheses.
+- IaC honesty labels (freshness design-only, pipeline-metrics awaiting producer, plan-proven-never-applied, action-policy placeholder, CN designed-never-applied with no CN prices) all verified.
+- Provider schema claims verified against the 1.285.0 binary (`run_immdiately` typo real; `no_group` vocabulary real; `no_condition` absent).
+- Cross-file counts: 87/118 current everywhere; 79/110 only in labeled historical contexts.
+
+## 4. Verdict
+
+**FIX-FIRST (2 HIGH + 3 MED + 8 LOW at review time) → all thirteen findings fixed the same session; re-verified by ORCH-LEAD (E-019 supplement captured live; grep/spot checks on every rewording).**
+
+**SEC-1 SIGN-OFF: the Phase 6 ops-evidence layer is approved as fixed** — with the standing honest boundary: SLS runtime behavior, real cloud costs, and CN-partition costs remain verify-at-activation / designed-only per ADR-0002/ADR-0005; every measured number is sim-mode contended-host evidence, labeled as such wherever it appears. The sweep's headline finding is itself the pattern's proof: the first cost-sheet draft contained one real money error (partition over-count) and one broken artifact→claim chain (E-019), both caught by independent re-derivation, not by the drafter.

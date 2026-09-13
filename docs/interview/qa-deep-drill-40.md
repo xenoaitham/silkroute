@@ -15,7 +15,7 @@ Rehearsal material. Each answer = the crisp spoken version (say it out loud), th
 | Delivery model & trade-offs | Q31–Q36 (sequencing, dual-mode, with-an-account, money, test strategy, real-team rollout) |
 | War stories (failure → root cause → fix → lesson) | Q37–Q40 (smoke that couldn't fail, double-encoding + ambiguous timeout, plan-green/apply-impossible, WSS wire) |
 
-Every number is measured and traces to `evidence/EVIDENCE.md` (E-001…E-015). The ETL answers (Q21–Q24) contain no numbers because nothing was built or measured there.
+Every number is measured and traces to `evidence/EVIDENCE.md` (E-001…E-025). The ETL answers (Q21–Q24) contain no numbers because nothing was built or measured there.
 
 ---
 
@@ -53,9 +53,9 @@ Evidence/anchor: E-013 (review finding: missing `kms:GenerateDataKey` for SSE-KM
 
 ### Q6. How do you split observability between SLS and CloudMonitor, and where does ActionTrail fit?
 
-SLS is for logs and everything you want to query: the `silkroute-sg` project holds `esb-app` (30-day retention), `orders-events` (30 days), and `audit` (180 days); there's an overview dashboard and an SLS alert on DLQ depth. CloudMonitor (CMS) is for metric alarms — SAE CPU and RDS connections — with a contact group. ActionTrail is the control-plane audit log: every API call "who did what", shipped to the `audit` store, which is exactly the store an auditor asks about. The split rule I use: application and event logs to SLS where you query them, infrastructure metrics to CMS where you page on them, control-plane actions to ActionTrail where you investigate them. One honest note: the SLS alert resource uses a deprecated `notification_list` argument; the modern `alicloud_sls_alert` exists in provider 1.285.0 and migrating is a recorded follow-up.
+SLS is for logs and everything you want to query: the `silkroute-sg` project holds four stores — `esb-app` and `orders-events` and `pipeline-metrics` (30-day retention each) and `audit` (180 days) — each shipping with its query index, plus the overview dashboard (p95, DLQ depth, and the freshness panel that deliberately renders nothing until the Phase-3 producer exists) and four alerts on the modern `alicloud_sls_alert` resource: DLQ depth, the 300-millisecond p95 budget breach, a denied-action burst on the audit store, and a zero-tolerance StopLogging/DeleteTrail tamper tripwire. All four route through an SLS action policy that is console-managed at activation — the provider ships no action-policy resource, so the alert references it by a placeholder variable, the same out-of-band pattern as the ActionTrail write role. CloudMonitor (CMS) is for metric alarms — SAE CPU and RDS connections — with a contact group. ActionTrail is the control-plane audit log: every API call "who did what", shipped to the `audit` store, which is exactly the store an auditor asks about. The split rule I use: application and event logs to SLS where you query them, infrastructure metrics to CMS where you page on them, control-plane actions to ActionTrail where you investigate them. One honest note: the alert-layer migration off the deprecated `notification_list` form was the recorded follow-up — it landed (the plan validator even caught the modern resource's stricter group vocabulary live), and the condition-expression semantics stay verify-at-activation because plans prove schema, not SLS behavior.
 
-Evidence/anchor: E-012; `infra/observability/`; ADR-0004 consequences (sls_alert correction).
+Evidence/anchor: E-012 (gate-era layer), E-019 (migrated layer, `Plan: 87/118`); `infra/observability/`; ADR-0004 status addendum.
 
 ### Q7. Why SAE and not ACK or Function Compute?
 

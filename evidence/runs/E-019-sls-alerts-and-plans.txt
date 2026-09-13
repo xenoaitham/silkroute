@@ -32,3 +32,21 @@ log_alert vocabulary 'no_condition' was rejected live by plan before any doc rec
 
 == provider's schedule typo shipped verbatim (schema-verified, commented in code) ==
 alicloud_sls_alert schedule attr 'run_immdiately' (1.285.0) — comment in observability/main.tf
+
+== POST-REVIEW SUPPLEMENT (SEC-1 HIGH-1 fix, appended 2026-09-13): the actual plan/residency/lint outputs the ledger cites ==
+
+-- make residency (green) --
+residency OK (7/7 checks) — graph + wiring enforce C1 statically; runtime proof waits for an account
+selftest OK: all five mutations caught
+
+-- tf-apply-validity lint --
+tf-apply-validity: OK — no known apply-time violations in infra/.
+
+-- SG/CN plan `tail -1` from the first supplement (boilerplate; Plan lines follow in the grep captures) --
+guarantee to take exactly these actions if you run "terraform apply" now.
+)
+-- SG plan (grep capture, post-review re-run) --
+Plan: 87 to add, 0 to change, 0 to destroy.
+-- CN plan (grep capture, post-review re-run, -var enable_cn_region=true) --
+Plan: 118 to add, 0 to change, 0 to destroy.
+)

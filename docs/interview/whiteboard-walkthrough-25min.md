@@ -2,7 +2,7 @@
 
 Maple Retail Group is a fictional company; SilkRoute is a self-directed reference implementation (2026).
 
-Rehearse against a timer. SAY lines are first person, written to be spoken. Numbers are only from `evidence/EVIDENCE.md` (E-001…E-015) — if a number isn't in the ledger, don't say it. Say "validated IaC, sim runtime" every time cloud IaC appears; volunteer it, don't wait to be asked.
+Rehearse against a timer. SAY lines are first person, written to be spoken. Numbers are only from `evidence/EVIDENCE.md` (E-001…E-025) — if a number isn't in the ledger, don't say it. Say "validated IaC, sim runtime" every time cloud IaC appears; volunteer it, don't wait to be asked.
 
 Legend: [BOARD] = what to draw; [SAY] = what to say; [CITE] = the measured number and its evidence ID.
 
@@ -50,7 +50,7 @@ Legend: [BOARD] = what to draw; [SAY] = what to say; [CITE] = the measured numbe
 
 ## 14:00–18:30 — The AliCloud landing zone
 
-[BOARD] Two dashed regions. **SG hub (ap-southeast-1)**: VPC 10.60.0.0/16 with 2 private + 1 public vSwitch, NAT/EIP, SGs (allowlist arrows ESB→ERP→data, admin CIDR), then stacked module boxes: KMS×2, RAM roles, RDS MySQL 8 (SSE/TDE), OSS lake ×4 buckets, SAE apps, ApsaraMQ, SLS + ActionTrail + CMS alarms. **CN partition (cn-beijing)**: mirror with its own VPC 10.70.0.0/16, CN-only KMS/OSS/RDS, tags `residency=cn`, and a big X over "NAT/egress" — "no egress path". Between them: `alicloud.cn alias → providers meta-argument` on an arrow into the CN region. Header line: `var.enable_cn_region ? 110 : 79 resources`.
+[BOARD] Two dashed regions. **SG hub (ap-southeast-1)**: VPC 10.60.0.0/16 with 2 private + 1 public vSwitch, NAT/EIP, SGs (allowlist arrows ESB→ERP→data, admin CIDR), then stacked module boxes: KMS×2, RAM roles, RDS MySQL 8 (SSE/TDE), OSS lake ×4 buckets, SAE apps, ApsaraMQ, SLS + ActionTrail + CMS alarms. **CN partition (cn-beijing)**: mirror with its own VPC 10.70.0.0/16, CN-only KMS/OSS/RDS, tags `residency=cn`, and a big X over "NAT/egress" — "no egress path". Between them: `alicloud.cn alias → providers meta-argument` on an arrow into the CN region. Header line: `var.enable_cn_region ? 118 : 87 resources`.
 
 [SAY] "The landing zone, in validated IaC, sim runtime mode — meaning fmt, validate, and plan are proven against the real pinned provider, plans perform zero API calls, and nothing was ever applied, because no account exists. Singapore hub: 87 planned resources across network, security, data, compute on SAE, and observability — SLS for logs, CloudMonitor for metrics, ActionTrail shipped to an audit store for who-did-what, and four SLS alert rules on the modern alicloud_sls_alert resource: DLQ depth, the 300-millisecond p95 budget breach, a denied-action burst on the audit store, and a zero-tolerance trail-tamper tripwire. With the CN flag on, 118: the China partition is pinned at the provider graph via an aliased alicloud.cn provider — residency lives in the provider meta-argument, not in tags — with its own VPC, KMS, buckets, and deliberately no NAT, so there is no egress path at all. IAM is zero-wildcard on actions; the only wildcard Principal sits inside Deny statements on insecure transport, where it narrows access. An independent least-privilege review returned one high, three medium, six low — all fixed and re-proven by green plans."
 

@@ -1,6 +1,6 @@
 E-021 — stepped stress run (capacity/breaking point), Phase 6 S7, 2026-09-13
 Profile: tests/load/k6-orders-stress.js — steps 10,20,35,50,70,90 RPS x 45s (15s ramp + 30s hold each), fresh ERP ledger at start
-Per-step 201-only p95/p99 exported via REPORTING thresholds at the 300ms C3 boundary (no abortOnFail; exit 99 = some step breached). First exploratory run (pre-threshold instrumentation) measured aggregate 201-p95 21.73ms / p99 32.84ms with ZERO infra errors across all 6 steps (7349 x 201, 4354 x 422) — retained as corroboration, not the canonical artifact.
+Per-step 201-only p95/p99 exported via REPORTING thresholds at the 300ms C3 boundary (no abortOnFail; exit 99 = some step breached). First exploratory run (pre-threshold instrumentation) measured aggregate 201-p95 21.73ms / p99 32.84ms with ZERO infra errors across all 6 steps — retained as corroboration, not the canonical artifact (its counter totals were not independently retained; the canonical run's counters below are the record).
 Reproduce: make esb-run && ~/tools/k6/k6 run --summary-trend-stats="avg,min,med,max,p(90),p(95),p(99)" tests/load/k6-orders-stress.js --summary-export=tests/load/results/s7-stress-summary.json
 Breaking-point rule (profile header): first step where infra failures (non-422/409) > 1% of the step OR 201-only p95 > 300ms. Business rejections (422 stock) are fast rejections and MUST NOT count as saturation.
 
@@ -22,8 +22,9 @@ r90     |    12.06 ms |    14.29 ms | NO
 409/503/5xx/network-error counters: absent from output = 0 (zero infra failures)
 
 == reading (honest headline) ==
-- The C3 budget NEVER BREACHED through 90 RPS on this host: every step's 201-only p95 stayed under ~30ms
-  (see table), exit code 0 (all reporting thresholds ok). No infra failures in any step.
+- The C3 budget NEVER BREACHED through 90 RPS on this host: every step's 201-only p95 stayed under ~40ms
+  and p99 under ~87ms (cold-start r10 the worst: 39.2/86.2ms; warm steps ≤ 20.5/24.8ms — see table),
+  exit code 0 (all reporting thresholds ok). No infra failures in any step.
 - Structural ceiling discovered: successful sagas (7349) ~= the ERP's total seeded stock pool (150 rows x ~52 avg
   units ~= 7875). Beyond ~90 RPS most traffic becomes FAST 422 rejections that bypass the saga legs, so the
   mediation path cannot be stressed harder WITHOUT a fresh stock pool. Extension segment at 110-200 RPS on a

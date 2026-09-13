@@ -55,9 +55,9 @@ CHAOS RUN COMPLETE — stack state: ERP(18080)=UP pid=649263 · ESB(18081/18082)
 Outage began 06:39:34Z; FIRST 'allowing through' log line 06:40:35Z = 61s later (AFTER the 06:40:18Z heal):
 Lettuce's default 60s command timeout blocks every claim/get/release call far past the 30s async-request
 timeout, so during the outage requests died queued (k6: 39.65% failed at ~30s caps; probes all 10s-capped)
-and the allow-through code was never reached in time. Post-heal 15x 500s = queued backlog resolving dead.
+and the allow-through code was never reached in time. Post-heal 19x 500s (analyze histogram) = queued backlog resolving dead.
 Zero duplicate commits held throughout (no replay reached a second commit) — but by death, not by design.
-FIX: spring.data.redis.timeout/connect-timeout = 500ms (committed) — allow-through now engages ~0.5s into
+FIX: spring.data.redis.timeout/connect-timeout = 500ms (committed) — allow-through now engages ~0.9s into
 the outage and the ERP ORD-DUP-REF guard covers the window as designed.
 
 == run 2 (post-fix, canonical, committed config) ==

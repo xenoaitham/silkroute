@@ -51,6 +51,10 @@ every unit price in the cost sheet traces to one of these fetches — no price f
      0.000444 USD/partition-hour; API calls free; "Billing stops immediately when you release the
      instance"; disk minimums vary by spec (300 GB examples).
    - Our IaC: spec_type "normal" deploy_type 4 (VPC) PostPaid, 300 GB disk, 2 topics (E-019 plan).
+   - POST-REVIEW RE-FETCH (same URL, 2026-09-13): the spec table states Standard hw.2xlarge includes
+     1,000 free partitions (2x-12xlarge tier) — the first capture missed the included-quota column and
+     the first cost-sheet draft billed 18 partitions (5.75 USD/mo over-count). Corrected: partitions = 0
+     billable; cost-model total 955.39 -> 949.64 USD/month.
 
 9. CloudMonitor — https://www.alibabacloud.com/help/en/cms/cloudmonitor-1.0/product-overview/free-quota
    - Basic monitoring/alerts free; alert SMS quota separate (SMS only for +86 numbers on basic);
