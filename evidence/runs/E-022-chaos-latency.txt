@@ -85,3 +85,14 @@ carry is E-008's wire proof)
   replay status=409 error_code=None order_id_same_as_original=False
      checks.........................: 98.69% 1213 out of 1229
      http_req_failed................: 1.30%  16 out of 1229
+
+== post-gate provenance supplement (CRITIC cycle-2 F-2) ==
+The canonical run's k6 quantiles (p95 4078 ms / med 3690 ms, cited in application.yml's fix comment)
+were read from tests/load/results/chaos-latency-800ms-summary.json at SEC-1-review time — that file
+has a FIXED NAME and is overwritten by every re-run (it is gitignored; the lesson: fixed-name result
+files are not evidence). Corroboration committed in THIS artifact: the probe instrument's in-window
+med 3619 ms / max 4133 ms (same run). Committed supplement: the CRITIC's own cycle-2 verification
+re-run export at evidence/runs/E-022-chaos-latency-800ms-critic-cycle2-verification.json — its shape
+differs (p95 3215 ms / med 1608 ms / checks 22%) because that run started on a heavily stock-depleted
+ERP (most traffic = fast 422 rejections), which is exactly the per-status-split discipline the
+profiles mandate. Both runs: analyze 0 violations.

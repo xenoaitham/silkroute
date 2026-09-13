@@ -19,7 +19,6 @@
  *   1. ramping-arrival-rate semantics: step 1 ramps startRate(1) -> 10, later
  *      steps ramp from the PREVIOUS step's target to their own target — the
  *      "ramp within steps" — then hold at the target for the rest of the step.
- *   2. every k6 metric is automatically tagged `scenario:<name>`, so the
  *   2. every k6 metric is tagged `scenario:<name>`; per-step 201-only
  *      percentiles are surfaced via REPORTING thresholds on those tagged
  *      sub-metrics (see options.thresholds) because --summary-export carries

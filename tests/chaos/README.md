@@ -295,7 +295,7 @@ rode the Redis done-keys as documented.
   failed at ~30 s; the FIRST "allowing through" warn appeared 61 s after the
   outage began — AFTER the heal. `RedisIdempotencyStore`'s catch is correct but
   unreachable in time: Lettuce's default 60 s command timeout swallows the
-  window. Post-heal 15× 500 s = the queued backlog dying at the async timeout.
+  window. Post-heal 19× 500 s = the queued backlog dying at the async timeout.
 - Fix: `spring.data.redis.timeout` / `connect-timeout` = 500 ms.
 - Post-fix (canonical, E-024): allow-through engaged 0.9 s into the outage
   (667 warns); outage-window probes 18/18 completed 201 at med 1.03 s; replays
