@@ -1,6 +1,6 @@
 # SilkRoute — Runbooks
 
-Maple Retail Group is a **fictional** Canadian retailer; these runbooks belong to a **self-directed reference implementation** (2026; MASTER_PROMPT §9 framing). Runbooks 1–2 are the honest cloud-side path — the landing zone is **validated IaC** and has never been applied (ADR-0002), so anything touching a real account is written for the day one exists. Runbooks 4–5 are proven (4) and design-only (5) in sim. Every trigger, prerequisite, and command below points at a real repo artifact; reference material is linked, not duplicated.
+Maple Retail Group is a **fictional** Canadian retailer; these runbooks belong to a **self-directed reference implementation** (2026; MASTER_PROMPT §9 framing). Runbooks 1–2 are the honest cloud-side path — the landing zone is **validated IaC** and has never been applied (ADR-0002), so anything touching a real account is written for the day one exists. Runbooks 4–5 are proven in sim (4 = the chaos playbook, E-022/E-023/E-024; 5 = the freshness playbook, E-030/E-031); SLS panel/alert behavior in 5 stays verify-at-activation. Every trigger, prerequisite, and command below points at a real repo artifact; reference material is linked, not duplicated.
 
 ---
 
@@ -58,7 +58,7 @@ make destroy       # guarded destroy after capture
 
 | Envelope field | Action |
 |---|---|
-| `failedStep` + `errorCode` (`UPSTREAM-UNAVAILABLE`) | the dependency failed mid-saga — verify the dependency is healthy, then re-post the order with the SAME `Idempotency-Key` (a released claim re-executes; a done-key returns the original 201). Re-publishing the envelope to `silkroute.orders.events` targets the DESIGNED event consumer (the data-plane phase is not built — today that topic has no consumer), so the re-post is the only live replay path in sim |
+| `failedStep` + `errorCode` (`UPSTREAM-UNAVAILABLE`) | the dependency failed mid-saga — verify the dependency is healthy, then re-post the order with the SAME `Idempotency-Key` (a released claim re-executes; a done-key returns the original 201). Re-publishing the envelope to `silkroute.orders.events` targets the BUILT event consumer (the OMS event store, `make oms-run` — `REPLAY-SKIP`/`OMS-ORDER-STORED` lines in `/tmp/silkroute-oms.log`, E-030/E-034); re-post + consumer replay are both live paths in sim |
 | `category` = `BUSINESS` | a business fault reached the DLQ path (compensated saga) — fix the data/request, not the wire |
 | `compensated` = `true` + `releasedReservationIds` | holds were already released; the replay is safe, no manual inventory surgery |
 | `customerRef` (CN store, `msk-*`) | **pseudonymized, not plaintext** — re-identification happens only inside the CN boundary with the key (`PII_MASK_SECRET` / its activation-time secret store); a redrive never needs the plaintext value, by design |
@@ -90,23 +90,28 @@ make destroy       # guarded destroy after capture
 
 ---
 
-## 5. FRESHNESS-BREACH RESPONSE — DESIGN-ONLY
+## 5. FRESHNESS-BREACH RESPONSE
 
-> **Label: DESIGN-ONLY. The producer does not exist** — the CDC/batch pipeline is the designed-not-built phase; the metric contract, store, and panel are the receiving end only. No measured number is claimed anywhere in this runbook.
+> **Label: producer BUILT and measured in sim (E-030/E-031).** The CDC/batch pipeline runs here — the freshness metric is emitted by the real producer in the exact Phase-6 contract shape. What stays verify-at-activation: SLS ingest, panel rendering, and alert behavior on the `pipeline-metrics` store (no AliCloud account exists, ADR-0002) — and sustained production lag in a continuously-running deployment (the sim proves the metric and the pipeline, not a 24/7 schedule).
 
-**Trigger (would-be):** the freshness panel/alert on the `pipeline-metrics` store breaches the C4 target (CDC freshness ≤ 15 min; T+1 batch complete by 06:00 Asia/Singapore).
+**Trigger:** the freshness panel/alert on the `pipeline-metrics` store breaches the C4 target (CDC freshness ≤ 15 min; T+1 batch complete by 06:00 Asia/Singapore). In sim today the equivalent trigger is operator-visible: `cdc_freshness_seconds` heartbeat values growing past budget in `/tmp/silkroute-cdc-engine.log`, or a `BATCH-WINDOW ... withinWindow=false` line in the batch log.
 
-**The contract (already shipped in IaC, plan-proven — E-019):** the producer emits `{"metric":"cdc_freshness_seconds"|"batch_completion","value":N,"pipeline":"cdc"|"batch"}`; the `pipeline-metrics` store (30 d TTL, `metric`/`value` indexed) and the dashboard panel (titled "awaiting Phase 3 producer") are the receiving end.
+**The contract (shipped in IaC, plan-proven — E-019; emitted and measured — E-031):** the producer emits `{"metric":"cdc_freshness_seconds"|"batch_completion","value":N,"pipeline":"cdc"|"batch"}`; the `pipeline-metrics` store (30 d TTL, `metric`/`value` indexed) and the dashboard panel (titled "CDC freshness (s) — cdc_freshness_seconds (C4; producer live in sim, E-030/E-031)") are the cloud receiving end.
 
-**Steps (what WOULD fire and what the operator WOULD check):**
+**Steps (what the operator checks — real commands against the sim producer):**
 
-1. Alert SQL on `pipeline-metrics` fires on the threshold — which alert rule/threshold is a [infra/observability/README.md](../infra/observability/README.md) question (verify-at-activation).
-2. Operator WOULD check, in order: is the producer emitting at all (metric absence ≠ freshness breach — an empty store means the pipeline is down, not slow); `pipeline` tag — `cdc` vs `batch` distinguishes streaming lag from the T+1 window miss; source-side binlog/WAL position vs connector lag; downstream lake reconciliation counts.
-3. Resolution paths WOULD follow the consumer-lag → connector → source triage order; nothing here is exercised.
+1. Alert SQL on `pipeline-metrics` fires on the threshold — which alert rule/threshold is a [infra/observability/README.md](../infra/observability/README.md) question (verify-at-activation). In sim, check the producer is emitting at all (metric absence ≠ freshness breach — no fresh metric lines means the pipeline is DOWN, not slow).
+2. Producer-side triage, in order (all greps verified in E-030/E-031):
+   - Is capture alive: `grep -c CDC-CAPTURE /tmp/silkroute-cdc-engine.log` — per-record `op=c table=... sourceTsMs=...` lines only come from the MySQL binlog stream (the engine has no poll fallback; E-031).
+   - Is freshness real lag or pipeline death: `grep '"metric":"cdc_freshness_seconds"' /tmp/silkroute-cdc-engine.log` — `trigger=batch` lines landing at value=0 with heartbeats growing between them is normal lag under source silence (E-031); heartbeat lines STOPPING entirely is a dead engine (restart with `make cdc-stop && make cdc-run` — offsets are a file store, so it resumes from its binlog position, the E-034 restart scenario).
+   - Which pipeline: `pipeline` tag in the metric — `cdc` (streaming lag) vs `batch` (the T+1 window miss, `batch_completion` seconds + `BATCH-WINDOW ... withinWindow=` lines).
+   - Did the data land correctly end to end: `make etl-check` — asserts OMS rows exist, bronze objects landed, and `/tmp/silkroute-recon-report.json` reads `allMatch=true`.
+   - OMS-side replay health: `OMS-ORDER-STORED` / `REPLAY-SKIP` lines in `/tmp/silkroute-oms.log`; bronze landings: `BRONZE-LAND region=... object=... records=N` in `/tmp/silkroute-cdc-bronze.log`.
+3. Resolution paths follow the consumer-lag → connector → source triage order; in sim the measured failure paths are the E-034 scenarios (CDC killed mid-stream → restart → catch-up from binlog offsets, no loss no dup; OMS offsets reset → 12 `REPLAY-SKIP`s, no duplicates). A full clean-slate re-run is `make etl-reset` followed by the E-030 chain verbatim (esb/oms/cdc up → `make seed-day N=30` → cdc-stop → `make batch-run ARGS="full --business-date <UTC date of the seed>"` → `jq . /tmp/silkroute-recon-report.json` — the exact command lives in the ledger row); the 6-scenario regression suite is `make etl-int`.
 
-**Expected output (today):** nothing — the store is empty by design and the panel draws nothing; that emptiness is the honest state, stated in the panel title.
+**Expected output:** freshness back under budget (heartbeat values reset after the next batch lands — E-031: trigger=batch at value=0) and a recon report that still reads `allMatch=true`.
 
-**Rollback / escape hatch:** none applicable — nothing runs.
+**Rollback / escape hatch:** `make etl-reset` is the clean-slate instrument (stops oms/cdc/esb, truncates tables, purges topics/groups/buckets/offsets) — bronze is rebuilt from the binlog/topic; never hand-edit lake objects (write-once by construction, E-033). SLS-side alert tuning stays verify-at-activation.
 
 ---
 

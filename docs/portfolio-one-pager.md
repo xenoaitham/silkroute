@@ -21,17 +21,18 @@
 | Residency (C1) | CN pinned at the provider graph (aliased `alicloud.cn`), no egress path, zero replication resources; 7-check CI suite + 5-mutation selftest; masked keyed-HMAC PII egress from shared topics | E-016, E-009 |
 | Compliance paper layer | PIPL/PDPA/PIPEDA control matrix with article-level citations, cross-border transfer memo (Art. 38–40), ICP filing runbook, STRIDE, audit-query demo | E-017 (audit-query demo only) |
 | Cost model | designed 24/7 SG footprint **949.64 USD/month** (KMS instance ~53% + Kafka ~32%), priced only from fetched pricing pages — the quantified argument for sim-first | E-025 |
+| Data plane (ETL) | 30 real orders through the live ESB → OMS event store → Debezium binlog capture (60 records) → 50 write-once bronze objects → Spark gold with **100% reconciliation** (CAD 80 849 / CNY 173 205 / SGD 40 605 minor all match); **batch_completion 41 s**, in-window T+1 completion (04:52:09 SGT vs 06:00); freshness measured 0→213 s across runs, never near the 900 s budget | E-030, E-031 |
 | CI | 4-job pipeline green at the Phase-7 HEAD (run 34754300083, sha ae4364f): sim smoke, SOAP contract suite, fault-injection saga suite, terraform plan + residency checks | E-028 |
 
 ## Honest modes — what is proven where
 
 | Mode | Meaning |
 |---|---|
-| **Sim runtime** | Everything here actually runs: docker-compose (MySQL/Kafka/Redis/MinIO/toxiproxy) + the real Camel ESB and frozen-ERP SOAP services; every runtime number above was measured on it (shared consumer desktop, contention noted per row) |
+| **Sim runtime** | Everything here actually runs: docker-compose (MySQL/Kafka/Redis/MinIO/toxiproxy) + the real Camel ESB, frozen-ERP SOAP services, and the ETL data plane (OMS event store, Debezium CDC, Spark batch); every runtime number above was measured on it (shared consumer desktop, contention noted per row) |
 | **Validated IaC** | All `infra/` Terraform is schema- and plan-proven against the real provider, performs zero API calls, and has **never been applied** — no account exists (plans create nothing) |
-| **Not run** | SLS runtime behavior, real cloud costs, the CN partition, runtime residency behavior, CDC freshness — designed, honestly unclaimed until an account exists ("verify at activation") |
+| **Not run** | SLS runtime behavior, real cloud costs, the CN partition, runtime residency behavior — designed, honestly unclaimed until an account exists ("verify at activation") |
 
-The ETL data plane (Debezium CDC → Kafka → bronze/silver/gold) is **designed, not built** — no numbers are claimed for it.
+The ETL data plane (Debezium CDC → Kafka → bronze/silver/gold) is **built and sim-measured** — 100% source-vs-gold reconciliation on a seeded 30-order day, batch_completion 41 s, freshness metric measured growing under source silence (E-030/E-031); SLS ingest of its metrics verifies at activation.
 
 ## Go deeper
 

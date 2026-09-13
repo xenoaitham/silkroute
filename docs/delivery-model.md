@@ -11,7 +11,7 @@ The roles below are the ones this repo's artifacts imply; the artifact column po
 | Terraform landing zone ([infra/](../infra/)) | **A/R** | C | C | C (IAM review) | I |
 | ESB module ([apps/esb/](../apps/esb/)) — routes, saga, resilience, masking | C | **A/R** | I | C (PII egress) | I |
 | Legacy ERP estate ([apps/legacy-erp/](../apps/legacy-erp/), frozen WSDLs) | I | **A/R** | I | C | I |
-| Data plane (CDC + batch — designed, not built) | C | C | **A/R** | C (residency) | I |
+| Data plane (CDC + batch — built, sim-measured, E-030..E-034) | C | C | **A/R** | C (residency) | I |
 | Compliance pack ([compliance/](../compliance/): control matrix, transfer memo, STRIDE, audit design) | C | C | I | **A/R** | I |
 | Residency tests + selftest ([scripts/residency-tests.sh](../scripts/residency-tests.sh)) | C | C | C | **A/R** | I |
 | Observability/alerts ([infra/observability/](../infra/observability/)) | C | I | I | C (audit alerts) | **A/R** |

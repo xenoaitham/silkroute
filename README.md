@@ -6,7 +6,7 @@
 
 SilkRoute is a multi-region enterprise integration platform for the fictional Canadian retailer (300 stores + e-commerce) entering **Singapore** (international hub) and **mainland China** (PIPL data-residency partition). It mediates modern REST traffic into an untouchable SOAP ERP estate on Apache Camel — saga orchestration with compensation, retry/circuit-breaker/DLQ, idempotent consumption, region-based PII masking — and pairs that with a Terraform (`alicloud`) landing zone, CI-provable data-residency checks, measured load/chaos evidence, and a cost model priced from fetched pricing pages. Everything runtime-provable runs locally in **sim mode** at zero cloud spend; the cloud side is **validated IaC** — schema- and plan-proven, never applied, creating nothing ([ADR-0002](decisions/ADR-0002-cloud-account-path.md)).
 
-**Status: 8 of 9 project phases complete** — the ETL data-plane phase (CDC + Spark lake) is designed-not-built and no numbers are claimed for it. **28 evidence rows** in the ledger ([evidence/EVIDENCE.md](evidence/EVIDENCE.md), E-001..E-028), each with a re-runnable command. CI is green 4/4 (run 34754300083, sha ae4364f).
+**Status: all 9 project phases built** — the last build phase, the ETL data plane (CDC + Spark lake), is built and sim-measured (E-030..E-034); the gate record lives in [ROADMAP.md](ROADMAP.md). **35 evidence rows** in the ledger ([evidence/EVIDENCE.md](evidence/EVIDENCE.md), E-001..E-035), each with a re-runnable command. CI green 5/5 (E-035).
 
 ## Architecture
 
@@ -38,6 +38,8 @@ flowchart TB
     esb -->|"exhausted / compensated sagas"| kafka
     sim -.->|"ADR-0001: same app jars,<br/>swap is configuration only"| cloud
 ```
+
+The data plane — the OMS event store, Debezium CDC capture to bronze, and the Spark silver/gold batch with DQ gates + reconciliation — is designed in [docs/lld.md](docs/lld.md) §8 and [ADR-0006](decisions/ADR-0006-etl-data-plane.md).
 
 ## Quickstart (sim mode — default, zero cloud spend)
 
@@ -87,9 +89,9 @@ Idempotency, by design: re-posting the **same** `Idempotency-Key` after a 201 �
 
 | Mode | Meaning | What it covers |
 |---|---|---|
-| **Sim runtime** | Actually runs here; every number below is measured on it | ESB mediation, saga/compensation, retry/breaker/DLQ, idempotency, PII masking, load & chaos numbers, audit-query demo |
+| **Sim runtime** | Actually runs here; every number below is measured on it | ESB mediation, saga/compensation, retry/breaker/DLQ, idempotency, PII masking, load & chaos numbers, audit-query demo, the ETL data plane — OMS event store, Debezium CDC → bronze, Spark silver/gold with DQ + reconciliation, freshness/batch metrics (E-030..E-034) |
 | **Validated IaC** | Schema- and plan-proven against the real `alicloud` provider — **never applied**, no account exists | All of `infra/` (87-resource SG plan, 118 with the CN flag, E-019); residency static checks R1–R7 (E-016) |
-| **Not run** | Designed, nothing claimed until it happens — **verify at activation** | SLS runtime behavior (alerts/indexes/ingest), real cloud costs (the sheet is designed 24/7, not billed), the CN partition (plan-validated only, ADR-0005), runtime residency behavior, CDC freshness (no producer exists) |
+| **Not run** | Designed, nothing claimed until it happens — **verify at activation** | SLS runtime behavior (alerts/indexes/ingest — incl. the freshness panel), real cloud costs (the sheet is designed 24/7, not billed), the CN partition (plan-validated only, ADR-0005), runtime residency behavior |
 
 Cost headline: the designed 24/7 Singapore footprint prices at **949.64 USD/month** — dominated by the KMS software instance (~53%) and the Kafka instance (~32%) — the quantified argument for sim-first (E-025, [docs/cost-model.md](docs/cost-model.md)). An AliCloud account would unlock: real SLS ingest/alerts, KMS envelopes, RDS/OSS behavior, runtime residency proof, and CN activation — the step-by-step is the activation runbook in [docs/runbooks.md](docs/runbooks.md).
 
@@ -100,22 +102,23 @@ Cost headline: the designed 24/7 Singapore footprint prices at **949.64 USD/mont
 | [MASTER_PROMPT.md](MASTER_PROMPT.md) | Project constitution (mission, scenario constraints C1–C7, protocols) |
 | [ROADMAP.md](ROADMAP.md) | Phase status board |
 | [STATE.md](STATE.md) | Current state, session log |
-| [evidence/EVIDENCE.md](evidence/EVIDENCE.md) | The evidence ledger, E-001..E-028 — claim → artifact → reproduce command → measured result |
-| [decisions/](decisions/) | 5 ADRs (one-liners below) |
+| [evidence/EVIDENCE.md](evidence/EVIDENCE.md) | The evidence ledger, E-001..E-035 — claim → artifact → reproduce command → measured result |
+| [decisions/](decisions/) | 6 ADRs (one-liners below) |
 | [apps/legacy-erp/](apps/legacy-erp/) | Frozen WSDL-first SOAP ERP (Spring Boot + CXF) |
 | [apps/esb/](apps/esb/) | Apache Camel integration hub (saga, resilience, idempotency, masking) |
-| apps/modern-oms, apps/cdc, apps/batch | Designed data plane — placeholders, not built |
+| apps/modern-oms, apps/cdc, apps/batch | The built ETL data plane (sim-measured, E-030..E-034): OMS event store replaying `silkroute.orders.events` into MySQL; an embedded Debezium engine capturing the binlog to Kafka + a bronze write-once S3 writer; a Spark bronze→silver→gold batch with DQ gates and 100% reconciliation |
 | [infra/](infra/) | Terraform alicloud landing zone (validated plans, never applied) |
 | [compliance/](compliance/) | Control matrix, cross-border memo, STRIDE, audit-trail design |
 | [tests/](tests/) | Karate contract, ESB fault-injection suite, k6 load, chaos harness |
 | [docs/](docs/) | HLD, LLD, runbooks, delivery model, SLO report, cost model, ICP runbook |
 
-**Decision log (5 ADRs, one line each):**
+**Decision log (6 ADRs, one line each):**
 
 - [ADR-0001](decisions/ADR-0001-dual-mode-sim-cloud.md) — dual-mode: sim (docker-compose) is the default runtime; the cloud swap is configuration/Terraform only, never code changes.
 - [ADR-0002](decisions/ADR-0002-cloud-account-path.md) — no account exists: validated-plans mode; every cloud row is "validated IaC, sim runtime."
 - [ADR-0003](decisions/ADR-0003-wsdl-contract-freeze.md) — the ERP's WSDLs/XSDs are frozen (tag `contract-freeze-erp-v1`); all impedance mismatch lives in the ESB (C6).
 - [ADR-0004](decisions/ADR-0004-sae-over-ack-and-budget-alarm.md) — SAE over ACK for compute; budget alarm via BssOpenApi script because the provider ships no budget resource.
 - [ADR-0005](decisions/ADR-0005-region-strategy-sg-hub-cn-partition.md) — Singapore hub; CN partition designed and plan-validated behind a flag, never applied.
+- [ADR-0006](decisions/ADR-0006-etl-data-plane.md) — ETL data plane: embedded Debezium engine (not Connect) in sim, OMS event store as CDC source, bronze/silver/gold lake shape, freshness/batch metric definitions committed before any measurement.
 
 **Further reading:** [docs/slo-report.md](docs/slo-report.md) (measured SLOs) · [docs/cost-model.md](docs/cost-model.md) (priced cost sheet) · [tests/chaos/README.md](tests/chaos/README.md) (chaos runbook) · [docs/interview/](docs/interview/) · [docs/hld.md](docs/hld.md) · [docs/lld.md](docs/lld.md) · [docs/delivery-model.md](docs/delivery-model.md) · [docs/runbooks.md](docs/runbooks.md).

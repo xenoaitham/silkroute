@@ -70,14 +70,15 @@ Maple Retail Group is a **fictional** company; this is a design artifact of a **
 
 **Measured (S7):** **E-022/E-023/E-024 (canonical, 2026-09-13):** E-022 (toxic removed): probes returned to baseline within the recovery window (post-window statuses all 201-class); E-023 (ERP restarted): **first 201 probe 2 s after /actuator/health UP** (28 s Spring Boot boot excluded by definition — the breaker wait-in-open is 2 s, matching the config-derived expectation); E-024 (Redis PONG): flow never lost (allow-through continuation), claims resumed. All within the 30 s bound. → evidence **E-022, E-023, E-024**.
 
-## SLO-6 — CDC freshness (C4) — DESIGN-ONLY, NOT MEASURED
+## SLO-6 — CDC freshness (C4) — MEASURED IN SIM (producer live; SLS ingest verify-at-activation)
 
 | | |
 |---|---|
-| **Target (defined)** | CDC freshness ≤ **15 min** (C4); T+1 batch complete by **06:00 Asia/Singapore** (C4/C5). |
-| **Measured** | **NOT MEASURED — and no number will be claimed.** The producer does not exist: Phase 3 (Debezium CDC → Kafka → lake, Spark batch) is TODO. Faking a freshness metric here would be exactly the fabrication the constitution forbids. |
-| **Designed receiving end (honest label: design-only)** | `pipeline-metrics` log store + freshness dashboard panel + the producer contract `{"metric":"cdc_freshness_seconds","value":N,"pipeline":"cdc"|"batch"}` are shipped in IaC (plan-validated, E-019); the panel title reads "awaiting Phase 3 producer (C4, design-only)". When Phase 3 lands, this SLO's measured column is filled from that pipeline's emitted metric. |
-| **Where the number comes from** | Nothing yet. The dashboard/alert IaC and this contract are the only Phase-6 artifacts touching C4. |
+| **Target** | CDC freshness ≤ **15 min (900 s)** (C4); T+1 batch complete by **06:00 Asia/Singapore** (C4/C5). |
+| **Measured (E-030/E-031, sim)** | **MEASURED — in sim.** The Phase-3 data plane is built (OMS event store → embedded Debezium CDC → Kafka → bronze → Spark silver/gold). Seeded order day (E-030): 30 REAL orders driven through the live ESB (REST → SOAP saga → ERP; no synthetic SQL) — SEED-DAY posted=30 ok201=30; OMS stored 30 orders + 30 lines (`OMS-ORDER-STORED` ×30); CDC captured **60** records from the MySQL binlog (`CDC-CAPTURE op=c`, per-record `sourceTsMs` — no poll fallback exists in the codebase); **50** BRONZE-LAND objects (write-once, region-tagged); Spark batch exit 0 with reconciliation source-vs-gold **ALL MATCH** (orders 30=30, lines 30=30; orderTotals AND lineTotals CAD 80 849 / CNY 173 205 / SGD 40 605 minor, per-currency, all match=true). **batch_completion = 41 s**; `BATCH-WINDOW completedAtSGT=2026-09-14T04:52:09 Asia/Singapore, windowEndSGT=06:00, withinWindow=true` — a real in-window T+1 completion. Freshness (E-031): the producer emits `{"metric":"cdc_freshness_seconds","value":N,"pipeline":"cdc"}` per published batch (trigger=batch, value=0 at landing) AND on an idle heartbeat — the heartbeat value GROWS under source silence (real measured lag, never a constant); in the E-030 window 8 metric lines landed (0 → 8 growing); across session runs values **0/8/31/61/93/123/153/183/213 s** were observed — the 900 s C4 budget was never approached in the sim day. |
+| **Honest boundary** | All of the above is **sim-measured** (contended shared host, i5-10400F — see the boundary header above). The `pipeline-metrics` SLS store, the freshness panel, and any alert on it are **validated IaC (E-019), never ingested from** — SLS ingest + panel/alert behavior verify at activation (ADR-0002). And one honest note the sim cannot discharge: a REAL continuously-running deployment is where the 15-min budget earns its keep — the sim proves the metric definition, the emission contract, and the pipeline correctness, not sustained production lag. |
+| **Receiving end (unchanged contract)** | `pipeline-metrics` log store + freshness dashboard panel + the producer contract `{"metric":"cdc_freshness_seconds","value":N,"pipeline":"cdc"|"batch"}` shipped in IaC (plan-validated, E-019); the panel title now names the live metric — `cdc_freshness_seconds (C4; producer live in sim, E-030/E-031)`. |
+| **Where the number comes from** | The producer itself: `grep '"metric":"cdc_freshness_seconds"' /tmp/silkroute-cdc-engine.log` after `make cdc-run` (E-031 reproduce command); the batch side via `jq . /tmp/silkroute-recon-report.json` after the E-030 chain. |
 
 ## Capacity characteristic (not an SLO — measured context for SLO-1)
 
@@ -103,5 +104,5 @@ The stepped stress profile (`tests/load/k6-orders-stress.js`) finds where the bu
 | SLO-3 zero duplicate commits | E-022, E-023, E-024 (replay probes in every recipe) |
 | SLO-4 DLQ recoverability | E-023 (kill-erp DLQ delta + envelopes) |
 | SLO-5 breaker recovery | E-022, E-023, E-024 |
-| SLO-6 freshness (C4) | none — design-only until Phase 3 (E-019 is the receiving-end IaC) |
+| SLO-6 freshness (C4) | E-030 (seeded day: pipeline + recon + batch window), E-031 (CDC freshness metric) |
 | Capacity characteristic | E-021 (stress/breaking point) |

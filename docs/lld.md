@@ -1,6 +1,6 @@
 # SilkRoute — Low-Level Design
 
-Maple Retail Group is a **fictional** Canadian retailer; this document is part of a **self-directed reference implementation** (2026) (MASTER_PROMPT §9 framing). Everything here is sourced from the real files it names — `apps/esb/src/main/resources/application.yml`, the `infra/` modules, and the evidence ledger ([evidence/EVIDENCE.md](../evidence/EVIDENCE.md)) — every number carries its E-row. Doc status: the ESB configuration below **runs in sim today**; the infra/SLS layer is **validated IaC — plan-proven, never applied** (ADR-0002), and the CN partition is designed and plan-validated only (ADR-0005).
+Maple Retail Group is a **fictional** Canadian retailer; this document is part of a **self-directed reference implementation** (2026) (MASTER_PROMPT §9 framing). Everything here is sourced from the real files it names — `apps/esb/src/main/resources/application.yml`, the `infra/` modules, the data-plane app READMEs, and the evidence ledger ([evidence/EVIDENCE.md](../evidence/EVIDENCE.md)) — every number carries its E-row. Doc status: the ESB configuration (§1) and the data-plane knobs (§8) **run in sim today** (E-030..E-034); the infra/SLS layer is **validated IaC — plan-proven, never applied** (ADR-0002), and the CN partition is designed and plan-validated only (ADR-0005).
 
 ## 1. ESB configuration — every knob in `application.yml`
 
@@ -88,7 +88,7 @@ Source: [infra/observability/main.tf](../infra/observability/main.tf) + [infra/o
 |---|---|---|
 | `esb-app` | 30 d | full-text + `request_time` |
 | `orders-events` | 30 d | full-text only |
-| `pipeline-metrics` | 30 d | full-text + `metric` / `value` (freshness contract home — awaiting its Phase 3 producer) |
+| `pipeline-metrics` | 30 d | full-text + `metric` / `value` (freshness contract home — the producer is live in sim, E-030/E-031; SLS ingest of these events verifies at activation, ADR-0002) |
 | `audit` | 180 d | full-text + `event` JSON |
 
 Alerts (`alicloud_sls_alert` × 4): `dlq-depth-alert` (DLQ count > 100 in a 10 min window on `orders-events`, evaluated on a 5 min schedule), `esb-p95-budget-breach` (p95 > 300 ms C3 budget, unit convention confirmed at activation), `audit-denied-action-burst` (>10 denied management actions / 5 min on `audit`), `audit-trail-tamper-tripwire` (ANY StopLogging/DeleteTrail, zero tolerance). Notifications route through an SLS action policy that is **console-managed at activation** — provider 1.285.0 ships no action-policy resource (schema-verified).
@@ -129,3 +129,34 @@ sequenceDiagram
     E-->>C: 201 (saga steps + attempts + route)
     Note over E,R: replay → 409 DUPLICATE (done-key)<br/>failure → release claim + compensate + DLQ envelope
 ```
+
+## 8. Data plane — every knob (OMS event store / CDC capture / Spark batch)
+
+Sources of truth (the knobs' authority — not restated from memory): [apps/modern-oms/README.md](../apps/modern-oms/README.md), [apps/cdc/README.md](../apps/cdc/README.md), [apps/batch/README.md](../apps/batch/README.md). Every knob is `${VAR:default}` indirection (ADR-0001); the defaults below are the documented sim values, and the plane they configure is BUILT and sim-measured (E-030..E-034, ADR-0006).
+
+| App | Env var / arg | Default (sim) | Rationale (one line) |
+|---|---|---|---|
+| OMS | `SPRING_DATASOURCE_URL` | `jdbc:mysql://127.0.0.1:3306/silkroute_oms?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true` | MySQL sink (UTC session per C5); swap for RDS at activation |
+| OMS | `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD` | `silkroute_oms` / `oms-pass-2026` | DB user created by `make etl-setup`; sim dummy, env-overridable |
+| OMS | `KAFKA_BOOTSTRAP` | `127.0.0.1:39092` | sim host listener |
+| OMS | `KAFKA_ORDERS_TOPIC` | `silkroute.orders.events` | input topic; dot-free cloud name via the same var (§2) |
+| OMS | `OMS_CONSUMER_GROUP` | `silkroute-oms` | consumer group id (offset-reset knobs + replay guard per the app README) |
+| CDC | `CDC_MYSQL_HOST` / `CDC_MYSQL_PORT` | `127.0.0.1` / `3306` | binlog source location |
+| CDC | `CDC_MYSQL_USER` / `CDC_MYSQL_PASSWORD` | `silkroute_cdc` / `cdc-pass-2026` | replication user (SELECT + REPLICATION SLAVE/CLIENT only) |
+| CDC | `CDC_SERVER_NAME` | `silkroute-oms` | connector `topic.prefix` |
+| CDC | `CDC_TABLE_INCLUDE` | `silkroute_oms.oms_order,silkroute_oms.oms_order_line` | table whitelist — quarantine/DQ bookkeeping never feeds the lake (ADR-0006) |
+| CDC | `KAFKA_CDC_TOPIC` | `silkroute.cdc.oms` | CDC topic; dot-free cloud name via the same var (§2) |
+| CDC | `CDC_OFFSET_FILE` | `/tmp/silkroute-cdc-offsets.json` | file offset store — deterministic kill/restart (the E-034 catch-up scenario) |
+| CDC | `CDC_SCHEMA_HISTORY_FILE` | `/tmp/silkroute-cdc-history.dat` | file schema-history store |
+| CDC | `CDC_BRONZE_GROUP` | `silkroute-bronze-writer` | bronze-writer consumer group |
+| CDC | `S3_ENDPOINT` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `http://127.0.0.1:9000` / `silkroute` / `silkroute-secret` | MinIO S3 API + sim dummies (OSS endpoint + .env creds at activation) |
+| CDC | `LAKE_BRONZE_BUCKET` | `silkroute-sg-bronze` | the IaC bucket family name |
+| CDC | `METRIC_HEARTBEAT_SECONDS` | `30` | idle heartbeat cadence for `cdc_freshness_seconds` (growing value = real lag, E-031) |
+| CDC | `METRICS_FILE` | (unset) | if set, appends the metric lines (evidence artifact) |
+| BATCH | `SPARK_MASTER` | `local[*]` | Spark master override; UI disabled, zero new listening ports |
+| BATCH | `LAKE_SILVER_BUCKET` / `LAKE_GOLD_BUCKET` | `silkroute-sg-silver` / `silkroute-sg-gold` | silver + gold Parquet targets (IaC family names; bronze read via `LAKE_BRONZE_BUCKET`) |
+| BATCH | `RECON_JDBC_URL` | `jdbc:mysql://127.0.0.1:3306/silkroute_oms?...` (UTC params) | source-side read for reconciliation |
+| BATCH | `DQ_JDBC_URL` | `jdbc:mysql://127.0.0.1:3306/silkroute_lake?...` | DQ quarantine/results/recon-report bookkeeping DB |
+| BATCH | `RECON_REPORT_PATH` | `/tmp/silkroute-recon-report.json` | recon report JSON artifact (E-030) |
+| BATCH | `METRICS_FILE` | (unset) | if set, appends `batch_completion` + window lines (evidence artifact) |
+| BATCH | `--business-date YYYY-MM-DD` | yesterday Asia/Singapore | selects the `dt=` partition; the E-030 run used `2026-09-13` |

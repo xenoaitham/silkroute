@@ -4,7 +4,7 @@ Maple Retail Group is a fictional company; SilkRoute is a self-directed referenc
 
 ## Projects / Selected Work
 
-**SilkRoute — Multi-Region Alibaba Cloud Integration Platform** (self-directed reference implementation, 2026). A scenario company ("Maple Retail Group") is fictional by design; every number below is measured and traceable to the repo's evidence ledger (`evidence/EVIDENCE.md`), with a reproduce command for each row. No ETL/CDC claims are included — that phase is designed, not built.
+**SilkRoute — Multi-Region Alibaba Cloud Integration Platform** (self-directed reference implementation, 2026). A scenario company ("Maple Retail Group") is fictional by design; every number below is measured and traceable to the repo's evidence ledger (`evidence/EVIDENCE.md`), with a reproduce command for each row. The ETL/CDC claims below are measured in sim (Phase 3, E-030/E-031); SLS ingest of the pipeline's metrics verifies at activation.
 
 - Built an ESB-pattern integration hub on Apache Camel 4.10 + Spring Boot 3.4: WSDL-first SOAP↔REST mediation with XSLT and a canonical data model, saga-based order orchestration with compensation, and retry/circuit-breaker/DLQ resilience — p95 44.25 ms against a 300 ms budget at ~19 RPS under k6, with fault-injection proof of the 3-attempt retry ladder, 4 ms circuit-open fail-fast, and real inventory-hold compensation (E-009, E-010).
 
@@ -27,6 +27,8 @@ Maple Retail Group is a fictional company; SilkRoute is a self-directed referenc
 - Implemented the ~$20 budget alarm as an executable, honestly-labeled mechanism outside Terraform after schema-proving the provider ships zero budget resources — targeting the doc-verified BssOpenApi `CreateBudget` API (2023-09-30), dry-run by default, live mode gated on credentials (E-014).
 
 - Debugged WS-Security UsernameToken to the wire (OASIS profile-URI Password Type, BSP:R4220 nonce EncodingType) by reading the shipped WSS4J validator sources, and re-proved auth-failure and identical-envelope nonce-replay rejection against the live server-side cache (E-005).
+
+- Built the ETL data plane end to end and measured it (sim mode, contended shared desktop — noted like every perf row): an OMS event store replaying ESB success events into MySQL with an at-least-once replay guard, an embedded Debezium engine capturing the MySQL binlog to Kafka and landing write-once region-tagged bronze objects on S3, and a Spark bronze→silver→gold batch with DQ gates and a 100% reconciliation gate — a seeded 30-order day reconciled all counts and per-currency minor-unit totals (CAD 80 849 / CNY 173 205 / SGD 40 605) with batch_completion 41 s completing in-window for the 06:00 Singapore T+1 boundary, and the C4 freshness metric measured as real lag (values 0→213 s across runs under source silence, never near the 900 s budget) (E-030, E-031).
 
 ## Verbatim-ready honest-framing lines
 
@@ -57,3 +59,4 @@ Rehearse these until they are reflexes. Volunteer the framing before the intervi
 | Dual-mode sim runtime | E-001, E-002, E-015 | converged ~28 s, mysql/kafka/redis/minio (healthy); `smoke OK (all 5 services) in 2s` as captured, re-proven `smoke OK (all 6 services…) exit 0` at pack time (E-015); kafka host listener 127.0.0.1:39092 |
 | Budget alarm | E-014 | schema grep = 0 budget resources across 1161 provider resources; dry-run CreateBudget payload printed; BssOpenApi 2023-09-30 doc-verified |
 | WS-Security wire depth | E-005 | security scenarios 4/4 incl. missing-header on both endpoints, wrong password, identical-envelope nonce replay rejected by live server-side cache |
+| Built the ETL data plane | E-030, E-031 | seeded day: 30 orders posted/30 201, OMS 30+30 rows, 60 CDC-CAPTURE binlog records, 50 BRONZE-LAND objects; recon orders 30=30 + lines 30=30, orderTotals AND lineTotals CAD 80849 / CNY 173205 / SGD 40605 minor all match=true; batch_completion=41; completedAtSGT=2026-09-14T04:52:09 vs 06:00 window withinWindow=true; freshness trigger=batch value=0 + heartbeat 8 growing; session-run values 0/8/31/61/93/123/153/183/213 s vs the 900 s C4 budget (sim, i5-10400F shared host) |

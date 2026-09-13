@@ -2,7 +2,7 @@
 
 Maple Retail Group is a fictional company; SilkRoute is a self-directed reference implementation (2026).
 
-Rehearse against a timer. SAY lines are first person, written to be spoken. Numbers are only from `evidence/EVIDENCE.md` (E-001…E-025) — if a number isn't in the ledger, don't say it. Say "validated IaC, sim runtime" every time cloud IaC appears; volunteer it, don't wait to be asked.
+Rehearse against a timer. SAY lines are first person, written to be spoken. Numbers are only from `evidence/EVIDENCE.md` (E-001…E-035) — if a number isn't in the ledger, don't say it. Say "validated IaC, sim runtime" every time cloud IaC appears; volunteer it, don't wait to be asked.
 
 Legend: [BOARD] = what to draw; [SAY] = what to say; [CITE] = the measured number and its evidence ID.
 
@@ -74,9 +74,9 @@ Legend: [BOARD] = what to draw; [SAY] = what to say; [CITE] = the measured numbe
 
 ## 23:00–25:00 — Trade-offs and what's next
 
-[BOARD] Two columns. **Trade-offs I made**: `validated-plans, no apply` / `SAE not ACK (pay-per-use)` / `budget alarm as script (provider has none)` / `hand-rolled saga for exact accounting`. **Next**: `residency runtime proof at activation (static checks already in CI)` / `ETL: Debezium→Kafka→bronze/silver/gold (designed, NOT built)` / `activation checklist: budget first, secrets to KMS, deploy→capture→destroy`.
+[BOARD] Two columns. **Trade-offs I made**: `validated-plans, no apply` / `SAE not ACK (pay-per-use)` / `budget alarm as script (provider has none)` / `hand-rolled saga for exact accounting`. **Next**: `residency runtime proof at activation (static checks already in CI)` / `ETL: Debezium→Kafka→bronze/silver/gold (BUILT, sim-measured — E-030/E-031; SLS ingest at activation)` / `activation checklist: budget first, secrets to KMS, deploy→capture→destroy`.
 
-[SAY] "The trade-offs I stand behind, stated plainly. Cloud side is validated-plans — a plan proves schema, not deployment, and I say that every time. Compute is SAE over ACK because pay-per-use beats an idle nodepool, and over Function Compute because a Camel hub with persistent Kafka consumers can't cold-start under a 300 ms budget. The budget alarm is an executable script against the BSS OpenAPI because the provider genuinely has no budget resource — schema-proven — and faking one would be fabrication. The saga is hand-rolled for exact step accounting. What's next, in order: runtime residency proof once an account exists — the static residency checks already gate every push; then the ETL phase — Debezium into Kafka, bronze immutable and region-tagged, silver conformed, gold star schema with fact_orders and fact_order_lines — that is designed, not built, and I'll quote no numbers for it. And with an account: budget alarm first, secrets to KMS, deploy, capture evidence, destroy. Happy to go a level deeper on any box on this board."
+[SAY] "The trade-offs I stand behind, stated plainly. Cloud side is validated-plans — a plan proves schema, not deployment, and I say that every time. Compute is SAE over ACK because pay-per-use beats an idle nodepool, and over Function Compute because a Camel hub with persistent Kafka consumers can't cold-start under a 300 ms budget. The budget alarm is an executable script against the BSS OpenAPI because the provider genuinely has no budget resource — schema-proven — and faking one would be fabrication. The saga is hand-rolled for exact step accounting. What's next, in order: runtime residency proof once an account exists — the static residency checks already gate every push; then the ETL phase — it's built and measured in sim now: Debezium into Kafka, bronze immutable and region-tagged, silver conformed, gold star schema with fact_orders and fact_order_lines — a seeded 30-order day reconciled one hundred percent, batch in forty-one seconds, freshness a measured lag that grows under source silence; what verifies at activation is SLS ingest of those metrics, and I keep the sim-mode label on every number. And with an account: budget alarm first, secrets to KMS, deploy, capture evidence, destroy. Happy to go a level deeper on any box on this board."
 
 [CITE] "Budget: schema grep = 0 budget resources; dry-run payload printed; deploy/destroy refuse without confirmation (E-014). CI green at HEAD, 4/4 jobs incl. the fault-injection suite on a hosted runner (~186 s) (E-011, E-012)."
 
@@ -94,6 +94,6 @@ Keep the same board, drop the detail:
 | 05:30–07:30 | Resilience rows 3 and 4 only — 4 ms circuit-open, stock 19→19 (E-009) | Retry-ladder and ambiguous-timeout detail |
 | 07:30–08:30 | Latency: p95 44.25 ms vs 300 ms (E-010) | RPS/iterations detail |
 | 08:30–09:30 | Landing zone headline: 87/118, provider-level pinning, "validated IaC, sim runtime" (E-012 gate-era 79/110, E-019) | IAM and observability detail |
-| 09:30–10:00 | One honest closer: residency designed + validated, CI tests next; ETL designed, not built | War story and trade-off columns |
+| 09:30–10:00 | One honest closer: residency designed + validated, CI tests next; ETL built, sim-measured (E-030/E-031) | War story and trade-off columns |
 
-Non-negotiables even at 10 minutes: the fictional-company label, "validated IaC, sim runtime" whenever the board shows cloud IaC, and "ETL: designed, not built."
+Non-negotiables even at 10 minutes: the fictional-company label, "validated IaC, sim runtime" whenever the board shows cloud IaC, and "ETL: built, sim-measured" (numbers only from E-030/E-031, with the SLS-ingest verify-at-activation line).

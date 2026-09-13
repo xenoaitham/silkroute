@@ -2,7 +2,7 @@
 
 Maple Retail Group is a **fictional** Canadian retailer; this document is part of a **self-directed reference implementation** (2026), not a client engagement. Framing per MASTER_PROMPT §9: the project lives under *Projects*, never *Experience*.
 
-**Doc status, stated once and applying throughout:** the left side of every diagram in this document — the ESB, the frozen SOAP ERP, the sim data services, and all measured behavior — **runs here today** in sim mode (docker-compose + two Spring Boot jars, everything on host loopback). The right side — the AliCloud landing zone — is **validated IaC: schema- and plan-proven against the real `alicloud` provider, never applied** (ADR-0002; no account exists, plans create nothing). The CN partition is additionally **designed and plan-validated only** (ADR-0005). SLS runtime behavior and real cloud costs verify at activation. CDC freshness is design-only — the Phase 3 producer does not exist, and no number is claimed for it.
+**Doc status, stated once and applying throughout:** the left side of every diagram in this document — the ESB, the frozen SOAP ERP, the sim data services, the ETL data plane, and all measured behavior — **runs here today** in sim mode (docker-compose + Spring Boot jars on host loopback). The right side — the AliCloud landing zone — is **validated IaC: schema- and plan-proven against the real `alicloud` provider, never applied** (ADR-0002; no account exists, plans create nothing). The CN partition is additionally **designed and plan-validated only** (ADR-0005). SLS runtime behavior and real cloud costs verify at activation. CDC freshness is **measured in sim** (producer live, E-030/E-031); SLS ingest of it verifies at activation.
 
 ## 1. Scenario constraints (C1–C7, verbatim from [MASTER_PROMPT.md](../MASTER_PROMPT.md) §2)
 
@@ -23,7 +23,7 @@ Every box below is a real repo artifact or a documented contract; dashed = valid
 ```mermaid
 flowchart LR
     ch1["Web / store channels<br/>(REST order posts — sourceSystem WEB_STORE_CA,<br/>storeIds ST-CA-01 / ST-SG-* / ST-CN-*)"]
-    ch2["HQ analytics<br/>(DESIGNED — the governed lake;<br/>CDC + Spark are not built)"]
+    ch2["HQ analytics<br/>(the governed lake — BUILT, sim-measured E-030;<br/>CDC + Spark run in sim, OSS/RDS at activation)"]
     platform["SilkRoute platform<br/>(Camel ESB + sim services locally;<br/>SG hub + CN partition in the design)"]
     erp["Legacy ERP estate<br/>(SOAP 1.2 / WSDL — orders, inventory, pricing;<br/>FROZEN contracts, ADR-0003)"]
 
@@ -124,7 +124,7 @@ Designed in [infra/observability/](../infra/observability/) — plan-proven (E-0
 - **4 SLS stores** in project `silkroute-sg`: `esb-app` (30 d), `orders-events` (30 d), `pipeline-metrics` (30 d), `audit` (180 d).
 - **4 `alicloud_sls_alert` rules**: DLQ depth, C3 p95 budget breach, denied-action burst, trail-tamper tripwire.
 - **4 `alicloud_log_store_index`** resources — the query-facing stores ship their indexes.
-- **The `pipeline-metrics` store + freshness panel** are the receiving end for the CDC freshness contract (`{"metric":"cdc_freshness_seconds"|"batch_completion","value":N,"pipeline":"cdc"|"batch"}`) — the panel title reads "awaiting Phase 3 producer"; the store is empty until that producer exists (C4 design-only).
+- **The `pipeline-metrics` store + freshness panel** are the receiving end for the CDC freshness contract (`{"metric":"cdc_freshness_seconds"|"batch_completion","value":N,"pipeline":"cdc"|"batch"}`) — the producer is live in sim (E-030/E-031; the panel title names the metric) and the panel renders in the cloud only at activation, once SLS ingest runs.
 
 Thresholds, store schemas, and the known trade-offs live in [infra/observability/README.md](../infra/observability/README.md) — that file stays the alert authority; this doc does not restate its tables.
 

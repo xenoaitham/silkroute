@@ -12,9 +12,10 @@ Logs, audit trail, dashboard, indexes, and alerts for the Singapore landing zone
   `audit` (ActionTrail target, 180-day TTL - the "who did what" groundwork for
   Phase 5), `orders-events` (order event traces, 30-day TTL),
   `pipeline-metrics` (30-day TTL - the DESIGNED home for the Phase-3 CDC/batch
-  freshness metric; the store ships ahead of its producer and is empty until
-  Phase 3 lands, so the freshness dashboard panel draws nothing yet and says
-  so in its title).
+  freshness metric; the producer is BUILT and measured in sim — E-030/E-031 —
+  but SLS ingest is the cloud receiving end and has never run, so this store
+  still receives nothing until an account exists and the panel draws nothing
+  yet, stated in its title).
 - **Store indexes** (`alicloud_log_store_index` × 4): full-text on every
   store plus the exact fields the dashboard/alert SQL references
   (`request_time` on esb-app; `event` JSON on audit; `metric`/`value` on
@@ -26,9 +27,9 @@ Logs, audit trail, dashboard, indexes, and alerts for the Singapore landing zone
   placeholder; the role is created out-of-band on first trail activation).
 - **Dashboard `silkroute-overview`** - three charts: ESB p95 latency on
   `esb-app`, DLQ depth (`silkroute-esb-dlq`) on `orders-events`, and CDC
-  freshness on `pipeline-metrics` (DESIGN-ONLY, awaiting its Phase 3 producer
-  — the panel title says exactly that; C4 has no producer until the CDC/batch
-  pipeline exists).
+  freshness on `pipeline-metrics` (the producer is live in sim — E-030/E-031;
+  the panel renders in the cloud only at activation, once SLS ingest runs,
+  and its title says exactly that).
 - **CMS contact group `silkroute-ops`** + alarms:
   - SAE CPU > 80% averaged over 5 minutes, per app (`acs_sae` / `CPU`)
   - RDS connection usage > 80 on the OMS instance (`acs_rds` / `ConnectionUsage`)
