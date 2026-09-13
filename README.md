@@ -6,7 +6,7 @@
 
 SilkRoute is a multi-region enterprise integration platform for the fictional Canadian retailer (300 stores + e-commerce) entering **Singapore** (international hub) and **mainland China** (PIPL data-residency partition). It mediates modern REST traffic into an untouchable SOAP ERP estate on Apache Camel — saga orchestration with compensation, retry/circuit-breaker/DLQ, idempotent consumption, region-based PII masking — and pairs that with a Terraform (`alicloud`) landing zone, CI-provable data-residency checks, measured load/chaos evidence, and a cost model priced from fetched pricing pages. Everything runtime-provable runs locally in **sim mode** at zero cloud spend; the cloud side is **validated IaC** — schema- and plan-proven, never applied, creating nothing ([ADR-0002](decisions/ADR-0002-cloud-account-path.md)).
 
-**Status: 7 of 9 planned phases complete; the docs & demo phase is in final review** — the ETL data-plane phase (CDC + Spark lake) is designed-not-built and no numbers are claimed for it. **27 evidence rows** in the ledger ([evidence/EVIDENCE.md](evidence/EVIDENCE.md), E-001..E-027), each with a re-runnable command. CI is green 4/4 (run 34748892370, sha b5f3771).
+**Status: 8 of 9 project phases complete** — the ETL data-plane phase (CDC + Spark lake) is designed-not-built and no numbers are claimed for it. **28 evidence rows** in the ledger ([evidence/EVIDENCE.md](evidence/EVIDENCE.md), E-001..E-028), each with a re-runnable command. CI is green 4/4 (run 34754300083, sha ae4364f).
 
 ## Architecture
 
@@ -100,7 +100,7 @@ Cost headline: the designed 24/7 Singapore footprint prices at **949.64 USD/mont
 | [MASTER_PROMPT.md](MASTER_PROMPT.md) | Project constitution (mission, scenario constraints C1–C7, protocols) |
 | [ROADMAP.md](ROADMAP.md) | Phase status board |
 | [STATE.md](STATE.md) | Current state, session log |
-| [evidence/EVIDENCE.md](evidence/EVIDENCE.md) | The evidence ledger, E-001..E-027 — claim → artifact → reproduce command → measured result |
+| [evidence/EVIDENCE.md](evidence/EVIDENCE.md) | The evidence ledger, E-001..E-028 — claim → artifact → reproduce command → measured result |
 | [decisions/](decisions/) | 5 ADRs (one-liners below) |
 | [apps/legacy-erp/](apps/legacy-erp/) | Frozen WSDL-first SOAP ERP (Spring Boot + CXF) |
 | [apps/esb/](apps/esb/) | Apache Camel integration hub (saga, resilience, idempotency, masking) |

@@ -1,0 +1,32 @@
+E-028 — CI green 4/4 at the session-end HEAD (sha ae4364f): the Phase-7 gate's MED closure blocker (green CI at the reviewed HEAD) discharged
+captured: 2026-09-13, gh run view 34754300083 --repo xenoaitham/silkroute
+----
+
+✓ main ci · 34754300083
+Triggered via push about 3 minutes ago
+
+JOBS
+✓ legacy-erp SOAP contract tests (Karate, frozen WSDLs) in 31s (ID 103715957574)
+✓ sim compose + smoke (mirrors README quickstart) in 41s (ID 103715957652)
+✓ esb saga/retry/DLQ/compensation suite (boots ERP + ESB itself) in 2m42s (ID 103715957682)
+✓ terraform fmt + validate + plan (validated-plans, ADR-0002) in 17s (ID 103715957732)
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+legacy-erp SOAP contract tests (Karate, frozen WSDLs): .github#2
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+esb saga/retry/DLQ/compensation suite (boots ERP + ESB itself): .github#2
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: hashicorp/setup-terraform@v3. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+terraform fmt + validate + plan (validated-plans, ADR-0002): .github#2
+
+
+ARTIFACTS
+esb-int-artifacts
+karate-contract-report
+
+For more information about a job, try: gh run view --job=<job-id>
+View this run on GitHub: https://github.com/xenoaitham/silkroute/actions/runs/34754300083
+---- API verification ----
+{"conclusion":"success","run_number":20,"sha":"ae4364fce68e75d232257ccdc6f86a41c071fc20"}

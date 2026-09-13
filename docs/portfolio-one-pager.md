@@ -21,7 +21,7 @@
 | Residency (C1) | CN pinned at the provider graph (aliased `alicloud.cn`), no egress path, zero replication resources; 7-check CI suite + 5-mutation selftest; masked keyed-HMAC PII egress from shared topics | E-016, E-009 |
 | Compliance paper layer | PIPL/PDPA/PIPEDA control matrix with article-level citations, cross-border transfer memo (Art. 38–40), ICP filing runbook, STRIDE, audit-query demo | E-017 (audit-query demo only) |
 | Cost model | designed 24/7 SG footprint **949.64 USD/month** (KMS instance ~53% + Kafka ~32%), priced only from fetched pricing pages — the quantified argument for sim-first | E-025 |
-| CI | 4-job pipeline green at the Phase-6 reviewed HEAD (run 34748892370, sha b5f3771): sim smoke, SOAP contract suite, fault-injection saga suite, terraform plan + residency checks | E-026 |
+| CI | 4-job pipeline green at the Phase-7 HEAD (run 34754300083, sha ae4364f): sim smoke, SOAP contract suite, fault-injection saga suite, terraform plan + residency checks | E-028 |
 
 ## Honest modes — what is proven where
 
