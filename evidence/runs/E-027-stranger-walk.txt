@@ -1,0 +1,79 @@
+E-027 — README quickstart stranger test: clean git clone, sim stack torn down first, every README quickstart command run verbatim from the clone (the Phase-7 acceptance test)
+date: 2026-09-13 · cloned sha: 37a3f5a (readme rebuilt as the front door; hld, lld, delivery model and runbooks drafted) · host: same shared rootless-docker desktop (i5-10400F, other stacks running)
+reproduce: git clone <repo> /tmp/x && cd /tmp/x  (after tearing down any running sim stack)  then follow README.md Quickstart top to bottom
+
+== make up && make smoke ==
+redis     OK (host:16379, PING->PONG)
+mysql     OK (host:3306, VERSION()=8.0.46)
+kafka     OK (host:39092, broker-api)
+minio     OK (host:9000, health/live)
+toxiproxy OK (host:8474, /version=2.11.0)
+esb-toxiproxy OK (host:18474, /version=2.11.0)
+smoke OK (all 6 services, host forwards + in-container) in 3s
+exit=0
+== builds ==
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+[INFO] Tests run: 33, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+== make esb-run ==
+waiting for ERP(18080) + ESB(18081) health...
+ERP  health: {"status":"UP"}  (pid 3179899)
+ESB  health: {"status":"UP"}  (pid 3179901)
+ESB REST:  http://127.0.0.1:18081/api/v1/orders
+== demo-order 201 ==
+HTTP 201  (Idempotency-Key: demo-1789294955)
+{
+  "orderId": "ORD-2026-000001",
+  "status": "SUBMITTED",
+  "externalOrderRef": "WEB-demo-1789294955",
+  "storeId": "ST-CA-01",
+  "region": "CA",
+  "channel": "WEB_STORE",
+  "reservationId": "RES-2026-000001",
+  "totalAmount": {
+    "amountMinor": 1000,
+    "currency": "CAD"
+  },
+  "unitPrices": [
+exit=0
+== same-key replay (409 expected) ==
+HTTP 201  (Idempotency-Key: demo-409)
+{
+  "orderId": "ORD-2026-000002",
+HTTP 409  (Idempotency-Key: demo-409)
+{
+  "code": "DUPLICATE",
+  "category": "SENDER",
+  "message": "duplicate request: idempotency key was already claimed",
+  "region": "CA",
+
+== esb-faults latency 800 + re-post ==
+[esb-faults] toxic lat (latency, {"latency": 800}) active on erp
+HTTP 201  (Idempotency-Key: demo-lat)
+{
+
+real	0m3.273s
+user	0m0.006s
+sys	0m0.008s
+
+== esb-faults disable + post (503 expected) ==
+[esb-faults] proxy erp DISABLED (ERP hard down)
+HTTP 503  (Idempotency-Key: demo-down)
+{
+  "code": "UPSTREAM-UNAVAILABLE",
+
+== esb-faults clean + heal post (201 expected) ==
+HTTP 201  (Idempotency-Key: demo-heal)
+{
+
+== make esb-stop ==
+esb-stop: killing pid 3179901 from /tmp/silkroute-esb-app.pid
+esb-stop: killing pid 3179899 from /tmp/silkroute-esb-erp.pid
+
+== make plan-sg ==
+Success! The configuration is valid.
+Plan: 87 to add, 0 to change, 0 to destroy.
+plan-exit=0
+
+STRANGER WALK COMPLETE
