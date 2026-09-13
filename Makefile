@@ -58,8 +58,8 @@ esb-run: ## convenience: ensure toxiproxy erp proxy, boot ERP(18080) + ESB(18081
 		curl -s -X POST http://127.0.0.1:18474/proxies -H 'Content-Type: application/json' \
 			-d '{"name":"erp","listen":"127.0.0.1:18180","upstream":"127.0.0.1:18080","enabled":true}' >/dev/null; fi
 	@bash tests/chaos/esb-faults.sh reset || true
-	SERVER_PORT=18080 ERP_DEMO_GENERATE_ORDERS=0 nohup java -jar $(ESB_ERP_JAR) > /tmp/silkroute-esb-erp.log 2>&1 & echo $$! > $(ESB_ERP_PID)
-	ESB_FAULT_INJECTION=false nohup java -jar $(ESB_APP_JAR) > /tmp/silkroute-esb-app.log 2>&1 & echo $$! > $(ESB_APP_PID)
+	$(java17_env) SERVER_PORT=18080 ERP_DEMO_GENERATE_ORDERS=0 nohup java -jar $(ESB_ERP_JAR) > /tmp/silkroute-esb-erp.log 2>&1 & echo $$! > $(ESB_ERP_PID)
+	$(java17_env) ESB_FAULT_INJECTION=false nohup java -jar $(ESB_APP_JAR) > /tmp/silkroute-esb-app.log 2>&1 & echo $$! > $(ESB_APP_PID)
 	@echo "waiting for ERP(18080) + ESB(18081) health..."
 	@timeout 180 bash -c 'until curl -sf http://127.0.0.1:18080/actuator/health | grep -q UP; do sleep 2; done'
 	@timeout 180 bash -c 'until curl -sf http://127.0.0.1:18082/actuator/health | grep -q UP; do sleep 2; done'
@@ -120,3 +120,108 @@ destroy: ## GUARDED: terraform destroy of whatever the account holds (§8 hygien
 
 budget-alarm: ## budget alarm (~$20): dry-run by default; `make budget-alarm LIVE=1` + creds to execute
 	@bash scripts/budget-alarm.sh
+
+# --- Phase 3: ETL data plane (apps/modern-oms, apps/cdc, apps/batch) ---------
+# Same PID-file/no-pkill hygiene as the esb-run/esb-stop pair above. Every
+# process runs as a host JVM with ZERO new listening ports. Knobs are env
+# vars with ${VAR:default} defaults inside the apps (see apps/*/README.md).
+# JAVA17 is preferred when present: the poms compile with release 17 and the
+# Spark 3.5.1 runtime officially targets JDK 17.
+OMS_JAR := apps/modern-oms/target/oms-1.0.0-SNAPSHOT.jar
+CDC_JAR := apps/cdc/target/cdc-1.0.0-SNAPSHOT.jar
+CDC_BRONZE_JAR := apps/cdc/target/cdc-1.0.0-SNAPSHOT-bronze.jar
+BATCH_JAR := apps/batch/target/batch-1.0.0-SNAPSHOT.jar
+OMS_PID := /tmp/silkroute-oms.pid
+CDC_ENGINE_PID := /tmp/silkroute-cdc-engine.pid
+CDC_BRONZE_PID := /tmp/silkroute-cdc-bronze.pid
+OMS_LOG := /tmp/silkroute-oms.log
+CDC_ENGINE_LOG := /tmp/silkroute-cdc-engine.log
+CDC_BRONZE_LOG := /tmp/silkroute-cdc-bronze.log
+JAVA17_DIR := /usr/lib/jvm/java-17-openjdk-amd64
+
+define java17_env
+	if [ -d "$(JAVA17_DIR)" ]; then export JAVA_HOME="$(JAVA17_DIR)"; export PATH="$$JAVA_HOME/bin:$$PATH"; fi;
+endef
+
+.PHONY: etl-setup oms-run oms-build oms-stop cdc-run cdc-build cdc-stop seed-day batch-run etl-check
+# no-op argument words so `make batch-run full|recon-only|selftest` parses;
+# the work happens inside batch-run
+.PHONY: full recon-only selftest
+full recon-only selftest:
+	@:
+
+etl-setup: ## idempotent data-plane bootstrap: DBs, users, lake tables, cdc topic, lake buckets (scripts/etl-setup.sh)
+	@bash scripts/etl-setup.sh
+
+oms-run: ## boot the OMS event store (builds if needed); waits for OMS-CONSUMER-START; PID $(OMS_PID) log $(OMS_LOG)
+	@if [ -f $(OMS_PID) ] && kill -0 "$$(cat $(OMS_PID))" 2>/dev/null; then echo "oms-run: already running (pid $$(cat $(OMS_PID)))"; exit 0; fi
+	@test -f $(OMS_JAR) || $(MAKE) --no-print-directory oms-build
+	$(java17_env) \
+		nohup java -jar $(OMS_JAR) > $(OMS_LOG) 2>&1 & echo $$! > $(OMS_PID)
+	@echo "waiting for the OMS consumer to subscribe (timeout 180s)..."
+	@timeout 180 bash -c 'until grep -q OMS-CONSUMER-START $(OMS_LOG) 2>/dev/null; do \
+		kill -0 "$$(cat $(OMS_PID))" 2>/dev/null || { echo "ERROR: OMS process died — see $(OMS_LOG)"; tail -20 $(OMS_LOG); exit 1; }; sleep 2; done' \
+		|| { echo "ERROR: OMS did not reach OMS-CONSUMER-START within 180s — see $(OMS_LOG)"; exit 1; }
+	@echo "OMS running: pid $$(cat $(OMS_PID)) log $(OMS_LOG) (stop with: make oms-stop)"
+
+oms-build: ## build apps/modern-oms (jar + unit tests skipped here; run ./mvnw package for tests)
+	$(java17_env) ./mvnw -B -f apps/modern-oms/pom.xml package -DskipTests
+
+oms-stop: ## stop the OMS by its recorded PID file only (never pkill)
+	@if [ -f $(OMS_PID) ]; then pid=$$(cat $(OMS_PID)); \
+		echo "oms-stop: killing pid $$pid from $(OMS_PID)"; \
+		kill $$pid 2>/dev/null || echo "oms-stop: pid $$pid already gone"; \
+		rm -f $(OMS_PID); else echo "oms-stop: no $(OMS_PID) (nothing to stop)"; fi
+
+cdc-run: ## boot BOTH cdc mains: engine (binlog->topic) + bronze writer (topic->MinIO); waits for CDC-ENGINE-START
+	@if [ -f $(CDC_ENGINE_PID) ] && kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null; then echo "cdc-run: engine already running (pid $$(cat $(CDC_ENGINE_PID)))"; exit 0; fi
+	@test -f $(CDC_JAR) || $(MAKE) --no-print-directory cdc-build
+	$(java17_env) \
+		nohup java -jar $(CDC_JAR) > $(CDC_ENGINE_LOG) 2>&1 & echo $$! > $(CDC_ENGINE_PID)
+	$(java17_env) \
+		nohup java -jar $(CDC_BRONZE_JAR) > $(CDC_BRONZE_LOG) 2>&1 & echo $$! > $(CDC_BRONZE_PID)
+	@echo "waiting for the CDC engine to start capturing (timeout 180s)..."
+	@timeout 180 bash -c 'until grep -qE "CDC-ENGINE-START|CDC-CAPTURE" $(CDC_ENGINE_LOG) 2>/dev/null; do \
+		kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null || { echo "ERROR: CDC engine died — see $(CDC_ENGINE_LOG)"; tail -30 $(CDC_ENGINE_LOG); exit 1; }; sleep 2; done' \
+		|| { echo "ERROR: CDC engine did not start within 180s — see $(CDC_ENGINE_LOG)"; exit 1; }
+	@sleep 5
+	@if ! kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null; then echo "ERROR: CDC engine died right after start (snapshot/binlog failure?) — see $(CDC_ENGINE_LOG)"; tail -30 $(CDC_ENGINE_LOG); exit 1; fi
+	@if ! kill -0 "$$(cat $(CDC_BRONZE_PID))" 2>/dev/null; then echo "ERROR: bronze writer died right after start — see $(CDC_BRONZE_LOG)"; tail -30 $(CDC_BRONZE_LOG); exit 1; fi
+	@echo "CDC engine running: pid $$(cat $(CDC_ENGINE_PID)) log $(CDC_ENGINE_LOG)"
+	@echo "Bronze writer running: pid $$(cat $(CDC_BRONZE_PID)) log $(CDC_BRONZE_LOG) (stop with: make cdc-stop)"
+
+cdc-build: ## build apps/cdc (both shaded jars)
+	$(java17_env) ./mvnw -B -f apps/cdc/pom.xml package -DskipTests
+
+cdc-stop: ## stop engine + bronze writer by their recorded PID files only (never pkill)
+	@for f in $(CDC_BRONZE_PID) $(CDC_ENGINE_PID); do \
+		if [ -f $$f ]; then pid=$$(cat $$f); \
+			echo "cdc-stop: killing pid $$pid from $$f"; \
+			kill $$pid 2>/dev/null || echo "cdc-stop: pid $$pid already gone"; \
+			rm -f $$f; else echo "cdc-stop: no $$f (nothing to stop)"; fi; done
+
+seed-day: ## drive N live orders through the ESB: make seed-day N=12 (default 30) — no synthetic SQL
+	@bash scripts/seed-day.sh $(if $(N),$(N),30)
+
+batch-run: ## Spark batch: make batch-run ARGS="full --business-date 2026-09-13" | ARGS="recon-only" | ARGS="selftest" (default full)
+	$(java17_env) \
+		if [ ! -f $(BATCH_JAR) ]; then ./mvnw -B -f apps/batch/pom.xml package -DskipTests; fi
+	$(java17_env) \
+		java -jar $(BATCH_JAR) $(if $(ARGS),$(ARGS),$(or $(firstword $(filter-out batch-run,$(MAKECMDGOALS))),full))
+
+etl-check: ## cheap postcondition ritual: oms rows exist, bronze objects exist, recon report allMatch
+	@echo "ETL-CHECK oms rows (silkroute_oms.oms_order / oms_order_line):"
+	@docker exec sim-mysql mysql -uroot -p"$${MYSQL_ROOT_PASSWORD:-silkroute}" -N -B \
+		-e "SELECT 'orders=', COUNT(*) FROM silkroute_oms.oms_order UNION ALL SELECT 'lines=', COUNT(*) FROM silkroute_oms.oms_order_line;" 2>/dev/null \
+		|| { echo "ETL-CHECK FAIL: cannot query silkroute_oms — run make etl-setup + oms-run first"; exit 1; }
+	@echo "ETL-CHECK bronze objects (per bucket prefix):"
+	@docker exec sim-minio mc find local/silkroute-sg-bronze --name '*.jsonl' 2>/dev/null | head -5
+	@n=$$(docker exec sim-minio mc find local/silkroute-sg-bronze --name '*.jsonl' 2>/dev/null | wc -l); \
+		[ "$$n" -gt 0 ] || { echo "ETL-CHECK FAIL: no bronze objects landed — run make cdc-run + seed-day first"; exit 1; }; \
+		echo "ETL-CHECK PASS: $$n bronze object(s)"
+	@if [ -f /tmp/silkroute-recon-report.json ]; then \
+		jq -e '.allMatch == true' /tmp/silkroute-recon-report.json >/dev/null \
+			&& echo "ETL-CHECK PASS: recon report allMatch=true" \
+			|| { echo "ETL-CHECK FAIL: recon report allMatch!=true — see /tmp/silkroute-recon-report.json"; exit 1; }; \
+	else echo "ETL-CHECK WARN: no recon report at /tmp/silkroute-recon-report.json yet — run make batch-run ARGS=full"; fi
+	@echo "ETL-CHECK PASS: data plane postconditions hold"

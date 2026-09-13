@@ -42,3 +42,10 @@ Thumbs.db
 
 # ESB QA artifacts (k6 measured summaries are copied into evidence/ by the orchestrator)
 tests/load/results/
+
+# Phase-3 ETL runtime scratch (Spark local run from repo root; CDC files live in /tmp)
+metastore_db/
+derby.log
+
+# maven-shade residue (generated; never commit)
+dependency-reduced-pom.xml

@@ -1,0 +1,48 @@
+# SILKROUTE Phase 3 — modern OMS event store (apps/modern-oms) configuration.
+#
+# The CDC SOURCE of the ETL data plane: consumes ESB success events into MySQL
+# silkroute_oms (oms_order + oms_order_line) with at-least-once semantics and a
+# business-key idempotency guard (ADR-0006 decision 2). Every knob uses
+# ${VAR:default} indirection (ADR-0001); defaults are the documented sim dummies.
+#
+# ZERO listening ports: web-application-type=none (the shared sim host gains no
+# new sockets). Logging pattern pins UTC timestamps like the ESB (C5).
+
+spring:
+  application:
+    name: silkroute-oms
+  main:
+    web-application-type: none
+  datasource:
+    # connectionTimeZone=UTC + forceConnectionTimeZoneToSession=true pin
+    # ingested_at wall-clock to UTC (timezone-explicit per C5).
+    # allowPublicKeyRetrieval: caching_sha2_password over plain HTTP MySQL.
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/silkroute_oms?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true}
+    username: ${SPRING_DATASOURCE_USERNAME:silkroute_oms}
+    password: ${SPRING_DATASOURCE_PASSWORD:oms-pass-2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:127.0.0.1:39092}
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+      auto-offset-reset: ${OMS_AUTO_OFFSET_RESET:earliest}
+      max-poll-records: 200
+
+oms:
+  # env-indirected mirrors of the Spring knobs (read by OmsApplication for logs)
+  topic: ${KAFKA_ORDERS_TOPIC:silkroute.orders.events}
+  consumer-group: ${OMS_CONSUMER_GROUP:silkroute-oms}
+  bootstrap-servers: ${KAFKA_BOOTSTRAP:127.0.0.1:39092}
+  auto-offset-reset: ${OMS_AUTO_OFFSET_RESET:earliest}
+  concurrency: 1
+  datasource-url: ${SPRING_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/silkroute_oms?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC} %-5level %logger{40} - %msg%n"
+  level:
+    root: INFO
+    org.apache.kafka: WARN
+    org.springframework: WARN

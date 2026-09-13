@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SILKROUTE Phase 3 — CDC capture + bronze landing (apps/cdc).
+
+  ADR-0006 decision 1: an EMBEDDED Debezium Engine (debezium-embedded +
+  debezium-connector-mysql) in a plain host-JVM app — NOT a Kafka Connect
+  cluster. Zero new containers, zero new listening ports; the interface
+  contract (Debezium envelope JSON on a Kafka topic) is IDENTICAL under both
+  engines, so the ADR-0001 cloud swap stays configuration-only.
+
+  ONE module, TWO mains (two shaded jars):
+    cdc-1.0.0-SNAPSHOT.jar         -> CaptureEngine (binlog -> silkroute.cdc.oms,
+                                      cdc_freshness_seconds metric producer, C4)
+    cdc-1.0.0-SNAPSHOT-bronze.jar  -> BronzeWriter (CDC topic -> MinIO/OSS bronze,
+                                      write-once JSONL objects, ADR-0006 key format)
+
+  Versions (pinned, compatible with sim broker Kafka 3.8.0 and MySQL 8.0.46):
+    Debezium 2.7.3.Final (Kafka Connect clients 3.7.x — wire-compatible with the
+    3.8.0 broker), AWS SDK v1 1.12.x for the S3 API surface.
+
+  Money discipline (C5): this module never touches monetary values — envelopes
+  pass through verbatim. Residency (C1): bronze keys carry the region= tag from
+  the row; nothing here unmasks customerRef.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.mapleretail.silkroute</groupId>
+  <artifactId>cdc</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>cdc</name>
+  <description>Maple Retail (fictional) CDC: embedded Debezium engine + bronze writer (Phase 3)</description>
+
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <debezium.version>2.7.3.Final</debezium.version>
+    <kafka.version>3.7.1</kafka.version>
+    <aws.sdk.version>1.12.772</aws.sdk.version>
+    <jackson.version>2.17.2</jackson.version>
+    <slf4j.version>1.7.36</slf4j.version>
+    <logback.version>1.2.13</logback.version>
+    <junit.version>5.10.2</junit.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.debezium</groupId>
+      <artifactId>debezium-embedded</artifactId>
+      <version>${debezium.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.debezium</groupId>
+      <artifactId>debezium-connector-mysql</artifactId>
+      <version>${debezium.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>${kafka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <!-- Bronze writer: S3 API surface (MinIO in sim; OSS S3-compat in cloud, ADR-0001). -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-s3</artifactId>
+      <version>${aws.sdk.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>cdc-1.0.0-SNAPSHOT</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <!-- Main A: CaptureEngine — the main artifact. -->
+          <execution>
+            <id>shade-engine</id>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <shadedArtifactAttached>false</shadedArtifactAttached>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.mapleretail.silkroute.cdc.engine.CaptureEngine</mainClass>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+          <!-- Main B: BronzeWriter — attached with classifier "bronze". -->
+          <execution>
+            <id>shade-bronze</id>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>bronze</shadedClassifierName>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.mapleretail.silkroute.cdc.bronze.BronzeWriter</mainClass>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
