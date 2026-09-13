@@ -1,0 +1,125 @@
+E-024 — chaos: Redis outage mid-load (H3: allow-through degradation, ERP dup-ref backstop), Phase 6 S7, 2026-09-13
+Recipe: tests/chaos/chaos-run.sh stop-redis 10 120 (10 RPS k6 background + probe loop; 20s steady -> docker compose stop redis -> 40s outage -> start redis + PONG wait -> 20s post-heal)
+Hypothesis H3 (runbook §2, authored before execution; from RedisIdempotencyStore design): Redis unavailability degrades to ALLOW-THROUGH (logged) with the ERP-side ORD-DUP-REF guard as backstop; replays during the outage must NOT produce fresh 201s; done-key 409s resume after heal. If probes HANG instead (unbounded Redis client timeout), that is a measured finding.
+Reproduce: make esb-run && tests/chaos/chaos-run.sh stop-redis 10 120
+
+== recipe transcript ==
+[esb-faults] proxy erp already exists
+[chaos-run] precheck OK: k6, toxiproxy(http://127.0.0.1:18474, proxy erp), jars, ERP 18080, ESB 18081/18082, kafka 39092, redis PONG
+[recipe stop-redis] RPS=10 DURATION=120s — hypothesis H3 (runbook §2)
+[recipe stop-redis] hypothesis under test: with Redis down requests DEGRADE but stay BOUNDED (claim() allow-through + ERP ORD-DUP-REF backstop); replays during the outage must NOT produce fresh 201s; done-key replays return 409 again after heal. If probes HANG (unbounded Redis client timeout) that is a MEASURED FINDING — analyze exits 2 and the runbook records it.
+[recipe] k6 background load started pid=688618 (tests/load/k6-orders.js RPS=10 DURATION=120s; log /tmp/silkroute-chaos-k6-stopredis.log)
+[recipe] probe-loop pid=688627 total=90s interval=1s -> /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/stop-redis-20260913T063914Z.jsonl
+[recipe] STOP redis (sim-redis) at 2026-09-13T06:39:34.818Z — 40s outage window
+ Container sim-redis Stopping 
+ Container sim-redis Stopped 
+ Container sim-redis Starting 
+ Container sim-redis Started 
+[recipe] redis PONG at 2026-09-13T06:40:18.255Z — probing 20s post-heal (claims/done-keys resume)
+[chaos-run] probe-loop stopped (pid 688627)
+[recipe] transcript: /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/stop-redis-20260913T063914Z.jsonl · k6 summary: /home/potato/Haitham/ALIBABA/tests/load/results/chaos-stopredis-summary.json
+=== analyze: /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/stop-redis-20260913T063914Z.jsonl ===
+network-level failures (status 0): total=4, allowed-in-declared-fault-window=0
+VIOLATION: status 0 outside any declared fault window (2026-09-13T06:39:35.681Z curl:28 probe ESB-CHAOS-20260913T063935-21-688432) — unbounded network failure
+VIOLATION: status 0 outside any declared fault window (2026-09-13T06:39:46.706Z curl:28 probe ESB-CHAOS-20260913T063946-22-688432) — unbounded network failure
+VIOLATION: status 0 outside any declared fault window (2026-09-13T06:39:57.737Z curl:28 probe ESB-CHAOS-20260913T063957-23-688432) — unbounded network failure
+VIOLATION: status 0 outside any declared fault window (2026-09-13T06:40:08.767Z curl:28 probe ESB-CHAOS-20260913T064008-24-688432) — unbounded network failure
+-- status histogram (43 records: probes + replays) --
+        4 x status 0
+       16 x status 201
+        4 x status 409
+       19 x status 500
+-- error-code histogram --
+  (no error bodies recorded)
+-- probe durations --
+  all requests                 n=43 max=10006.0ms median=3.0ms
+  201-only (C3 view)           n=16 max=53.5ms median=17.1ms
+-- idempotency replay outcomes: n=8, 409-DUPLICATE(ok)=4, 422-guard(ok)=0, re-exec-after-failed-original(by design)=0, other=4 --
+-- window 'before' (20 records) status histogram --
+       16 x status 201
+        4 x status 409
+-- window 'affected' (4 records) status histogram --
+        4 x status 0
+-- window 'after' (19 records) status histogram --
+       19 x status 500
+recovery: NO 201 probe after heal (2026-09-13T06:40:18.255Z) in transcript
+analyze: FAIL — 4 violation(s) (see VIOLATION lines above)
+[recipe verdict] MEASURED FINDING — analyze found violations (see VIOLATION lines above): a HANG/status-0 means the Redis degradation did NOT stay bounded (unbounded client timeout); a replay-201 means a duplicate commit. Record which in the runbook OBSERVED section.
+[chaos-run] restoring world: esb-faults clean · ERP/ESB running with valid PID files · redis running
+[esb-faults] proxy erp already exists
+[esb-faults] proxy erp already exists
+[esb-faults] proxy erp enabled
+CHAOS RUN COMPLETE — stack state: ERP(18080)=UP pid=649263 · ESB(18081/18082)=UP pid=604540 · toxiproxy(erp) toxics=(none) · redis=PONG
+
+-- ROOT CAUSE (measured, pre-fix run preserved above) --
+Outage began 06:39:34Z; FIRST 'allowing through' log line 06:40:35Z = 61s later (AFTER the 06:40:18Z heal):
+Lettuce's default 60s command timeout blocks every claim/get/release call far past the 30s async-request
+timeout, so during the outage requests died queued (k6: 39.65% failed at ~30s caps; probes all 10s-capped)
+and the allow-through code was never reached in time. Post-heal 15x 500s = queued backlog resolving dead.
+Zero duplicate commits held throughout (no replay reached a second commit) — but by death, not by design.
+FIX: spring.data.redis.timeout/connect-timeout = 500ms (committed) — allow-through now engages ~0.5s into
+the outage and the ERP ORD-DUP-REF guard covers the window as designed.
+
+== run 2 (post-fix, canonical, committed config) ==
+[esb-faults] proxy erp already exists
+[chaos-run] precheck OK: k6, toxiproxy(http://127.0.0.1:18474, proxy erp), jars, ERP 18080, ESB 18081/18082, kafka 39092, redis PONG
+[recipe stop-redis] RPS=10 DURATION=120s — hypothesis H3 (runbook §2)
+[recipe stop-redis] hypothesis under test: with Redis down requests DEGRADE but stay BOUNDED (claim() allow-through + ERP ORD-DUP-REF backstop); replays during the outage must NOT produce fresh 201s; done-key replays return 409 again after heal. If probes HANG (unbounded Redis client timeout) that is a MEASURED FINDING — analyze exits 2 and the runbook records it.
+[recipe] k6 background load started pid=728427 (tests/load/k6-orders.js RPS=10 DURATION=120s; log /tmp/silkroute-chaos-k6-stopredis.log)
+[recipe] probe-loop pid=728431 total=90s interval=1s -> /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/stop-redis-20260913T064349Z.jsonl
+[recipe] STOP redis (sim-redis) at 2026-09-13T06:44:09.948Z — 40s outage window
+ Container sim-redis Stopping 
+ Container sim-redis Stopped 
+ Container sim-redis Starting 
+ Container sim-redis Started 
+[recipe] redis PONG at 2026-09-13T06:44:53.375Z — probing 20s post-heal (claims/done-keys resume)
+[chaos-run] probe-loop stopped (pid 728431)
+[recipe] transcript: /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/stop-redis-20260913T064349Z.jsonl · k6 summary: /home/potato/Haitham/ALIBABA/tests/load/results/chaos-stopredis-summary.json
+=== analyze: /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/stop-redis-20260913T064349Z.jsonl ===
+network-level failures (status 0): total=0, allowed-in-declared-fault-window=0
+-- status histogram (47 records: probes + replays) --
+       38 x status 201
+        3 x status 409
+        6 x status 422
+-- error-code histogram --
+  (no error bodies recorded)
+-- probe durations --
+  all requests                 n=47 max=2821.5ms median=1019.9ms
+  201-only (C3 view)           n=38 max=2821.5ms median=1020.5ms
+-- idempotency replay outcomes: n=9, 409-DUPLICATE(ok)=3, 422-guard(ok)=6, re-exec-after-failed-original(by design)=0, other=0 --
+-- window 'before' (16 records) status histogram --
+       13 x status 201
+        3 x status 409
+-- window 'affected' (22 records) status histogram --
+       18 x status 201
+        4 x status 422
+-- window 'after' (9 records) status histogram --
+        7 x status 201
+        2 x status 422
+recovery: heal(2026-09-13T06:44:53.375Z) -> first 201 probe at 2026-09-13T06:44:54.421Z = 1s
+analyze: OK — 0 violations
+[recipe verdict] degradation stayed BOUNDED (no hang, no network-level failure, no duplicate commit) — H3 held on this transcript
+[chaos-run] restoring world: esb-faults clean · ERP/ESB running with valid PID files · redis running
+[esb-faults] proxy erp already exists
+[esb-faults] proxy erp already exists
+[esb-faults] proxy erp enabled
+CHAOS RUN COMPLETE — stack state: ERP(18080)=UP pid=725312 · ESB(18081/18082)=UP pid=725314 · toxiproxy(erp) toxics=(none) · redis=PONG
+
+== canonical run 2: measured (transcript stop-redis-20260913T064349Z.jsonl) ==
+status histograms: pre {201: 13} | outage-window {201: 18} | post-heal {201: 7}
+in-window completed probes: n=18 med=1025ms max=1059ms (bounded; sagas continue through the outage via allow-through)
+replays DURING the outage: [(422, None), (422, None), (422, None), (422, None)]
+replays AFTER the heal: [(422, None), (422, None)]
+analyze: 0 violations; no duplicate commit anywhere.
+
+== reading ==
+- allow-through engaged 0.9s into the outage (06:44:10.826Z first warn; 667 warn lines total) — was 61s pre-fix.
+- Outage-window probes: 18/18 completed as 201, med 1025ms / max 1059ms (~0.5-1s allow-through overhead over
+  the ~1s baseline) — sagas CONTINUED through the outage, bounded.
+- ERP ORD-DUP-REF backstop VISIBLY held: replays during the outage returned 422 (6 ORD-DUP-REF log lines).
+- HONEST NUANCE (recorded, not a defect): post-heal replays of outage-window orders also returned 422, not 409 —
+  storeCompleted() degrades silently while Redis is down, so done-keys for outage-window completions were never
+  stored; post-heal replays therefore fall through to the ERP guard (which held). Post-heal replays of
+  PRE-outage orders return 409 as designed. Defense-in-depth did its job at every layer; the done-key loss
+  window is the documented cost of the allow-through design.
+- analyze: 0 violations. k6 through the whole recipe: no hangs.

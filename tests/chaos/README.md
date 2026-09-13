@@ -248,23 +248,60 @@ bash tests/chaos/chaos-run.sh --selftest
 
 ---
 
-## 4. OBSERVED RESULTS (S7 executions)
+## 4. OBSERVED RESULTS (S7 executions, 2026-09-13)
 
-> To be filled by the orchestrator's evidence-gated runs; see evidence rows E-0xx
-> and evidence/runs/ transcripts. Do not invent numbers — only executions fill
-> these in, each with its date, hardware/contention context, and artifact paths.
+Filled from the orchestrator's evidence-gated runs (sim mode, shared contended
+host — see each artifact's hardware note). H1 and H3 were first REFUTED as
+designed, root-caused, fixed in `apps/esb/src/main/resources/application.yml`,
+and re-proved — the refutations are the findings, recorded here as executed,
+not rewritten. Artifacts: evidence/runs/E-022 (latency), E-023 (kill-erp),
+E-024 (stop-redis) with full transcripts in tests/chaos/transcripts/.
 
-### 4.1 H1 — latency-under-load
+### 4.1 H1 — latency-under-load — REFUTED as designed, then held after fix
 
-To be filled by the orchestrator's evidence-gated runs; see evidence rows E-0xx
-and evidence/runs/ transcripts.
+- Pre-fix (default Spring task executor): H1 FAILED — k6 p95 pinned at its 30 s
+  client cap, 44 % checks, 485 `AsyncRequestTimeoutException`, achieved rate
+  collapsed 10 → 6.3/s, while the ERP calls THEMSELVES succeeded (zero retry
+  attempts, zero breaker activity). Root cause: MVC-async dispatch runs sagas on
+  Spring Boot's default `applicationTaskExecutor` (core 8, UNBOUNDED queue);
+  slowed sagas (~3.2 s = 4 proxied calls × 800 ms; solo probe 3.22 s vs 15.6 ms
+  clean) saturated the 8 workers and arrivals queued to the 30 s async timeout.
+  A Camel thread-pool override did NOT fix it (wrong pool — measured again).
+- Fix: `spring.task.execution.pool` core 32 / max 64 / queue 200 (bounded).
+- Post-fix (canonical, E-022): in-window probes n=25, med 3.6 s, max 4.1 s —
+  bounded, zero hangs, zero async timeouts; replays 409 throughout; k6 checks
+  98.7 %. H1 HOLDS: degraded-but-holding means bounded-and-continuing, and the
+  latency inflation (15 ms → ~3.6 s under 800 ms × 4 calls) is the honest shape.
+- Harness note: with the default 10 s probe cap, a cap-timeout records as
+  status 0 and this recipe (deliberately) declares no status-0 window — a cap-
+  timeout IS a finding here, not a harness error (runs 1-2 proved it twice).
 
-### 4.2 H2 — kill-erp
+### 4.2 H2 — kill-erp — HELD (first try)
 
-To be filled by the orchestrator's evidence-gated runs; see evidence rows E-0xx
-and evidence/runs/ transcripts.
+E-023: ERP killed by PID file (verified dead), 20 s failure window, restart,
+health-up at 28 s, FIRST 201 2 s AFTER HEALTH (SLO-5 bound: 30 s). Kill-window:
+35/35 probes answered with INSTANT 503s (measured 1.9 ms — the fail-fast
+signature; body code not captured by the probe parser), retry ladder fired to
+exhaustion (177 log lines, attempts 1/3..3/3), DLQ 0 → 59 with COMPLETE replay
+envelopes (eventType/externalOrderRef/correlationId/failedStep/attempts/
+errorCode UPSTREAM-UNAVAILABLE/compensated/releasedReservationIds). Zero hangs,
+zero duplicate commits (analyze: 0 violations). Honest limitation: the ERP
+ledger is in-memory — the restart re-seeded stock; cross-restart idempotency
+rode the Redis done-keys as documented.
 
-### 4.3 H3 — stop-redis
+### 4.3 H3 — stop-redis — REFUTED as designed, then held after fix
 
-To be filled by the orchestrator's evidence-gated runs; see evidence rows E-0xx
-and evidence/runs/ transcripts.
+- Pre-fix: H3 FAILED — every outage probe blocked past the 10 s cap; k6 39.65 %
+  failed at ~30 s; the FIRST "allowing through" warn appeared 61 s after the
+  outage began — AFTER the heal. `RedisIdempotencyStore`'s catch is correct but
+  unreachable in time: Lettuce's default 60 s command timeout swallows the
+  window. Post-heal 15× 500 s = the queued backlog dying at the async timeout.
+- Fix: `spring.data.redis.timeout` / `connect-timeout` = 500 ms.
+- Post-fix (canonical, E-024): allow-through engaged 0.9 s into the outage
+  (667 warns); outage-window probes 18/18 completed 201 at med 1.03 s; replays
+  during the outage returned 422 ORD-DUP-REF — the ERP backstop visibly held.
+  Honest nuance: post-heal replays of OUTAGE-window orders also return 422
+  (not 409) — `storeCompleted()` degrades silently during the outage, so those
+  done-keys were never stored and replays fall through to the ERP guard. The
+  done-key loss window is the documented cost of allow-through; no duplicate
+  commit occurred at any point (analyze: 0 violations).

@@ -20,9 +20,13 @@
  *      steps ramp from the PREVIOUS step's target to their own target — the
  *      "ramp within steps" — then hold at the target for the rest of the step.
  *   2. every k6 metric is automatically tagged `scenario:<name>`, so the
- *      --summary-export JSON carries PER-STEP sub-metrics
- *      (e.g. "order_req_duration_201{scenario:step3_r35}") — that is what makes
- *      the per-step breaking-point rule below evaluable from one artifact.
+ *   2. every k6 metric is tagged `scenario:<name>`; per-step 201-only
+ *      percentiles are surfaced via REPORTING thresholds on those tagged
+ *      sub-metrics (see options.thresholds) because --summary-export carries
+ *      AGGREGATE trend stats only — verified live during the S7 integration
+ *      run (the original assumption that the export emits per-tag sub-metrics
+ *      was wrong; the thresholds mechanism is the k6-blessed way to export
+ *      them).
  *
  * BREAKING-POINT DEFINITION (evaluated per step from the summary export):
  *   The saturation point is the FIRST step where EITHER
@@ -44,8 +48,9 @@
  *   order_status_201/422/409/503/5xx/other + order_network_errors
  *                             Counters per status class (503 is also included
  *                             in the 5xx counter, so infra% = (5xx + network) / total)
- * There are deliberately NO thresholds (same C3 discipline as k6-orders.js):
- * measure, never assert-pass; the summary export is the evidence artifact.
+ * Threshold discipline: the options.thresholds block holds REPORTING-only
+ * thresholds at the 300 ms C3 boundary (no abortOnFail — nothing aborts; exit
+ * 99 means some step breached). k6-orders.js itself keeps zero thresholds.
  *
  * Run (ERP 18080 + toxiproxy 18180 + ESB 18081 must be up; k6 is NOT on PATH):
  *   /home/potato/tools/k6/k6 run tests/load/k6-orders-stress.js \
@@ -96,9 +101,22 @@ STEPS.forEach((rps, i) => {
 
 export const options = {
   scenarios,
-  // No thresholds on purpose: the suite records the measured per-step p95 (C3)
-  // instead of passing/failing against one. The breaking point is ANALYZED from
-  // the export, never asserted inside k6.
+  // Reporting thresholds at the C3 boundary (evolved during the first S7
+  // integration run): k6's --summary-export carries AGGREGATE trend stats only
+  // (verified live — the original header's per-tag-sub-metrics assumption was
+  // wrong), so per-step 201-only percentiles are made machine-readable via
+  // thresholds on the scenario-tagged sub-metric. They are REPORTING
+  // instruments, not assertions: no abortOnFail (a breach never aborts the
+  // run), each step's p(95)/p(99) against the 300 ms budget lands in the
+  // export under metrics[].thresholds, and exit code 99 = "some step breached
+  // the budget" — the falsifiable breaking-point signal. The breaking point
+  // itself is still ANALYZED per the rule above, never asserted-pass here.
+  thresholds: Object.fromEntries(
+    STEPS.map((rps, i) => [
+      `order_req_duration_201{scenario:step${i + 1}_r${rps}}`,
+      ['p(95)<300', 'p(99)<300'],
+    ])
+  ),
   discardResponseBodies: true, // keep the generator light at 90+ RPS
 };
 

@@ -9,10 +9,41 @@ server:
 spring:
   application:
     name: silkroute-esb
+  task:
+    execution:
+      pool:
+        # MVC-async dispatch executor for the REST facade (spring-task "task-N"
+        # workers). Spring Boot's default is core=8 with an UNBOUNDED queue: a
+        # chaos run measured the consequence (S7, 800ms ERP latency x 10 RPS) —
+        # slowed sagas (~3.2s each) saturated the 8 workers, arrivals queued
+        # unboundedly, and requests died at the 30s async-request timeout
+        # (485 AsyncRequestTimeoutException; k6 p95 pinned at its 30s client
+        # cap) while the ERP calls themselves SUCCEEDED — the breaker and retry
+        # ladder never fired because the dependency never failed. Explicit
+        # sizing (core 32 = >10 RPS x ~3.2s degraded sagas) plus a BOUNDED
+        # queue converts saturation into bounded waiting instead of a silent
+        # 30s queue-then-timeout. Measured after the fix: k6 p95 3.25s (=
+        # solo-saga time under the same injection), zero async timeouts.
+        core-size: 32
+        max-size: 64
+        queue-capacity: 200
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:16379}
+      # Bounded degradation for the idempotency store's allow-through design.
+      # RedisIdempotencyStore catches ALL Redis exceptions and degrades to
+      # allow-through — but the catch only fires when the CLIENT surfaces an
+      # error, and Lettuce's default command timeout is 60s: a chaos run (S7,
+      # 40s redis outage x 10 RPS) measured requests blocking the full async
+      # timeout with ZERO allow-through lines until 61s after the outage began
+      # (i.e. after the heal), plus the queued backlog dying at the 30s
+      # async-request timeout. 500ms command/connect timeouts put the
+      # allow-through path ~0.5s behind the failure instead of ~60s, and the
+      # ERP-side ORD-DUP-REF guard (the designed backstop) becomes what
+      # actually covers the outage window.
+      timeout: 500ms
+      connect-timeout: 500ms
 
 # Management/actuator split off the API port (health/info on 18082, loopback only).
 management:

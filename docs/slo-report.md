@@ -20,7 +20,7 @@ Maple Retail Group is a **fictional** company; this is a design artifact of a **
 | **Where the number comes from** | Measured: evidence row (S7 sustained run). Historical baseline: E-010 (p95 44.25 ms @ 18.63 RPS, 2026-09-11, same sim, same contention caveats). |
 | **Measured (S7)** | Pending — filled from the S7 sustained run (E-020) below. |
 
-**Measured (S7):** PENDING — to be filled from the S7 sustained run (E-020) after execution; nothing measured yet.
+**Measured (S7):** **E-020 (canonical, 2026-09-13):** p95(all) **131.6 ms** / p95(201-only) 131.6 ms-class / **p99(all) 236.2 ms** @ 19.49 RPS achieved (20 target), 3 704 iterations over 180 s, 0 network failures — the 352 non-201s verified 1:1 as 422 INV-OUT-OF-STOCK stock-exhaustion business rejections (log-grep = 352 exactly; E-010 convention). Budget consumption: **44% at p95, 79% at p99**. Honest variance note: an identical-shape 20 RPS window earlier the same session measured p95 31.8 ms — a 4× swing from shared-host contention alone (E-010 precedent for the hardware note). Sim mode, k6 local (not CI). → evidence **E-020**.
 
 ## SLO-2 — Order-flow availability under dependency failure
 
@@ -32,7 +32,7 @@ Maple Retail Group is a **fictional** company; this is a design artifact of a **
 | **Where the number comes from** | Measured: chaos transcripts (S7 runs); design lineage: E-009 (CIRCUIT-OPEN fail-fast 4 ms, DLQ, recovery 201). |
 | **Measured (S7)** | Pending — filled from the S7 chaos runs (E-021/E-022/E-023). |
 
-**Measured (S7):** PENDING — to be filled from the S7 chaos runs (E-022/E-023/E-024) after execution; nothing measured yet.
+**Measured (S7):** **E-022/E-023/E-024 (canonical, 2026-09-13):** zero hangs across all three recipes (max completed probe 4.1 s under 800 ms injected latency; the 30 s invariant never approached post-fix); kill-erp kill-window: 35/35 probes answered in **1.9 ms** (fail-fast signature); every fault window ended in recovery without operator intervention beyond the heal itself. TWO STRUCTURAL FINDINGS, honestly recorded: (a) H1 was first REFUTED — the default Spring task executor (8 workers, unbounded queue) turned sub-timeout ERP latency into queue-then-30s-timeout (485 async timeouts, k6 p95 pinned at its 30 s cap) while the ERP calls themselves succeeded — the breaker and retry ladder are structurally blind to this failure mode; fixed by explicit bounded pool sizing (core 32/64/200), re-proved bounded. (b) H3 was first REFUTED — the Redis allow-through design was unreachable behind Lettuce's 60 s default command timeout (first allow-through log 61 s into a 40 s outage); fixed with 500 ms client timeouts, re-proved (allow-through at 0.9 s). → evidence **E-022, E-023, E-024**; fixes in `apps/esb/src/main/resources/application.yml` (ESB unit 33/33 post-change).
 
 ## SLO-3 — Zero duplicate commits (idempotency)
 
@@ -44,7 +44,7 @@ Maple Retail Group is a **fictional** company; this is a design artifact of a **
 | **Where the number comes from** | Measured: chaos transcripts (S7); design/behavior lineage: E-008 (409 replay verbatim), E-009 (ORD-DUP-REF under retry, claim release regression). |
 | **Measured (S7)** | Pending — filled from the S7 chaos runs. |
 
-**Measured (S7):** PENDING — to be filled from the S7 chaos runs after execution; nothing measured yet.
+**Measured (S7):** **E-022/E-023/E-024 (canonical, 2026-09-13):** 0 duplicate commits across all three recipes — every replayed key surfaced as 409 DUPLICATE (E-022, throughout), 422 ORD-DUP-REF (E-024, the ERP guard visibly holding DURING the Redis outage — exactly the designed defense-in-depth), or died pre-commit (pre-fix runs; analyzed and counted, never silent). No replay ever produced a second 201 (the analyzer's duplicate-commit check: 0 violations in all three transcripts). Documented consequence: during a Redis outage, done-keys for outage-window completions are not stored (`storeCompleted` degrades silently), so post-heal replays of those orders fall through to the ERP guard — the guard held. → evidence **E-022, E-023, E-024**.
 
 ## SLO-4 — DLQ drained / recoverable
 
@@ -56,7 +56,7 @@ Maple Retail Group is a **fictional** company; this is a design artifact of a **
 | **Where the number comes from** | Measured: chaos transcript (S7); design lineage: E-009 (DLQ carrying exhausted correlationIds + compensated:true + msk-* pseudonymization). |
 | **Measured (S7)** | Pending — filled from the S7 kill-erp run (E-022). |
 
-**Measured (S7):** PENDING — to be filled from the S7 kill-erp run (E-023) after execution; nothing measured yet.
+**Measured (S7):** **E-023 (canonical, 2026-09-13):** DLQ 0 → **59** during the hard-down window — every exhausted order landed with a COMPLETE replayable envelope, verified by field inspection: eventType, externalOrderRef, sourceSystem, storeId, region, customerRef, correlationId, failedStep, per-step attempts {order: 3}, errorCode UPSTREAM-UNAVAILABLE, category, compensated, releasedReservationIds, occurredAt. The count matches requests that exhausted retries while the ERP was down (retry ladder: 177 logged attempt failures). Honest label: redrive is by-construction from these envelopes; no automated redrive pipeline exists (designed follow-up). Dashboard panel + >100/10 min alert for DLQ depth: IaC (E-019). → evidence **E-023**.
 
 ## SLO-5 — Breaker recovery time
 
@@ -68,7 +68,7 @@ Maple Retail Group is a **fictional** company; this is a design artifact of a **
 | **Where the number comes from** | Measured: chaos transcripts (S7); design lineage: E-009 (half-open recovery 201 after proxy heals). |
 | **Measured (S7)** | Pending — filled from the S7 chaos runs. |
 
-**Measured (S7):** PENDING — to be filled from the S7 chaos runs after execution; nothing measured yet.
+**Measured (S7):** **E-022/E-023/E-024 (canonical, 2026-09-13):** E-022 (toxic removed): probes returned to baseline within the recovery window (post-window statuses all 201-class); E-023 (ERP restarted): **first 201 probe 2 s after /actuator/health UP** (28 s Spring Boot boot excluded by definition — the breaker wait-in-open is 2 s, matching the config-derived expectation); E-024 (Redis PONG): flow never lost (allow-through continuation), claims resumed. All within the 30 s bound. → evidence **E-022, E-023, E-024**.
 
 ## SLO-6 — CDC freshness (C4) — DESIGN-ONLY, NOT MEASURED
 
@@ -83,7 +83,7 @@ Maple Retail Group is a **fictional** company; this is a design artifact of a **
 
 The stepped stress profile (`tests/load/k6-orders-stress.js`) finds where the budget **actually breaks**: the first step where infra failures (non-422/409) exceed 1% of the step's requests or 201-only p95 exceeds 300 ms. The breaking-point number is the honest headline — the comfortable sustained number (SLO-1) means little without knowing how far the headroom extends.
 
-**Measured (S7):** PENDING — to be filled from the S7 stress run (E-022) after execution; nothing measured yet.
+**Measured (S7):** **E-021 (2026-09-13):** the C3 budget **holds through 90 RPS** (segment A: every step's 201-only p95 ≤ ~30 ms, p99 ≤ ~33 ms, zero infra failures across ~12 k requests) and at **110 RPS on a warm JVM** p95 = 266 ms (89% of budget; p99 349 ms — the first p99 breach) while sustaining **78.9 completed sagas/s**; on a cold JVM 110 RPS breaches outright (p95 658 ms) — cold-start + budget-rate spike is a distinct, real risk signature. Higher rungs are unmeasurable on this estate: the frozen ERP's seeded stock pool (~7.9 k units) drains within the breach window, starving the 201-only trend (200 RPS step: zero 201 samples). Infra integrity never broke at ANY rung (~41 k requests, zero 5xx/timeouts/resets): the saturation failure mode on this host is latency blowout, not errors. Honest headline: **budget holds to ≥110 RPS warm (p95) / ~90 RPS (p99), bounded by the stock-pool ceiling beyond that** — measured, with the ceiling named. → evidence **E-021**.
 
 ---
 

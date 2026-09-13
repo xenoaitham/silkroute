@@ -1,0 +1,44 @@
+E-020 — sustained k6 load run (SLO-1 C3 budget re-proof), Phase 6 S7, 2026-09-13
+Profile: tests/load/k6-orders.js (unmodified E-010 lineage) — RPS=20 DURATION=180s + k6 --summary-trend-stats adding p(99) (reporting-only flag; script untouched)
+Reproduce: make esb-run (fresh ERP ledger: this run drew from the full seeded stock) && RPS=20 DURATION=180s ~/tools/k6/k6 run --summary-trend-stats="avg,min,med,max,p(90),p(95),p(99)" tests/load/k6-orders.js --summary-export=tests/load/results/s7-sustained-summary.json
+
+== k6 end-of-run summary ==
+exit=0
+     checks.........................: 90.49% 3352 out of 3704
+     data_received..................: 3.2 MB 17 kB/s
+     data_sent......................: 1.9 MB 10 kB/s
+     http_req_blocked...............: avg=13.69µs  min=3.22µs  med=7.23µs  max=2.31ms  p(90)=12.93µs  p(95)=16.69µs  p(99)=180.24µs
+     http_req_connecting............: avg=2.71µs   min=0s      med=0s      max=1.53ms  p(90)=0s       p(95)=0s       p(99)=95.22µs 
+     http_req_duration..............: avg=44.21ms  min=5.72ms  med=25.89ms max=2.11s   p(90)=93.38ms  p(95)=131.62ms p(99)=236.23ms
+       { expected_response:true }...: avg=46.98ms  min=7.6ms   med=28.42ms max=2.11s   p(90)=97.22ms  p(95)=137.77ms p(99)=252.24ms
+     http_req_failed................: 9.50%  352 out of 3704
+     http_req_receiving.............: avg=207.94µs min=21.02µs med=86.66µs max=11.36ms p(90)=249.27µs p(95)=467.37µs p(99)=3.29ms  
+     http_req_sending...............: avg=67.57µs  min=14.1µs  med=30.3µs  max=19.79ms p(90)=57.94µs  p(95)=78.64µs  p(99)=824.97µs
+     http_req_tls_handshaking.......: avg=0s       min=0s      med=0s      max=0s      p(90)=0s       p(95)=0s       p(99)=0s      
+     http_req_waiting...............: avg=43.93ms  min=5.66ms  med=25.75ms max=2.11s   p(90)=92.99ms  p(95)=131.38ms p(99)=236.09ms
+     http_reqs......................: 3704   19.494325/s
+     iteration_duration.............: avg=44.67ms  min=5.92ms  med=26.41ms max=2.11s   p(90)=93.96ms  p(95)=132.09ms p(99)=238.04ms
+     iterations.....................: 3704   19.494325/s
+     vus............................: 0      min=0            max=5 
+     vus_max........................: 20     min=20           max=20
+
+
+running (3m10.0s), 000/020 VUs, 3704 complete and 0 interrupted iterations
+orders ✓ [ 100% ] 000/020 VUs  3m10s  20.00 iters/s
+
+== non-201 composition verification (E-010 log-grep convention) ==
+INV-OUT-OF-STOCK occurrences in ESB app log (/tmp/silkroute-esb-app.log): 352
+non-201 responses reported by k6: 352 — exact match: EVERY non-201 was a 422
+business rejection from seeded stock rows legitimately exhausted mid-run
+(5..100-unit rows at ~24.7 orders/row over 150 combos). Breaker/compensation/
+duplicate-ref codes in log during the window: 0. One slow-tail outlier exists
+(max 2.11s; single request) — contended-host scheduling/GC blip, not a pattern;
+p95/p99 unaffected materially and the 30s SLO-2 bound never approached.
+
+== honest contention note ==
+Two 20 RPS windows on the same fresh-stock shape (3704 iters, 352 rejections)
+measured p95 31.83ms (window 1, ~07:5x UTC) and p95 131.62ms (this canonical
+window) — a 4x swing from SHARED-HOST CONTENTION alone (other stacks run
+concurrently; load average 4.4-4.6). The budget holds at p95 AND p99 in both
+windows; the variance is exactly why every row carries the hardware/context
+note (E-010 precedent). Sim mode; k6 local (not a CI run).

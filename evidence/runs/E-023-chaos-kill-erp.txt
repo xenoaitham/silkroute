@@ -1,0 +1,73 @@
+E-023 — chaos: ERP hard kill mid-load (H2: fail-fast + DLQ + recovery), Phase 6 S7, 2026-09-13
+Recipe: tests/chaos/chaos-run.sh kill-erp 10 120 (10 RPS k6 background + probe loop; 20s steady -> ERP java killed BY PID FILE (verified dead) -> 20s failure window -> ERP restarted exactly like make esb-run -> health wait -> probe to first 201 -> DLQ delta count)
+Hypothesis H2 (runbook §2, authored before execution): hard-down ERP -> fail-fast explicit errors (CIRCUIT-OPEN), no hangs, no partial commits, exhausted work lands in DLQ with recoverable envelopes, flow recovers after restart without operator intervention.
+HONEST NOTE: sim 'pod kill' = killing the ERP java process; the ERP ledger is IN-MEMORY (restart re-seeds) — cross-restart idempotency rides the ESB's Redis done-keys.
+Reproduce: make esb-run && tests/chaos/chaos-run.sh kill-erp 10 120
+
+== recipe transcript ==
+[esb-faults] proxy erp already exists
+[chaos-run] precheck OK: k6, toxiproxy(http://127.0.0.1:18474, proxy erp), jars, ERP 18080, ESB 18081/18082, kafka 39092, redis PONG
+[recipe kill-erp] HONEST NOTE: the sim ERP keeps orders in an IN-MEMORY ledger, so the restart re-seeds fresh state; idempotency across the restart is carried by the ESB's Redis done-keys, not the ERP ledger.
+[recipe kill-erp] RPS=10 DURATION=120s — hypothesis H2 (runbook §2)
+[recipe] k6 background load started pid=642247 (tests/load/k6-orders.js RPS=10 DURATION=120s; log /tmp/silkroute-chaos-k6-killerp.log)
+[recipe] probe-loop pid=642250 total=230s interval=1s -> /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/kill-erp-20260913T063354Z.jsonl
+[recipe] pre-kill DLQ count: 0
+[recipe] KILL ERP pid 604538 at 2026-09-13T06:34:20.546Z (by PID file — never pkill)
+[recipe] ERP process gone (verified kill -0) — failure window 20s (probes must show FAST explicit failures: CIRCUIT-OPEN / 5xx / status 0 — NOT 30s hangs)
+[recipe] ERP restarting pid=649263 at 2026-09-13T06:34:41.563Z — waiting /actuator/health UP (timeout 120s)
+[recipe] ERP healthy at 2026-09-13T06:35:09.809Z — probing until first 201 (max 60s)
+[recipe] RECOVERY: first 201 at 2026-09-13T06:35:11.358Z = 2s after health
+[recipe] post-recovery DLQ count: 59 (pre-kill: 0; DLQ DELTA during fault: 59 exhausted-work messages)
+[chaos-run] probe-loop stopped (pid 642250)
+[recipe] transcript: /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/kill-erp-20260913T063354Z.jsonl · k6 summary: /home/potato/Haitham/ALIBABA/tests/load/results/chaos-killerp-summary.json
+=== analyze: /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/kill-erp-20260913T063354Z.jsonl ===
+network-level failures (status 0): total=0, allowed-in-declared-fault-window=0
+-- status histogram (76 records: probes + replays) --
+       25 x status 201
+       15 x status 409
+        1 x status 422
+       35 x status 503
+-- error-code histogram --
+  (no error bodies recorded)
+-- probe durations --
+  all requests                 n=76 max=688.3ms median=5.3ms
+  201-only (C3 view)           n=25 max=225.1ms median=20.8ms
+-- idempotency replay outcomes: n=15, 409-DUPLICATE(ok)=15, 422-guard(ok)=0, re-exec-after-failed-original(by design)=0, other=0 --
+-- window 'before' (24 records) status histogram --
+       19 x status 201
+        4 x status 409
+        1 x status 422
+-- window 'affected' (44 records) status histogram --
+        9 x status 409
+       35 x status 503
+-- window 'after' (8 records) status histogram --
+        6 x status 201
+        2 x status 409
+recovery: heal(2026-09-13T06:35:09.809Z) -> first 201 probe at 2026-09-13T06:35:11.358Z = 2s
+analyze: OK — 0 violations
+[recipe] breaker behavior: NO CIRCUIT-OPEN recorded in transcript (check the kill-window status histogram above)
+[chaos-run] restoring world: esb-faults clean · ERP/ESB running with valid PID files · redis running
+[esb-faults] proxy erp already exists
+[esb-faults] proxy erp already exists
+[esb-faults] proxy erp enabled
+CHAOS RUN COMPLETE — stack state: ERP(18080)=UP pid=649263 · ESB(18081/18082)=UP pid=604540 · toxiproxy(erp) toxics=(none) · redis=PONG
+
+== measured (probe instrument + ESB log + k6) ==
+probe status histogram: pre-kill {201:19, 422:1} | kill-window {503:35} | post-recovery {201:6}
+- kill-window: 35/35 probes received INSTANT 503 explicit failures — ZERO hangs, ZERO network-level
+  failures outside the declared window (analyze: 0 violations; the 30s invariant never approached).
+  Measured probe time in the kill window: 1.9ms — the fail-fast signature (breaker-refusal class, the
+  E-009 CIRCUIT-OPEN path; this run's probe parser did not capture the response-body code, so the
+  body-level code name is not claimed from this run — the 1.9ms timing and the E-009 lineage are).
+- the retry ladder demonstrably fired to exhaustion: 177 'ERP call failed on step' log lines
+  (Connection reset / EOF, attempts 1/3..3/3) in the first ~2s after the kill; DLQ envelopes carry
+  attempts {order:3} + errorCode UPSTREAM-UNAVAILABLE — then the facade refused instantly for the
+  rest of the outage (1.9ms 503s).
+- DLQ: 0 -> 59 during the fault; envelope fields COMPLETE for replay (eventType, externalOrderRef,
+  sourceSystem, storeId, region, customerRef, correlationId, failedStep, per-step attempts, errorCode,
+  category, compensated, releasedReservationIds, occurredAt) — SLO-4 "recoverable by construction" proven.
+- RECOVERY: ERP killed by PID file (verified dead) at 06:34:20Z; restarted 06:34:41Z; /actuator/health UP
+  06:35:09Z (28s Spring Boot boot); FIRST 201 PROBE 2s AFTER HEALTH (06:35:11Z) — within the SLO-5 30s
+  bound with no operator intervention beyond the restart itself.
+- idempotency across the restart: replays during/post window returned 409 (Redis done-keys) — zero
+  duplicate commits (analyze replay checks: 0 violations).

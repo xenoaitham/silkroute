@@ -1,0 +1,84 @@
+E-022 — chaos: dependency LATENCY injection DURING load (H1), Phase 6 S7, 2026-09-13
+Recipe: tests/chaos/chaos-run.sh latency-under-load 10 120 800 (10 RPS k6 background + 1s probe loop with replay probes; 15s steady -> 800ms latency toxic on ERP path 120s -> heal -> 30s recovery)
+Hypothesis H1 (runbook §2, authored before execution): sub-timeout ERP latency (800ms < 2000ms receive timeout) degrades but HOLDS: bounded responses, no hangs, no duplicate commits, recovery after heal.
+Reproduce: make esb-run && tests/chaos/chaos-run.sh latency-under-load 10 120 800
+
+== HISTORY OF THIS FINDING (three runs; the first two are the discovery) ==
+
+-- run 1 (pre-fix, default Spring task executor): REFUTED H1 --
+k6: p95=30000ms (pinned at k6's 30s client timeout), checks 44%, achieved 6.34/s of 10 requested
+ESB log: 485 AsyncRequestTimeoutException; ZERO ERP-call failures, ZERO retry attempts, ZERO breaker activity
+probes: 8/18 in-window probes hit the 10s curl cap; completed in-window probes max 5714ms
+
+-- run 2 (Camel threadpool override 60/120): STILL REFUTED — wrong pool --
+identical signature: 478 async timeouts; thread dump under load showed 8 'task-N' workers = Spring Boot's
+default applicationTaskExecutor (core 8, unbounded queue) is the MVC-async dispatch executor — NOT Camel's pool.
+
+-- ROOT CAUSE --
+Spring MVC async dispatch runs the saga on applicationTaskExecutor (default core=8, UNBOUNDED queue).
+Under the injection each saga occupies a worker ~3.2s (4 proxied ERP calls x 800ms; solo probe measured
+3.22s vs 15.6ms clean). Capacity ~= 8 workers / 3.2s ~= 2.5-6/s < 10 RPS arrival -> unbounded queue ->
+requests die at the 30s async-request timeout. The breaker NEVER opens and the retry ladder NEVER fires
+(ERP calls succeed) — a dependency-latency degradation is INVISIBLE to every resilience mechanism and
+surfaces only as queue-then-timeout at the facade.
+
+-- FIX (application.yml, committed with this evidence) --
+spring.task.execution.pool: core 32 / max 64 / queue 200 (bounded). Saturation now degrades to bounded
+waiting instead of a silent 30s queue-then-timeout. ESB unit tests 33/33 green post-change.
+
+== run 3 (post-fix, canonical, committed config) ==
+[esb-faults] proxy erp already exists
+[chaos-run] precheck OK: k6, toxiproxy(http://127.0.0.1:18474, proxy erp), jars, ERP 18080, ESB 18081/18082, kafka 39092, redis PONG
+[recipe latency-under-load] RPS=10 DURATION=120s INJECTION=800ms — hypothesis H1 (runbook §2)
+[recipe] k6 background load started pid=611555 (tests/load/k6-orders.js RPS=10 DURATION=120s; log /tmp/silkroute-chaos-k6-latency-800ms.log)
+[recipe] probe-loop pid=611558 total=175s interval=1s -> /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/latency-800ms-20260913T063007Z.jsonl
+[esb-faults] proxy erp already exists
+[esb-faults] toxic lat absent
+[esb-faults] toxic lat (latency, {"latency": 800}) active on erp
+[recipe] INJECTED latency=800ms at 2026-09-13T06:30:22.850Z — fault window 120s
+[esb-faults] toxic lat removed
+[recipe] TOXIC REMOVED (healed) at 2026-09-13T06:32:22.884Z — recovery window 30s
+[chaos-run] probe-loop stopped (pid 611558)
+[recipe] transcript: /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/latency-800ms-20260913T063007Z.jsonl · k6 summary: /home/potato/Haitham/ALIBABA/tests/load/results/chaos-latency-800ms-summary.json
+=== analyze: /home/potato/Haitham/ALIBABA/tests/chaos/transcripts/latency-800ms-20260913T063007Z.jsonl ===
+network-level failures (status 0): total=0, allowed-in-declared-fault-window=0
+-- status histogram (72 records: probes + replays) --
+       56 x status 201
+       14 x status 409
+        2 x status 422
+-- error-code histogram --
+  (no error bodies recorded)
+-- probe durations --
+  all requests                 n=72 max=4133.3ms median=40.6ms
+  201-only (C3 view)           n=56 max=4133.3ms median=44.8ms
+-- idempotency replay outcomes: n=14, 409-DUPLICATE(ok)=14, 422-guard(ok)=0, re-exec-after-failed-original(by design)=0, other=0 --
+-- window 'before' (13 records) status histogram --
+       11 x status 201
+        2 x status 409
+-- window 'affected' (31 records) status histogram --
+       24 x status 201
+        6 x status 409
+        1 x status 422
+-- window 'after' (28 records) status histogram --
+       21 x status 201
+        6 x status 409
+        1 x status 422
+recovery: heal(2026-09-13T06:32:22.884Z) -> first 201 probe at 2026-09-13T06:32:24.946Z = 2s
+analyze: OK — 0 violations
+[recipe] reading the result: 422 INV-OUT-OF-STOCK counts are business rejections, NEVER saturation; recovery printed above = heal -> first 201
+[chaos-run] restoring world: esb-faults clean · ERP/ESB running with valid PID files · redis running
+[esb-faults] proxy erp already exists
+[esb-faults] proxy erp already exists
+[esb-faults] proxy erp enabled
+CHAOS RUN COMPLETE — stack state: ERP(18080)=UP pid=604538 · ESB(18081/18082)=UP pid=604540 · toxiproxy(erp) toxics=(none) · redis=PONG
+
+== canonical run 3: measured (probe instrument, transcript latency-800ms-20260913T063007Z.jsonl) ==
+in-window completed probes: n=25 med=3619ms max=4133ms (bounded; 30s invariant never approached)
+status histograms: baseline/pre {201: 11} | in-window {201: 24, 422: 1} | recovery/post {201: 21, 422: 1}
+replay probes across the run: 14 — outcomes below (idempotency held during and after injection)
+  replay status=409 error_code=None order_id_same_as_original=False
+  replay status=409 error_code=None order_id_same_as_original=False
+  replay status=409 error_code=None order_id_same_as_original=False
+  replay status=409 error_code=None order_id_same_as_original=False
+     checks.........................: 98.69% 1213 out of 1229
+     http_req_failed................: 1.30%  16 out of 1229
