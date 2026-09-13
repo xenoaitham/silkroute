@@ -1,0 +1,61 @@
+E-025 — AliCloud pricing fetches for docs/cost-model.md (all fetched 2026-09-13 by ORCH-LEAD;
+every unit price in the cost sheet traces to one of these fetches — no price from memory).
+
+1. SAE billing — https://www.alibabacloud.com/help/en/sae/product-overview/billing-new
+   - CU model: "CU Usage = raw resource usage × CU conversion coefficient"; CU unit price Singapore =
+     0.00001069 USD/CU. Coefficients (Standard edition): vCPU 1 CU/vCPU-second; memory 0.25 CU/GB-second;
+     disk 0.015 CU/GiB-second. "20 GiB of free temporary disk space by default" per instance.
+   - Derived (labeled computed, not page-stated): SG vCPU 1x0.00001069x3600 = 0.038484 USD/vCPU-h;
+     memory 0.25x0.00001069x3600 = 0.009621 USD/GB-h.
+
+2. SLS — https://www.alibabacloud.com/en/product/log-service/pricing (rates) +
+   https://www.alibabacloud.com/help/en/sls/pay-as-you-go (billable items + free quotas)
+   - Index traffic of log data: 0.0875 USD/GB (free 500 MB/month). Log storage: 0.002875 USD/GB-day
+     (free 500 MB/month). Read/write traffic: 0.045 USD/GB (free 500 MB/month). Read/write ops free
+     quota 1M/month; active shard lease 31 shard-days/month. "Log Service pricing is consistent across
+     all regions" (exceptions: SA/BR/NL multipliers). Page caveat: "prices are for reference only" —
+     buy page prevails.
+
+3. OSS — https://www.alibabacloud.com/help/en/oss/storage-fees
+   - Standard LRS: "USD 0.0173 per GB-month" (formula quoted: GB-month/30/24 = per GB-hour). Other
+     classes + minimum durations listed (IA 30d / Archive 60d / Cold Archive 180d). Request fees and
+     external traffic live on the OSS pricing page (not re-fetched; not quoted in the sheet beyond
+     naming the billable items).
+
+4. RDS MySQL — https://www.alibabacloud.com/help/en/rds/apsaradb-rds-for-mysql/billable-items-billing-methods-and-pricing
+   (formulas only: instance fee = unit price x duration; storage; backup free quota = 200% of storage
+   for cloud disk) + https://www.alibabacloud.com/en/product/apsaradb-for-rds (SG starter offers:
+   mysql.n2e.small.1 1C2G "From $5.52/Month"; serverless "From $0.02/Hour").
+   - HONEST GAP: our configured class mysql.n2.small.v65 has NO fetchable public unit price (console
+     only). The sheet records the class mismatch and uses the published sibling rate as a labeled
+     assumption, never as the class's price.
+
+5. NAT Gateway — https://www.alibabacloud.com/help/en/nat-gateway/nat-gateway-billing
+   - International region, Single-AZ-DR: instance fee 0.0215 USD/hour; CU fee 0.034 USD/CU (tier
+     0-1,000,000 CUs). Formula quotes captured. EIPs attached to the NAT are billed separately.
+
+6. EIP — https://www.alibabacloud.com/help/en/eip/pay-as-you-go/
+   - Singapore: configuration fee 0.006 USD/hour/IP (pay-by-data-transfer); outbound traffic
+     0.081 USD/GB; inbound free. Pay-by-bandwidth alternative: 0.151 USD/day/IP (SG).
+
+7. KMS — https://www.alibabacloud.com/help/en/kms/key-management-service/product-overview/kms-billing
+   - Software Key Management Instance: USD 500/month (includes 1000-key quota, 1000 QPS, dual-zone);
+     Hardware: USD 1,799/month; key-quota add-on USD 9/month per 10 keys; default keys for
+     cloud-product server-side encryption are free. NO per-key or per-API-call pricing exists in the
+     current model. MATERIAL FINDING: the design's 2 KMS keys ride a ~USD 500/month instance — the
+     instance is the cost driver, not key count.
+
+8. ApsaraMQ for Kafka — https://www.alibabacloud.com/help/en/apsaramq-for-kafka/cloud-message-queue-for-kafka/product-overview/pay-as-you-go-billing-rules
+   - VPC PostPaid (USD/hour): Standard alikafka.hw.2xlarge = 0.335 USD/h (Region group 1 — SG group
+     membership ASSUMED, recorded next to the number); SSD disk 0.03 USD/h per 100 GB (RG1); partition
+     0.000444 USD/partition-hour; API calls free; "Billing stops immediately when you release the
+     instance"; disk minimums vary by spec (300 GB examples).
+   - Our IaC: spec_type "normal" deploy_type 4 (VPC) PostPaid, 300 GB disk, 2 topics (E-019 plan).
+
+9. CloudMonitor — https://www.alibabacloud.com/help/en/cms/cloudmonitor-1.0/product-overview/free-quota
+   - Basic monitoring/alerts free; alert SMS quota separate (SMS only for +86 numbers on basic);
+     email/webhook channels remain available.
+
+10. ActionTrail — https://www.alibabacloud.com/help/en/actiontrail/product-overview/billing
+    - Page located but BODY DID NOT RENDER at fetch time; NO ActionTrail billing claim is made. The
+      audit trail's real cost surfaces as SLS ingest/index/storage (priced under row 2).
