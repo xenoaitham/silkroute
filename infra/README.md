@@ -18,7 +18,7 @@ deployment. The CN partition (`var.enable_cn_region`) is plan-validated only
 | `security/`      | 2 KMS keys + aliases (`silkroute-sg-oss`, `silkroute-sg-rds`), ESB runtime role (SAE trust, least-privilege policy), `silkroute-ci` user + `silkroute-ci-deploy` assume-role |
 | `data/`          | RDS MySQL 8.0 (Postpaid, utf8mb4, UTC) + `silkroute_oms` DB/account, OSS lake `silkroute-sg-{artifacts,bronze,silver,gold}` with SSE-KMS, versioning, public-access block, SecureTransport-deny bucket policies |
 | `compute/`       | SAE namespace + `silkroute-esb` / `silkroute-erp` apps (ADR-0004), AliCloud Kafka instance + dot-free topics `silkroute-orders-events` / `silkroute-esb-dlq` (ApsaraMQ forbids dots in topic names; the ESB selects them via `KAFKA_ORDERS_TOPIC`/`KAFKA_DLQ_TOPIC`) + SASL user |
-| `observability/` | Log project `silkroute-sg` (stores: `esb-app` 30d, `audit` 180d, `orders-events` 30d), ActionTrail -> audit store, overview dashboard, CMS contact group + SAE-CPU / RDS-connection alarms, SLS DLQ-depth alert |
+| `observability/` | Log project `silkroute-sg` (stores: `esb-app` 30d, `audit` 180d, `orders-events` 30d, `pipeline-metrics` 30d — awaiting its Phase-3 producer), 4 store indexes, 4 `alicloud_sls_alert` rules (DLQ depth, C3 p95-budget breach, denied-action burst, trail-tamper tripwire), ActionTrail -> audit store, overview dashboard (freshness panel titled awaiting-producer), CMS contact group + SAE-CPU / RDS-connection alarms (details: `observability/README.md`, E-019) |
 | `cn-partition/`  | Mirror of the SG hub at small scale in `cn-beijing`, every taggable resource tagged `residency=cn`, `data-classification=pipl-restricted`, region pinned via the aliased `alicloud.cn` provider - **design only, see its README** |
 
 ## Commands

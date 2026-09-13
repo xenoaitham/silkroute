@@ -1,0 +1,33 @@
+E-026 — CI green 4/4 at the Phase-6 reviewed HEAD (sha b5f3771)
+captured: 2026-09-13, gh run view 34748892370 --repo xenoaitham/silkroute
+----
+
+✓ main ci · 34748892370
+Triggered via push about 35 minutes ago
+
+JOBS
+✓ sim compose + smoke (mirrors README quickstart) in 37s (ID 103701689385)
+✓ legacy-erp SOAP contract tests (Karate, frozen WSDLs) in 39s (ID 103701689573)
+✓ terraform fmt + validate + plan (validated-plans, ADR-0002) in 17s (ID 103701689597)
+✓ esb saga/retry/DLQ/compensation suite (boots ERP + ESB itself) in 2m51s (ID 103701689619)
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+legacy-erp SOAP contract tests (Karate, frozen WSDLs): .github#2
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: hashicorp/setup-terraform@v3. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+terraform fmt + validate + plan (validated-plans, ADR-0002): .github#2
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+esb saga/retry/DLQ/compensation suite (boots ERP + ESB itself): .github#2
+
+
+ARTIFACTS
+karate-contract-report
+esb-int-artifacts
+
+For more information about a job, try: gh run view --job=<job-id>
+View this run on GitHub: https://github.com/xenoaitham/silkroute/actions/runs/34748892370
+---- API verification ----
+{"conclusion":"success","created_at":"2026-09-13T09:04:36Z","head_branch":"main","id":34748892370,"run_number":19,"sha":null,"status":"completed"}
+{"conclusion":"success","run_number":19,"sha":"b5f3771f528d0765772d3d64c97dbf159a399158"}
