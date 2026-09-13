@@ -143,7 +143,7 @@ define java17_env
 	if [ -d "$(JAVA17_DIR)" ]; then export JAVA_HOME="$(JAVA17_DIR)"; export PATH="$$JAVA_HOME/bin:$$PATH"; fi;
 endef
 
-.PHONY: etl-setup etl-reset oms-run oms-build oms-stop cdc-run cdc-build cdc-stop seed-day batch-run etl-check
+.PHONY: etl-setup etl-reset etl-int oms-run oms-build oms-stop cdc-run cdc-build cdc-stop seed-day batch-run etl-check
 # no-op argument words so `make batch-run full|recon-only|selftest` parses;
 # the work happens inside batch-run
 .PHONY: full recon-only selftest
@@ -155,6 +155,9 @@ etl-setup: ## idempotent data-plane bootstrap: DBs, users, lake tables, cdc topi
 
 etl-reset: ## clean-slate the ETL world (stops oms/cdc/esb, truncates oms/lake tables, purges topics/groups/buckets/offsets) — scripts/etl-reset.sh
 	@bash scripts/etl-reset.sh
+
+etl-int: ## ETL integration suite (6 scenarios: pipeline, replay, cdc kill/restart, freshness contract, dq/recon falsifiability, C1) — tests/etl-int/run.sh
+	@bash tests/etl-int/run.sh
 
 oms-run: ## boot the OMS event store (builds if needed); waits for OMS-CONSUMER-START; PID $(OMS_PID) log $(OMS_LOG)
 	@if [ -f $(OMS_PID) ] && kill -0 "$$(cat $(OMS_PID))" 2>/dev/null; then echo "oms-run: already running (pid $$(cat $(OMS_PID)))"; exit 0; fi

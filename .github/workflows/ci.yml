@@ -103,6 +103,30 @@ jobs:
         if: always()
         run: make down
 
+  # Phase 3: ETL data plane — unit falsifiability in CI (DQ rule predicates,
+  # window evaluator, recon aggregate math, envelope parsing — all pure JVM).
+  # The FULL pipeline (seeded day → gold) and the tests/etl-int integration
+  # suite stay LOCAL evidence rows with a hardware note (Spark local + full sim
+  # data plane are heavy for a shared runner); the decision is recorded in the
+  # Phase-3 evidence rows.
+  etl-unit-tests:
+    name: etl data-plane unit tests (oms + cdc + batch: DQ predicates, window evaluator, recon math)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Temurin JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Unit tests — apps/modern-oms (event mapping, replay guard, C5 integer money)
+        run: ./mvnw -B -f apps/modern-oms/pom.xml package
+      - name: Unit tests — apps/cdc (envelope parsing, freshness computation, bronze keys)
+        run: ./mvnw -B -f apps/cdc/pom.xml package
+      - name: Unit tests — apps/batch (DQ predicates, window evaluator, recon math, line math)
+        run: ./mvnw -B -f apps/batch/pom.xml package
+
   # Phase 4: AliCloud landing zone — validated-plans mode (ADR-0002). fmt +
   # validate + plan with placeholder credentials; plans perform NO AliCloud API
   # calls (resources only, no API-calling data sources) and apply nothing. The

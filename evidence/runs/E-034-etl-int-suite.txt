@@ -1,0 +1,124 @@
+# E-034 artifact — ETL integration suite, ORCH-LEAD re-run (single run, exit 0)
+# command: make etl-int (tests/etl-int/run.sh); captured 2026-09-13T21:36:19Z; HEAD effd265fe47429ad9d098758ed110dc599c60c0c
+# subagent's prior run: /tmp/s9-etl-int-run.txt (not committed; same 6 PASS lines)
+
+make[1]: Leaving directory '/home/potato/Haitham/ALIBABA'
+s3a: seeded 6/6 orders (201) through the live ESB
+QUIESCENT s3a: captures=12 (>= 12) stable for 10s after 10s
+make[1]: Entering directory '/home/potato/Haitham/ALIBABA'
+cdc-stop: killing pid 831677 from /tmp/silkroute-cdc-bronze.pid
+cdc-stop: killing pid 831673 from /tmp/silkroute-cdc-engine.pid
+make[1]: Leaving directory '/home/potato/Haitham/ALIBABA'
+ENGINE-DOWN s3-first-stop: log static at 12 capture(s)
+s3: bronze inventory while CDC is DOWN: 12 object(s)
+make[1]: Entering directory '/home/potato/Haitham/ALIBABA'
+SEED-DAY posted=6 ok201=6 non201=0
+SEED-DAY expectedEvents=6   (each 201 -> exactly ONE success event on silkroute.orders.events)
+SEED-DAY OK
+make[1]: Leaving directory '/home/potato/Haitham/ALIBABA'
+s3b: seeded 6/6 orders (201) through the live ESB
+OMS-CAUGHT-UP s3b: orders=12
+s3 with CDC down: OMS rows orders=12 lines=12 (as expected)
+make[1]: Entering directory '/home/potato/Haitham/ALIBABA'
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; \
+	nohup java -jar apps/cdc/target/cdc-1.0.0-SNAPSHOT.jar > /tmp/silkroute-cdc-engine.log 2>&1 & echo $! > /tmp/silkroute-cdc-engine.pid
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; \
+	nohup java -jar apps/cdc/target/cdc-1.0.0-SNAPSHOT-bronze.jar > /tmp/silkroute-cdc-bronze.log 2>&1 & echo $! > /tmp/silkroute-cdc-bronze.pid
+waiting for the CDC engine to start capturing (timeout 180s)...
+CDC engine running: pid 837130 log /tmp/silkroute-cdc-engine.log
+Bronze writer running: pid 837132 log /tmp/silkroute-cdc-bronze.log (stop with: make cdc-stop)
+make[1]: Leaving directory '/home/potato/Haitham/ALIBABA'
+QUIESCENT s3-restart: captures=12 (>= 12) stable for 10s after 0s
+s3: catch-up captures after restart: oms_order=6 oms_order_line=6
+s3: bronze record counts: oms_order=12 oms_order_line=12 (== OMS rows, no dup)
+s3: 18 bronze objects, all topic-partition-offsets unique
+make[1]: Entering directory '/home/potato/Haitham/ALIBABA'
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; \
+	if [ ! -f apps/batch/target/batch-1.0.0-SNAPSHOT.jar ]; then ./mvnw -B -f apps/batch/pom.xml package -DskipTests; fi
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; \
+	java -jar apps/batch/target/batch-1.0.0-SNAPSHOT.jar full --business-date 2026-09-13
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+2026-09-14 00:35:15,677 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-FULL-START runId=run-20260913T213515Z-f95e4496 businessDate=2026-09-13 dt=20260913 bronze=s3a://silkroute-sg-bronze/region=*/table=*/dt=20260913/* master=local[*]
+2026-09-14 00:35:15,998 WARN  org.apache.hadoop.util.NativeCodeLoader - Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+2026-09-14 00:35:16,046 WARN  org.apache.spark.SparkConf - Note that spark.local.dir will be overridden by the value set by the cluster manager (via SPARK_LOCAL_DIRS in mesos/standalone/kubernetes and LOCAL_DIRS in YARN).
+2026-09-14 00:35:17,022 WARN  org.apache.hadoop.metrics2.impl.MetricsConfig - Cannot locate configuration: tried hadoop-metrics2-s3a-file-system.properties,hadoop-metrics2.properties
+2026-09-14 00:35:22,194 INFO  com.mapleretail.silkroute.batch.pipeline.SilverPipeline - SILVER-BUILT dt=20260913 orders=12 lines=12
+2026-09-14 00:35:22,365 WARN  com.amazonaws.util.Base64 - JAXB is unavailable. Will fallback to SDK implementation which may be less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
+2026-09-14 00:35:27,552 INFO  com.mapleretail.silkroute.batch.pipeline.SilverPipeline - SILVER-WRITTEN ordersPath=s3a://silkroute-sg-silver/silver/orders linesPath=s3a://silkroute-sg-silver/silver/order_lines
+2026-09-14 00:35:29,293 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - DQ-JDBC-READY url=jdbc:mysql://127.0.0.1:3306/silkroute_lake (schema ensured)
+2026-09-14 00:35:29,304 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - DQ-QUARANTINE-WRITTEN run=run-20260913T213515Z-f95e4496 rows=0
+2026-09-14 00:35:29,414 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - DQ-RESULTS-WRITTEN run=run-20260913T213515Z-f95e4496 rules=6
+2026-09-14 00:35:35,889 INFO  com.mapleretail.silkroute.batch.pipeline.GoldBuilder - GOLD-WRITTEN dt=20260913 factOrders=12 factOrderLines=12 dimSku=6 dimStore=3 dimDate=1 under s3a://silkroute-sg-gold/gold/
+2026-09-14 00:35:37,610 INFO  com.mapleretail.silkroute.batch.pipeline.ReconRunner - RECON-COMPARED run=run-20260913T213515Z-f95e4496 orders source=12 gold=12 match=true | lines source=12 gold=12 match=true | orderTotals=[CurrencyTotal[currency=CAD, sourceMinor=13850, goldMinor=13850, match=true], CurrencyTotal[currency=CNY, sourceMinor=9346, goldMinor=9346, match=true], CurrencyTotal[currency=SGD, sourceMinor=7146, goldMinor=7146, match=true]] lineTotals=[CurrencyTotal[currency=CAD, sourceMinor=13850, goldMinor=13850, match=true], CurrencyTotal[currency=CNY, sourceMinor=9346, goldMinor=9346, match=true], CurrencyTotal[currency=SGD, sourceMinor=7146, goldMinor=7146, match=true]]
+2026-09-14 00:35:37,679 INFO  com.mapleretail.silkroute.batch.BatchMain - RECON-REPORT-WRITTEN path=/tmp/silkroute-recon-report.json allMatch=true
+2026-09-14 00:35:37,706 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - DQ-JDBC-READY url=jdbc:mysql://127.0.0.1:3306/silkroute_lake (schema ensured)
+2026-09-14 00:35:37,736 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - RECON-REPORT-WRITTEN run=run-20260913T213515Z-f95e4496 businessDate=2026-09-13 allMatch=true
+2026-09-14 00:35:37,739 INFO  com.mapleretail.silkroute.batch.metrics.MetricsEmitter - BATCH-METRIC {"metric":"batch_completion","value":22,"pipeline":"batch"}
+{"metric":"batch_completion","value":22,"pipeline":"batch"}
+BATCH-WINDOW businessDate=2026-09-13 completedAtSGT=2026-09-14T05:35:37 Asia/Singapore windowEndSGT=06:00 withinWindow=true
+2026-09-14 00:35:37,740 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T213515Z-f95e4496 allMatch=true reportPath=/tmp/silkroute-recon-report.json
+make[1]: Leaving directory '/home/potato/Haitham/ALIBABA'
+s3: recon report orders=12/12 lines=12/12 allMatch=true
+PASS 3-cdc-kill-mid-stream
+=== scenario 4: freshness is MEASURED, not a constant (>=2 CDC-METRIC lines, >=2 distinct values, exact contract shape) ===
+s4: CDC-METRIC lines (3 total), all match the exact contract shape
+s4: distinct freshness values: "value":2 "value":30 "value":60 
+PASS 4-freshness-metric-contract
+=== scenario 5: DQ selftest + recon falsifiability (negative control flips recon red, then green) ===
+make[1]: Entering directory '/home/potato/Haitham/ALIBABA'
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; \
+	if [ ! -f apps/batch/target/batch-1.0.0-SNAPSHOT.jar ]; then ./mvnw -B -f apps/batch/pom.xml package -DskipTests; fi
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; \
+	java -jar apps/batch/target/batch-1.0.0-SNAPSHOT.jar selftest
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+DQ-SELFTEST rule=DQ-COMPLETE table=fact_orders checked=4 violations=1 caught=true
+DQ-SELFTEST rule=DQ-UNIQUE table=fact_orders checked=4 violations=1 caught=true
+DQ-SELFTEST rule=DQ-REFERENTIAL table=fact_orders checked=4 violations=2 caught=true
+DQ-SELFTEST rule=DQ-COMPLETE table=fact_order_lines checked=5 violations=1 caught=true
+DQ-SELFTEST rule=DQ-UNIQUE table=fact_order_lines checked=5 violations=1 caught=true
+DQ-SELFTEST rule=DQ-REFERENTIAL table=fact_order_lines checked=5 violations=2 caught=true
+DQ-SELFTEST-OK all 6 rule checks caught their fixture violations
+make[1]: Leaving directory '/home/potato/Haitham/ALIBABA'
+s5: negative control — phantom row made recon-only exit 2 (allMatch=false)
+s5 after delete: OMS rows orders=12 lines=12 (as expected)
+s5: recon report orders=12/12 lines=12/12 allMatch=true
+PASS 5-dq-selftest-and-recon-falsifiability
+=== scenario 6: C1 spot-check — CN customerRefs in bronze are msk-*, never plaintext ===
+s6: region=CN bronze objects: 4
+s6: C1 OK — plaintext cust-cn- occurrences across ALL bronze: 0; '"customer_ref":"msk-"' in region=CN objects: 2
+PASS 6-c1-cn-masking-bronze
+make[1]: Entering directory '/home/potato/Haitham/ALIBABA'
+RESET stop oms-stop
+make[2]: Entering directory '/home/potato/Haitham/ALIBABA'
+oms-stop: killing pid 831343 from /tmp/silkroute-oms.pid
+make[2]: Leaving directory '/home/potato/Haitham/ALIBABA'
+RESET stop cdc-stop
+make[2]: Entering directory '/home/potato/Haitham/ALIBABA'
+cdc-stop: killing pid 837132 from /tmp/silkroute-cdc-bronze.pid
+cdc-stop: killing pid 837130 from /tmp/silkroute-cdc-engine.pid
+make[2]: Leaving directory '/home/potato/Haitham/ALIBABA'
+RESET stop esb-stop
+make[2]: Entering directory '/home/potato/Haitham/ALIBABA'
+esb-stop: killing pid 829521 from /tmp/silkroute-esb-app.pid
+esb-stop: killing pid 829519 from /tmp/silkroute-esb-erp.pid
+make[2]: Leaving directory '/home/potato/Haitham/ALIBABA'
+RESET truncate silkroute_oms tables
+RESET delete consumer group silkroute-oms
+Deletion of requested consumer groups ('silkroute-oms') was successful.
+RESET delete consumer group silkroute-bronze-writer
+Error: Deletion of some consumer groups failed:
+* Group 'silkroute-bronze-writer' could not be deleted due to: java.util.concurrent.ExecutionException: org.apache.kafka.common.errors.GroupNotEmptyException: The group is not empty.
+RESET delete+recreate topic silkroute.orders.events
+RESET delete+recreate topic silkroute.cdc.oms
+RESET empty bucket silkroute-sg-bronze
+RESET empty bucket silkroute-sg-silver
+RESET empty bucket silkroute-sg-gold
+RESET remove cdc offset/history + /tmp run artifacts
+RESET OK — data plane is clean (oms tables empty, groups gone, topics fresh, buckets empty, offsets gone)
+make[1]: Leaving directory '/home/potato/Haitham/ALIBABA'
+SUITE-OK all 6 etl-int scenarios passed in 246s; transcript: /tmp/s9-etl-int-run.txt
+oms-stop: no /tmp/silkroute-oms.pid (nothing to stop)
+cdc-stop: no /tmp/silkroute-cdc-bronze.pid (nothing to stop)
+cdc-stop: no /tmp/silkroute-cdc-engine.pid (nothing to stop)
+esb-stop: no /tmp/silkroute-esb-app.pid (nothing to stop)
+esb-stop: no /tmp/silkroute-esb-erp.pid (nothing to stop)
