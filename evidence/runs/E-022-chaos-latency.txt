@@ -75,7 +75,10 @@ CHAOS RUN COMPLETE — stack state: ERP(18080)=UP pid=604538 · ESB(18081/18082)
 == canonical run 3: measured (probe instrument, transcript latency-800ms-20260913T063007Z.jsonl) ==
 in-window completed probes: n=25 med=3619ms max=4133ms (bounded; 30s invariant never approached)
 status histograms: baseline/pre {201: 11} | in-window {201: 24, 422: 1} | recovery/post {201: 21, 422: 1}
-replay probes across the run: 14 — outcomes below (idempotency held during and after injection)
+replay probes across the run: 14 — statuses below (idempotency held: all 409; NOTE the probe parser
+records no response bodies, so error_code/order_id fields are empty and the same-orderId comparison
+prints False on empty captures — the 409 STATUS is the proof; the DUPLICATE-code + original-orderId
+carry is E-008's wire proof)
   replay status=409 error_code=None order_id_same_as_original=False
   replay status=409 error_code=None order_id_same_as_original=False
   replay status=409 error_code=None order_id_same_as_original=False

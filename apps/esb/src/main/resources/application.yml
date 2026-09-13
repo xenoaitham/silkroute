@@ -22,8 +22,9 @@ spring:
         # ladder never fired because the dependency never failed. Explicit
         # sizing (core 32 = >10 RPS x ~3.2s degraded sagas) plus a BOUNDED
         # queue converts saturation into bounded waiting instead of a silent
-        # 30s queue-then-timeout. Measured after the fix: k6 p95 3.25s (=
-        # solo-saga time under the same injection), zero async timeouts.
+        # 30s queue-then-timeout. Measured after the fix (canonical run, E-022):
+        # k6 p95 4.08s / med 3.69s under the same injection (solo probe 3.22s),
+        # zero async timeouts.
         core-size: 32
         max-size: 64
         queue-capacity: 200
@@ -39,9 +40,9 @@ spring:
       # timeout with ZERO allow-through lines until 61s after the outage began
       # (i.e. after the heal), plus the queued backlog dying at the 30s
       # async-request timeout. 500ms command/connect timeouts put the
-      # allow-through path ~0.5s behind the failure instead of ~60s, and the
-      # ERP-side ORD-DUP-REF guard (the designed backstop) becomes what
-      # actually covers the outage window.
+      # allow-through path ~0.9s behind the failure (measured, E-024) instead
+      # of ~60s, and the ERP-side ORD-DUP-REF guard (the designed backstop)
+      # becomes what actually covers the outage window.
       timeout: 500ms
       connect-timeout: 500ms
 

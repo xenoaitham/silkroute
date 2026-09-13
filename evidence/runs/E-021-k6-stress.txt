@@ -55,7 +55,7 @@ its p95 was 56.6ms. Cold-start + budget-rate spike is a distinct, real risk sign
    measurable on this estate — higher rungs cannot be measured because the frozen ERP's seeded stock pool
    (~7.9k units) drains within the breach window, starving the 201-only trend of samples (step4_r200 = 0 samples).
 2. p99-based: breaches AT 110 RPS even warm (349ms) — tail latency is the first budget casualty.
-3. Infra integrity never broke at any rung (zero 5xx/timeouts/resets across ~41k requests in both segments):
+3. Infra integrity never broke at any rung (zero 5xx/timeouts/resets across ~43.9k requests across segments A+B+warm-110):
    the failure mode at saturation on this host is LATENCY BLOWOUT, not errors — which validates the
    p95/p99-vs-error-rate shape of the breaking-point rule and of alert SLO-1.
 4. All numbers: shared contended host (other stacks running), sim mode, k6 local. Absolute values will differ
