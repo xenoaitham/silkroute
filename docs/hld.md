@@ -124,7 +124,7 @@ Designed in [infra/observability/](../infra/observability/) — plan-proven (E-0
 - **4 SLS stores** in project `silkroute-sg`: `esb-app` (30 d), `orders-events` (30 d), `pipeline-metrics` (30 d), `audit` (180 d).
 - **4 `alicloud_sls_alert` rules**: DLQ depth, C3 p95 budget breach, denied-action burst, trail-tamper tripwire.
 - **4 `alicloud_log_store_index`** resources — the query-facing stores ship their indexes.
-- **The `pipeline-metrics` store + freshness panel** are the receiving end for the CDC freshness contract (`{"metric":"cdc_freshness_seconds","value":N,"pipeline":"cdc"|"batch"}`) — the panel title reads "awaiting Phase 3 producer"; the store is empty until that producer exists (C4 design-only).
+- **The `pipeline-metrics` store + freshness panel** are the receiving end for the CDC freshness contract (`{"metric":"cdc_freshness_seconds"|"batch_completion","value":N,"pipeline":"cdc"|"batch"}`) — the panel title reads "awaiting Phase 3 producer"; the store is empty until that producer exists (C4 design-only).
 
 Thresholds, store schemas, and the known trade-offs live in [infra/observability/README.md](../infra/observability/README.md) — that file stays the alert authority; this doc does not restate its tables.
 

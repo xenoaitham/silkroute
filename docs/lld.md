@@ -18,6 +18,8 @@ Source of truth: [apps/esb/src/main/resources/application.yml](../apps/esb/src/m
 | `spring.data.redis.connect-timeout` | `500 ms` | same fix, connect phase (E-024) |
 | `management.server.port` (`MANAGEMENT_PORT`) | `18082` | actuator split off the API port, loopback-only |
 | `management.endpoints.web.exposure.include` | `health,info` | minimum exposure |
+| `management.server.address` | `127.0.0.1` | actuator loopback-only, same bind policy as the API port |
+| `spring.application.name` | `silkroute-esb` | service identity in logs/management |
 | `camel.springboot.name` | `silkroute-esb` | Camel context name |
 | `silkroute.erp.base-url` (`ERP_BASEURL`) | `http://127.0.0.1:18180` | ALL ERP calls go through the toxiproxy proxy `erp` so network faults are injectable |
 | `silkroute.erp.wss.username` / `.password` | `esb-client` / `erp-wss-pass-2026` | documented sim dummies, env-overridable; never real secrets |
@@ -38,6 +40,7 @@ Source of truth: [apps/esb/src/main/resources/application.yml](../apps/esb/src/m
 | `silkroute.idempotency.ttl-hours` | `24` | claim + done-key lifetime (§3) |
 | `silkroute.fault-injection` (`ESB_FAULT_INJECTION`) | `false` | test hook; when false the `X-Fault-Injection` header is ignored |
 | `logging.level` | root INFO, camel/cxf WARN | readable saga logs without Camel/CXF noise |
+| `logging.pattern.console` | UTC-timestamped single-line pattern | UTC timestamps on every log line (C5 timezone discipline reaches the logs) |
 
 ## 2. Topic names — the plan-invisible API rule
 
@@ -60,6 +63,7 @@ Fields verified by inspection on the 59 envelopes captured in the kill-erp chaos
 | Field | Meaning |
 |---|---|
 | `eventType` | event kind |
+| `orderId` | the ESB-assigned order id (contract field; not in E-023's field-inspection list) |
 | `externalOrderRef` | caller's order reference |
 | `sourceSystem` | originating channel |
 | `storeId` / `region` | store + derived region (CBR input) |
@@ -71,6 +75,7 @@ Fields verified by inspection on the 59 envelopes captured in the kill-erp chaos
 | `category` | `BUSINESS` vs `INFRA` |
 | `compensated` | whether compensation released holds |
 | `releasedReservationIds` | ids released by compensation |
+| `message` | human-readable failure detail (contract field; not in E-023's field-inspection list) |
 | `occurredAt` | UTC timestamp |
 
 This envelope is the by-construction redrive input — see the DLQ redrive runbook in [docs/runbooks.md](runbooks.md).
@@ -82,7 +87,7 @@ Source: [infra/observability/main.tf](../infra/observability/main.tf) + [infra/o
 | Store | TTL | Index |
 |---|---|---|
 | `esb-app` | 30 d | full-text + `request_time` |
-| `orders-events` | 30 d | full-text + event JSON |
+| `orders-events` | 30 d | full-text only |
 | `pipeline-metrics` | 30 d | full-text + `metric` / `value` (freshness contract home — awaiting its Phase 3 producer) |
 | `audit` | 180 d | full-text + `event` JSON |
 
@@ -96,8 +101,8 @@ Counts reconcile to the plans: **SG `Plan: 87 to add` / CN `Plan: 118 to add`; d
 |---|---|---|
 | `infra/network` | 23 | 2 billable (NAT gateway + EIP) + 21 free (VPC, 3 vSwitches, 3 SGs, 11 SG rules, 2 SNAT entries, EIP association) |
 | `infra/security` | 13 | 4 KMS (2 keys + 2 aliases) + 9 RAM (3 policies, 2 roles, 3 attachments, 1 user) |
-| `infra/compute` | 8 | SAE namespace + 2 apps; Kafka instance + 2 topics + SASL user |
-| `infra/data` | 25 | RDS 5 (instance, database, account, privilege, TDE) + OSS 5 resource types × 4 buckets |
+| `infra/compute` | 8 | SAE namespace + 2 apps; Kafka instance + 2 topics + SASL user; + `random_password` |
+| `infra/data` | 25 | RDS 5 (instance, database, account, privilege, `random_password`) + OSS 5 resource types × 4 buckets |
 | `infra/observability` | 18 | log project, 4 stores, 4 indexes, dashboard, ActionTrail, CMS contact group + 2 alarms, 4 `sls_alert` |
 | `infra/cn-partition` | +31 (flag-gated) | mirrored shape at small scale in cn-beijing; provider-graph pinned via the `alicloud.cn` alias |
 

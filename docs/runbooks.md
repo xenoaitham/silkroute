@@ -18,7 +18,7 @@ Maple Retail Group is a **fictional** Canadian retailer; these runbooks belong t
 4. **ActionTrail service-linked role.** The trail references the role by ARN placeholder; it is created out-of-band on first trail activation.
 5. **RDS class availability check.** The configured class `mysql.n2.small.v65` is **console-priced only** (the L6 honest gap in the cost sheet — no fetchable unit price; only a smaller sibling's "From $5.52/Month" floor was citable). Confirm the class exists in ap-southeast-1 and record its real price; expect the true RDS line ≥ the sheet's 5.52 plus unquantified storage.
 6. **Topic-name env vars.** Cloud topics are dot-free (`silkroute-orders-events` / `silkroute-esb-dlq` — ApsaraMQ `CreateTopic` forbids dots); the ESB selects them via `KAFKA_ORDERS_TOPIC` / `KAFKA_DLQ_TOPIC`. Set both at deploy; [scripts/tf-apply-validity.sh](../scripts/tf-apply-validity.sh) guards the naming rule in CI.
-7. **Deploy → capture → destroy** per the §8 guardrails (next runbook): `make deploy-sg` → capture plan/apply output + runtime verifications from the checklist step 5 of infra/README.md (SSE-KMS upload with `kms:GenerateDataKey`, SLS ingest, STS assume-role, TDE on both RDS instances) → `make destroy`. New evidence rows say `cloud` mode; existing rows keep their sim numbers.
+7. **Deploy → capture → destroy** per the §8 guardrails (next runbook): `make deploy-sg` → capture plan/apply output + runtime verifications from the checklist step 5 of infra/README.md (SSE-KMS upload with `kms:GenerateDataKey`, SLS ingest, STS assume-role, TDE on the SG RDS instance — the CN instance belongs to the separate CN-account activation) → `make destroy`. New evidence rows say `cloud` mode; existing rows keep their sim numbers.
 
 **Expected output:** a real landing zone at SG, evidence rows in cloud mode, a bill measured against E-025's 949.64 designed figure — and nothing left running.
 
@@ -96,7 +96,7 @@ make destroy       # guarded destroy after capture
 
 **Trigger (would-be):** the freshness panel/alert on the `pipeline-metrics` store breaches the C4 target (CDC freshness ≤ 15 min; T+1 batch complete by 06:00 Asia/Singapore).
 
-**The contract (already shipped in IaC, plan-proven — E-019):** the producer emits `{"metric":"cdc_freshness_seconds","value":N,"pipeline":"cdc"|"batch"}`; the `pipeline-metrics` store (30 d TTL, `metric`/`value` indexed) and the dashboard panel (titled "awaiting Phase 3 producer") are the receiving end.
+**The contract (already shipped in IaC, plan-proven — E-019):** the producer emits `{"metric":"cdc_freshness_seconds"|"batch_completion","value":N,"pipeline":"cdc"|"batch"}`; the `pipeline-metrics` store (30 d TTL, `metric`/`value` indexed) and the dashboard panel (titled "awaiting Phase 3 producer") are the receiving end.
 
 **Steps (what WOULD fire and what the operator WOULD check):**
 

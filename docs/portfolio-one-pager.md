@@ -19,9 +19,9 @@
 | Chaos honesty | two hypotheses (bounded executor, Redis client timeout) were **first REFUTED by the harness**, root-caused, fixed (pool 32/64/200; 500 ms), re-proved — the refutations are recorded, not rewritten | E-022, E-024 |
 | AliCloud IaC | Terraform alicloud 1.285.0: SG hub **Plan: 87 to add**, CN residency partition **118** with the flag on — plan-proven, **never applied**; CI lint guards plan-invisible API rules | E-019 |
 | Residency (C1) | CN pinned at the provider graph (aliased `alicloud.cn`), no egress path, zero replication resources; 7-check CI suite + 5-mutation selftest; masked keyed-HMAC PII egress from shared topics | E-016, E-009 |
-| Compliance paper layer | PIPL/PDPA/PIPEDA control matrix with article-level citations, cross-border transfer memo (Art. 38–40), ICP filing runbook, STRIDE, audit-query demo | E-017 |
+| Compliance paper layer | PIPL/PDPA/PIPEDA control matrix with article-level citations, cross-border transfer memo (Art. 38–40), ICP filing runbook, STRIDE, audit-query demo | E-017 (audit-query demo only) |
 | Cost model | designed 24/7 SG footprint **949.64 USD/month** (KMS instance ~53% + Kafka ~32%), priced only from fetched pricing pages — the quantified argument for sim-first | E-025 |
-| CI | 4-job pipeline green at the reviewed HEAD: sim smoke, SOAP contract suite, fault-injection saga suite, terraform plan + residency checks | E-026 |
+| CI | 4-job pipeline green at the Phase-6 reviewed HEAD (run 34748892370, sha b5f3771): sim smoke, SOAP contract suite, fault-injection saga suite, terraform plan + residency checks | E-026 |
 
 ## Honest modes — what is proven where
 

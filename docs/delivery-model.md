@@ -28,7 +28,7 @@ The build process is the cadence spec: **small slices, each ending green.** Conc
 
 1. Hypotheses and SLO definitions are committed **before** results (the SLO report shipped with pending measured columns first — auditable in git history).
 2. The slice ends with CI green and its results recorded as evidence rows — never silent passes; a refuted hypothesis is recorded as a finding, not rewritten (E-022/E-024 are refuted-then-fixed rows).
-3. State and war stories are written down at slice end; the next slice starts from the recorded state, not from memory.
+3. Project state (STATE.md) and post-mortem notes are written down at slice end; the next slice starts from the recorded state, not from memory.
 
 A Maple rollout team would run the same rhythm: every merge lands with green CI + evidence; hypotheses (resilience targets, SLO budgets) are written before measurement.
 
