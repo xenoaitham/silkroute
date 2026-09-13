@@ -58,7 +58,7 @@ Per ADR-0002/ADR-0005 the module is therefore composed at root with
 `terraform validate`-clean, and proven plan-able:
 
 ```bash
-terraform plan -var enable_cn_region=true   # "Plan: 110 to add, ..." - evidence only
+terraform plan -var enable_cn_region=true   # "Plan: 118 to add, ..." - evidence only (was 110 pre-S7 observability alert layer)
 ```
 
 Root outputs use the plan-safe `one(module.cn_partition[*].attr)` form so the

@@ -1,0 +1,34 @@
+E-019 — SLS alert layer migration + landing-zone plan re-proof (Phase 6, S7, 2026-09-13)
+Reproduce: cd infra && ~/tools/terraform/terraform validate -no-color && ~/tools/terraform/terraform plan -input=false -no-color && ~/tools/terraform/terraform plan -input=false -no-color -var enable_cn_region=true
+
+== terraform validate ==
+Success! The configuration is valid.
+
+
+== SG plan (tail) ==
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+
+== CN plan (tail, -var enable_cn_region=true) ==
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+
+== delta breakdown vs S4/S5-era 79/110 ==
+removed: alicloud_log_alert.dlq_depth (deprecated notification_list form; ADR-0004 deferred follow-up migrated)
+  # module.observability.alicloud_sls_alert.denied_burst will be created
+  # module.observability.alicloud_sls_alert.dlq_depth will be created
+  # module.observability.alicloud_sls_alert.p95_budget_breach will be created
+  # module.observability.alicloud_sls_alert.trail_tripwire will be created
+  # module.observability.alicloud_log_store_index.audit will be created
+  # module.observability.alicloud_log_store_index.esb_app will be created
+  # module.observability.alicloud_log_store_index.orders_events will be created
+  # module.observability.alicloud_log_store_index.pipeline_metrics will be created
+  # module.observability.alicloud_log_store.sg["pipeline-metrics"] will be created
+
+== schema-vocabulary catch during migration (plan validator, not memory) ==
+group_configuration.type for alicloud_sls_alert accepts [no_group custom labels_auto]; the legacy
+log_alert vocabulary 'no_condition' was rejected live by plan before any doc recorded it:
+(final plan clean — the rejection was caught and fixed pre-record)
+
+== provider's schedule typo shipped verbatim (schema-verified, commented in code) ==
+alicloud_sls_alert schedule attr 'run_immdiately' (1.285.0) — comment in observability/main.tf

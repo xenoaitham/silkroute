@@ -36,6 +36,12 @@ variable "ops_webhook_url" {
   default     = "https://hooks.placeholder.invalid/silkroute-ops"
 }
 
+variable "sls_action_policy_id" {
+  type        = string
+  description = "SLS action policy that routes alicloud_sls_alert notifications (DingTalk webhook -> the same ops-oncall channel). SLS action policies are console-managed at activation: provider 1.285.0 ships no action-policy resource (schema-verified), so the policy is created out-of-band and its ID replaces this placeholder — the same pattern as actiontrail_write_role_arn."
+  default     = "console-managed-at-activation"
+}
+
 variable "common_tags" {
   type        = map(string)
   description = "Tags applied to every taggable resource (Project/ManagedBy are mandatory across the landing zone)."

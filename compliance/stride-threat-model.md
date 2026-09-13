@@ -6,7 +6,7 @@ Maple Retail Group is a **fictional** company; this is a self-directed reference
 
 **In scope (sim runtime):** legacy-erp SOAP services (127.0.0.1:18080, SOAP 1.2 + WSS UsernameToken); ESB hub — REST façade 18081 + management 18082, both loopback-bound (`apps/esb/src/main/resources/application.yml:6,21`); Kafka topics selected via `KAFKA_ORDERS_TOPIC`/`KAFKA_DLQ_TOPIC` env indirection (`application.yml:59-60`); Redis SETNX+TTL idempotency store; sim MySQL/MinIO; the toxiproxy fault-injection plane (APIs 8474 / 18474, ERP path proxy on 18180); CI (4 jobs) with the residency suite and deploy guards (`SILKROUTE_CLOUD_CONFIRM` + credentials).
 
-**In scope (designed cloud):** the Terraform landing zone — network/security/data/compute/observability modules and the never-applied CN partition (E-012: `Plan: 79/110`, no API calls, never applied per ADR-0002/ADR-0005).
+**In scope (designed cloud):** the Terraform landing zone — network/security/data/compute/observability modules and the never-applied CN partition (E-012 era counts 79/110; **87/118 after the S7 observability alert-layer migration, E-019**, no API calls, never applied per ADR-0002/ADR-0005).
 
 **Trust boundaries:** (1) REST client → ESB façade; (2) ESB → ERP across the toxiproxy plane (WSS); (3) ESB → shared Kafka topics (the PII egress chokepoint); (4) CI → landing zone (the CI deploy role **is** the IAM trust boundary, infra/README.md "Trust boundaries"); (5) SG partition ↔ CN partition (none — no path by design, residency checks R3/R6).
 
