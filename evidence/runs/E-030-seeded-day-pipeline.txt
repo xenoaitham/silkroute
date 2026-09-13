@@ -1,0 +1,174 @@
+# E-030 ORCH-LEAD single-run artifact — seeded order day → gold (sim)
+# captured 2026-09-13T20:49:24Z by ORCH-LEAD (S9); HEAD a592f648bad95ba9b8abd94687b08105b8b84356
+
+== make etl-reset ==
+RESET stop oms-stop
+oms-stop: no /tmp/silkroute-oms.pid (nothing to stop)
+RESET stop cdc-stop
+cdc-stop: no /tmp/silkroute-cdc-bronze.pid (nothing to stop)
+cdc-stop: no /tmp/silkroute-cdc-engine.pid (nothing to stop)
+RESET stop esb-stop
+esb-stop: no /tmp/silkroute-esb-app.pid (nothing to stop)
+esb-stop: no /tmp/silkroute-esb-erp.pid (nothing to stop)
+RESET truncate silkroute_oms tables
+RESET delete consumer group silkroute-oms
+Deletion of requested consumer groups ('silkroute-oms') was successful.
+RESET delete consumer group silkroute-bronze-writer
+Deletion of requested consumer groups ('silkroute-bronze-writer') was successful.
+RESET delete+recreate topic silkroute.orders.events
+RESET delete+recreate topic silkroute.cdc.oms
+RESET empty bucket silkroute-sg-bronze
+RESET empty bucket silkroute-sg-silver
+RESET empty bucket silkroute-sg-gold
+RESET remove cdc offset/history + /tmp run artifacts
+RESET OK — data plane is clean (oms tables empty, groups gone, topics fresh, buckets empty, offsets gone)
+reset-exit=0
+
+== make esb-run ==
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; ESB_FAULT_INJECTION=false nohup java -jar apps/esb/target/esb-1.0.0-SNAPSHOT.jar > /tmp/silkroute-esb-app.log 2>&1 & echo $! > /tmp/silkroute-esb-app.pid
+waiting for ERP(18080) + ESB(18081) health...
+ERP  health: {"status":"UP"}  (pid 372557)
+ESB  health: {"status":"UP"}  (pid 372559)
+ESB REST:  http://127.0.0.1:18081/api/v1/orders
+PID files: /tmp/silkroute-esb-erp.pid /tmp/silkroute-esb-app.pid  (stop with: make esb-stop)
+esb-run-exit=0
+
+== make oms-run ==
+	nohup java -jar apps/modern-oms/target/oms-1.0.0-SNAPSHOT.jar > /tmp/silkroute-oms.log 2>&1 & echo $! > /tmp/silkroute-oms.pid
+waiting for the OMS consumer to subscribe (timeout 180s)...
+OMS running: pid 377498 log /tmp/silkroute-oms.log (stop with: make oms-stop)
+oms-run-exit=0
+
+== make cdc-run ==
+	nohup java -jar apps/cdc/target/cdc-1.0.0-SNAPSHOT-bronze.jar > /tmp/silkroute-cdc-bronze.log 2>&1 & echo $! > /tmp/silkroute-cdc-bronze.pid
+waiting for the CDC engine to start capturing (timeout 180s)...
+CDC engine running: pid 379090 log /tmp/silkroute-cdc-engine.log
+Bronze writer running: pid 379092 log /tmp/silkroute-cdc-bronze.log (stop with: make cdc-stop)
+cdc-run-exit=0
+
+== make seed-day N=30 ==
+SEED-DAY posted=30 ok201=30 non201=0
+SEED-DAY expectedEvents=30   (each 201 -> exactly ONE success event on silkroute.orders.events)
+SEED-DAY OK
+seed-exit=0
+
+== post-seed waits (12s) ==
+oms_orders	30
+oms_lines	30
+CDC-CAPTURE lines: 60
+BRONZE-LAND lines: 50
+OMS-ORDER-STORED lines: 30
+
+== SEED-DAY summary ==
+
+== CDC-CAPTURE (binlog proof) first 3 ==
+2026-09-13T20:50:45.417Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order sourceTsMs=1789332645000 server=silkroute-oms
+2026-09-13T20:50:45.449Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order_line sourceTsMs=1789332645000 server=silkroute-oms
+2026-09-13T20:50:45.458Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order sourceTsMs=1789332645000 server=silkroute-oms
+
+== BRONZE-LAND first 2 ==
+2026-09-13T20:50:45.642Z INFO  c.m.s.cdc.bronze.BronzeWriter - BRONZE-LAND region=CA table=oms_order object=region=CA/table=oms_order/dt=20260913/silkroute.cdc.oms-0-0-becde627-85dd-4236-a6ce-34b7e3507e60.jsonl records=1 firstTsMs=1789332645000 lastTsMs=1789332645000
+2026-09-13T20:50:45.663Z INFO  c.m.s.cdc.bronze.BronzeWriter - BRONZE-LAND region=CA table=oms_order_line object=region=CA/table=oms_order_line/dt=20260913/silkroute.cdc.oms-0-1-d3bd0c17-9eac-47a3-b0ec-2808c407877b.jsonl records=1 firstTsMs=1789332645000 lastTsMs=1789332645000
+
+== freshness metric lines (8 total; first+last) ==
+2026-09-13T20:50:45.563Z INFO  c.m.s.cdc.engine.FreshnessEmitter - CDC-METRIC trigger=batch {"metric":"cdc_freshness_seconds","value":0,"pipeline":"cdc"}
+{"metric":"cdc_freshness_seconds","value":0,"pipeline":"cdc"}
+2026-09-13T20:50:46.269Z INFO  c.m.s.cdc.engine.FreshnessEmitter - CDC-METRIC trigger=batch {"metric":"cdc_freshness_seconds","value":0,"pipeline":"cdc"}
+...
+2026-09-13T20:51:24.946Z INFO  c.m.s.cdc.engine.FreshnessEmitter - CDC-METRIC trigger=heartbeat {"metric":"cdc_freshness_seconds","value":38,"pipeline":"cdc"}
+{"metric":"cdc_freshness_seconds","value":38,"pipeline":"cdc"}
+
+== make cdc-stop ==
+cdc-stop: killing pid 379092 from /tmp/silkroute-cdc-bronze.pid
+cdc-stop: killing pid 379090 from /tmp/silkroute-cdc-engine.pid
+
+== make batch-run ARGS='full --business-date 2026-09-13' ==
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; \
+	if [ ! -f apps/batch/target/batch-1.0.0-SNAPSHOT.jar ]; then ./mvnw -B -f apps/batch/pom.xml package -DskipTests; fi
+if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; export PATH="$JAVA_HOME/bin:$PATH"; fi; \
+	java -jar apps/batch/target/batch-1.0.0-SNAPSHOT.jar full --business-date 2026-09-13
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+2026-09-13 23:51:28,414 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-FULL-START runId=run-20260913T205128Z-c0defd32 businessDate=2026-09-13 dt=20260913 bronze=s3a://silkroute-sg-bronze/region=*/table=*/dt=20260913/* master=local[*]
+2026-09-13 23:51:28,926 WARN  org.apache.hadoop.util.NativeCodeLoader - Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+2026-09-13 23:51:29,013 WARN  org.apache.spark.SparkConf - Note that spark.local.dir will be overridden by the value set by the cluster manager (via SPARK_LOCAL_DIRS in mesos/standalone/kubernetes and LOCAL_DIRS in YARN).
+2026-09-13 23:51:32,590 WARN  org.apache.hadoop.metrics2.impl.MetricsConfig - Cannot locate configuration: tried hadoop-metrics2-s3a-file-system.properties,hadoop-metrics2.properties
+2026-09-13 23:51:42,803 INFO  com.mapleretail.silkroute.batch.pipeline.SilverPipeline - SILVER-BUILT dt=20260913 orders=30 lines=30
+2026-09-13 23:51:43,223 WARN  com.amazonaws.util.Base64 - JAXB is unavailable. Will fallback to SDK implementation which may be less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
+2026-09-13 23:51:53,851 INFO  com.mapleretail.silkroute.batch.pipeline.SilverPipeline - SILVER-WRITTEN ordersPath=s3a://silkroute-sg-silver/silver/orders linesPath=s3a://silkroute-sg-silver/silver/order_lines
+2026-09-13 23:51:57,605 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - DQ-JDBC-READY url=jdbc:mysql://127.0.0.1:3306/silkroute_lake (schema ensured)
+2026-09-13 23:51:57,619 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - DQ-QUARANTINE-WRITTEN run=run-20260913T205128Z-c0defd32 rows=0
+2026-09-13 23:51:57,822 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - DQ-RESULTS-WRITTEN run=run-20260913T205128Z-c0defd32 rules=6
+2026-09-13 23:52:07,906 INFO  com.mapleretail.silkroute.batch.pipeline.GoldBuilder - GOLD-WRITTEN dt=20260913 factOrders=30 factOrderLines=30 dimSku=30 dimStore=3 dimDate=1 under s3a://silkroute-sg-gold/gold/
+2026-09-13 23:52:09,456 INFO  com.mapleretail.silkroute.batch.pipeline.ReconRunner - RECON-COMPARED run=run-20260913T205128Z-c0defd32 orders source=30 gold=30 match=true | lines source=30 gold=30 match=true | orderTotals=[CurrencyTotal[currency=CAD, sourceMinor=80849, goldMinor=80849, match=true], CurrencyTotal[currency=CNY, sourceMinor=173205, goldMinor=173205, match=true], CurrencyTotal[currency=SGD, sourceMinor=40605, goldMinor=40605, match=true]] lineTotals=[CurrencyTotal[currency=CAD, sourceMinor=80849, goldMinor=80849, match=true], CurrencyTotal[currency=CNY, sourceMinor=173205, goldMinor=173205, match=true], CurrencyTotal[currency=SGD, sourceMinor=40605, goldMinor=40605, match=true]]
+2026-09-13 23:52:09,535 INFO  com.mapleretail.silkroute.batch.BatchMain - RECON-REPORT-WRITTEN path=/tmp/silkroute-recon-report.json allMatch=true
+2026-09-13 23:52:09,558 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - DQ-JDBC-READY url=jdbc:mysql://127.0.0.1:3306/silkroute_lake (schema ensured)
+2026-09-13 23:52:09,590 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - RECON-REPORT-WRITTEN run=run-20260913T205128Z-c0defd32 businessDate=2026-09-13 allMatch=true
+2026-09-13 23:52:09,592 INFO  com.mapleretail.silkroute.batch.metrics.MetricsEmitter - BATCH-METRIC {"metric":"batch_completion","value":41,"pipeline":"batch"}
+{"metric":"batch_completion","value":41,"pipeline":"batch"}
+BATCH-WINDOW businessDate=2026-09-13 completedAtSGT=2026-09-14T04:52:09 Asia/Singapore windowEndSGT=06:00 withinWindow=true
+2026-09-13 23:52:09,597 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T205128Z-c0defd32 allMatch=true reportPath=/tmp/silkroute-recon-report.json
+batch-exit=0
+
+== make batch-run ARGS=selftest ==
+DQ-SELFTEST rule=DQ-COMPLETE table=fact_orders checked=4 violations=1 caught=true
+DQ-SELFTEST rule=DQ-UNIQUE table=fact_orders checked=4 violations=1 caught=true
+DQ-SELFTEST rule=DQ-REFERENTIAL table=fact_orders checked=4 violations=2 caught=true
+DQ-SELFTEST rule=DQ-COMPLETE table=fact_order_lines checked=5 violations=1 caught=true
+DQ-SELFTEST rule=DQ-UNIQUE table=fact_order_lines checked=5 violations=1 caught=true
+DQ-SELFTEST rule=DQ-REFERENTIAL table=fact_order_lines checked=5 violations=2 caught=true
+DQ-SELFTEST-OK all 6 rule checks caught their fixture violations
+selftest-exit=0
+
+== recon-only (positive) ==
+2026-09-13 23:53:00,946 INFO  com.mapleretail.silkroute.batch.BatchMain - RECON-REPORT-WRITTEN path=/tmp/silkroute-recon-report.json allMatch=true
+2026-09-13 23:53:01,009 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - RECON-REPORT-WRITTEN run=run-20260913T205252Z-d18e2fcf businessDate=2026-09-13 allMatch=true
+2026-09-13 23:53:01,013 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T205252Z-d18e2fcf allMatch=true reportPath=/tmp/silkroute-recon-report.json
+recononly-exit=0
+
+== NEGATIVE CONTROL: inject phantom source row into oms_order -> recon MUST go red ==
+2026-09-13 23:53:26,689 INFO  com.mapleretail.silkroute.batch.pipeline.ReconRunner - RECON-COMPARED run=run-20260913T205319Z-21e910d6 orders source=31 gold=30 match=false | lines source=30 gold=30 match=true | orderTotals=[CurrencyTotal[currency=CAD, sourceMinor=90848, goldMinor=80849, match=false], CurrencyTotal[currency=CNY, sourceMinor=173205, goldMinor=173205, match=true], CurrencyTotal[currency=SGD, sourceMinor=40605, goldMinor=40605, match=true]] lineTotals=[CurrencyTotal[currency=CAD, sourceMinor=80849, goldMinor=80849, match=true], CurrencyTotal[currency=CNY, sourceMinor=173205, goldMinor=173205, match=true], CurrencyTotal[currency=SGD, sourceMinor=40605, goldMinor=40605, match=true]]
+2026-09-13 23:53:26,735 INFO  com.mapleretail.silkroute.batch.BatchMain - RECON-REPORT-WRITTEN path=/tmp/silkroute-recon-report.json allMatch=false
+2026-09-13 23:53:26,786 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - RECON-REPORT-WRITTEN run=run-20260913T205319Z-21e910d6 businessDate=2026-09-13 allMatch=false
+2026-09-13 23:53:26,790 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T205319Z-21e910d6 allMatch=false reportPath=/tmp/silkroute-recon-report.json
+recon-NC-exit=0
+
+== remove phantom row -> recon green again ==
+2026-09-13 23:53:34,617 INFO  com.mapleretail.silkroute.batch.BatchMain - RECON-REPORT-WRITTEN path=/tmp/silkroute-recon-report.json allMatch=true
+2026-09-13 23:53:34,671 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - RECON-REPORT-WRITTEN run=run-20260913T205327Z-e6003725 businessDate=2026-09-13 allMatch=true
+2026-09-13 23:53:34,676 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T205327Z-e6003725 allMatch=true reportPath=/tmp/silkroute-recon-report.json
+recon-restore-exit=0
+
+== NEGATIVE CONTROL (v2, exit codes captured correctly) ==
+recon-NC-exit=2 (expected 2)
+2026-09-13 23:53:59,917 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - RECON-REPORT-WRITTEN run=run-20260913T205352Z-13601e11 businessDate=2026-09-13 allMatch=false
+2026-09-13 23:53:59,921 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T205352Z-13601e11 allMatch=false reportPath=/tmp/silkroute-recon-report.json
+recon-restore-exit=0 (expected 0)
+2026-09-13 23:54:08,316 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T205400Z-5971aeb9 allMatch=true reportPath=/tmp/silkroute-recon-report.json
+
+== C1: CN masking in the lake (bronze region=CN objects) ==
+sh: line 1: grep: command not found
+-- plaintext cust-cn- occurrences in ALL bronze objects (expect 0):
+0
+-- customerRef values in region=CN objects (expect all msk-*):
+sh: line 1: grep: command not found
+
+== immutability: delete/copy APIs in BronzeWriter (expect 0) ==
+0
+
+== C5: float/double anywhere in the three apps (expect 0) ==
+6
+
+== C1 (v2, host-side grep): CN masking in the lake ==
+12
+-- distinct customerRef values across ALL region=CN objects (expect only msk-*):
+-- plaintext cust-cn- across ALL bronze (expect 0):
+0
+-- C1 corrected: distinct customer_ref (CDC column) + customerRef (raw_event) values in region=CN objects:
+"customer_ref":"msk-16cfb048c4df"
+"customer_ref":"msk-4379dd03795d"
+"customer_ref":"msk-8688b926b7c8"
+"customer_ref":"msk-921612995fb0"
+"customer_ref":"msk-b048ec253889"
+"customer_ref":"msk-e81a771c9906"
+"customer_ref":"msk-fbb8e58197a7"
+CN customer_ref occurrences=7 non-msk=0

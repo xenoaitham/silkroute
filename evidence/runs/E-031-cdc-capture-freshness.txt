@@ -1,0 +1,27 @@
+# E-031 artifact — CDC binlog capture proof + freshness metric emission (from the E-030 run)
+# engine log: /tmp/silkroute-cdc-engine.log; captured 2026-09-13T20:56:31Z
+
+== engine start ==
+2026-09-13T20:50:24.946Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-ENGINE-START name=silkroute-cdc topicPrefix=silkroute-oms publishTopic=silkroute.cdc.oms bootstrap=127.0.0.1:39092 mysql=127.0.0.1:3306 tables=silkroute_oms.oms_order,silkroute_oms.oms_order_line snapshot=initial offsetFile=/tmp/silkroute-cdc-offsets.json historyFile=/tmp/silkroute-cdc-history.dat heartbeatSeconds=30
+
+== CDC-CAPTURE (all 60, first 4 + last 2) ==
+2026-09-13T20:50:45.417Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order sourceTsMs=1789332645000 server=silkroute-oms
+2026-09-13T20:50:45.449Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order_line sourceTsMs=1789332645000 server=silkroute-oms
+2026-09-13T20:50:45.458Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order sourceTsMs=1789332645000 server=silkroute-oms
+2026-09-13T20:50:45.467Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order_line sourceTsMs=1789332645000 server=silkroute-oms
+...
+2026-09-13T20:50:46.938Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order sourceTsMs=1789332646000 server=silkroute-oms
+2026-09-13T20:50:46.945Z INFO  c.m.s.cdc.engine.CaptureEngine - CDC-CAPTURE op=c table=oms_order_line sourceTsMs=1789332646000 server=silkroute-oms
+total: 60
+
+== freshness metric emission (all lines) ==
+2026-09-13T20:50:45.563Z INFO  c.m.s.cdc.engine.FreshnessEmitter - CDC-METRIC trigger=batch {"metric":"cdc_freshness_seconds","value":0,"pipeline":"cdc"}
+2026-09-13T20:50:46.269Z INFO  c.m.s.cdc.engine.FreshnessEmitter - CDC-METRIC trigger=batch {"metric":"cdc_freshness_seconds","value":0,"pipeline":"cdc"}
+2026-09-13T20:50:46.953Z INFO  c.m.s.cdc.engine.FreshnessEmitter - CDC-METRIC trigger=batch {"metric":"cdc_freshness_seconds","value":0,"pipeline":"cdc"}
+2026-09-13T20:50:54.946Z INFO  c.m.s.cdc.engine.FreshnessEmitter - CDC-METRIC trigger=heartbeat {"metric":"cdc_freshness_seconds","value":8,"pipeline":"cdc"}
+2026-09-13T20:51:24.946Z INFO  c.m.s.cdc.engine.FreshnessEmitter - CDC-METRIC trigger=heartbeat {"metric":"cdc_freshness_seconds","value":38,"pipeline":"cdc"}
+
+== distinct metric values observed ==
+"value":0
+"value":38
+"value":8

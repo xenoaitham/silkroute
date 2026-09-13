@@ -1,0 +1,21 @@
+# E-033 artifact — bronze write-once keys, region tags, C1 masking in the lake (from the E-030 run)
+
+== bronze object inventory by region (mc find | host grep) ==
+     24 CA
+     12 CN
+     14 SG
+
+== sample object keys (verbatim) ==
+local/silkroute-sg-bronze/region=CA/table=oms_order/dt=20260913/silkroute.cdc.oms-0-0-becde627-85dd-4236-a6ce-34b7e3507e60.jsonl
+local/silkroute-sg-bronze/region=CA/table=oms_order/dt=20260913/silkroute.cdc.oms-0-14-26c5cbb0-7489-4b55-895c-2a6c587fd59a.jsonl
+local/silkroute-sg-bronze/region=CA/table=oms_order/dt=20260913/silkroute.cdc.oms-0-16-3843f57a-6804-4be7-9dca-0900e1ba3077.jsonl
+local/silkroute-sg-bronze/region=CA/table=oms_order/dt=20260913/silkroute.cdc.oms-0-22-a2580930-a144-4345-a48d-20801acbb93d.jsonl
+
+== sample CN record (verbatim, masked) ==
+{"before":null,"after":{"order_id":"ORD-2026-000011","external_order_ref":"WEB-day-1789332642-11","source_system":"WEB_STORE_CN","store_id":"ST-CN-01","region":"CN","customer_ref":"msk-8688b926b7c8","channel":"WEB_STORE","status":"SUBMITTED","reservation_id":"RES-2026-000011","total_amount_minor":30888,"currency":"CNY","correlation_id":"day-1789332642-11","kafka_partition":0,"kafka_offset":10,"raw
+
+== delete/copy APIs in lake writers (expect 0) ==
+0
+
+== CN mask accounting ==
+CN customer_ref occurrences=7 non-msk=0

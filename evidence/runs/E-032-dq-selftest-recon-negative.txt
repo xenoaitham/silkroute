@@ -1,0 +1,17 @@
+# E-032 artifact — DQ selftest (6/6) + reconciliation negative control (red/green), from the E-030 run
+
+== make batch-run ARGS=selftest ==
+DQ-SELFTEST rule=DQ-COMPLETE table=fact_orders checked=4 violations=1 caught=true
+DQ-SELFTEST rule=DQ-UNIQUE table=fact_orders checked=4 violations=1 caught=true
+DQ-SELFTEST rule=DQ-REFERENTIAL table=fact_orders checked=4 violations=2 caught=true
+DQ-SELFTEST rule=DQ-COMPLETE table=fact_order_lines checked=5 violations=1 caught=true
+DQ-SELFTEST rule=DQ-UNIQUE table=fact_order_lines checked=5 violations=1 caught=true
+DQ-SELFTEST rule=DQ-REFERENTIAL table=fact_order_lines checked=5 violations=2 caught=true
+DQ-SELFTEST-OK all 6 rule checks caught their fixture violations
+selftest-exit=0
+
+== NEGATIVE CONTROL (v2, exit codes captured correctly) ==
+recon-NC-exit=2 (expected 2)
+2026-09-13 23:53:59,917 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - RECON-REPORT-WRITTEN run=run-20260913T205352Z-13601e11 businessDate=2026-09-13 allMatch=false
+2026-09-13 23:53:59,921 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T205352Z-13601e11 allMatch=false reportPath=/tmp/silkroute-recon-report.json
+recon-restore-exit=0 (expected 0)

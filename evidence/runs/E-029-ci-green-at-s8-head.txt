@@ -1,0 +1,28 @@
+{"conclusion":"success","created_at":"2026-09-13T11:34:33Z","head_sha":"c600c87e9738951781c4254c124f31867505f620","run_number":21}
+
+✓ main ci · 34754791890
+Triggered via push about 22 minutes ago
+
+JOBS
+✓ esb saga/retry/DLQ/compensation suite (boots ERP + ESB itself) in 2m54s (ID 103717241072)
+✓ sim compose + smoke (mirrors README quickstart) in 34s (ID 103717241144)
+✓ terraform fmt + validate + plan (validated-plans, ADR-0002) in 16s (ID 103717241146)
+✓ legacy-erp SOAP contract tests (Karate, frozen WSDLs) in 43s (ID 103717241224)
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+esb saga/retry/DLQ/compensation suite (boots ERP + ESB itself): .github#2
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: hashicorp/setup-terraform@v3. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+terraform fmt + validate + plan (validated-plans, ADR-0002): .github#2
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+legacy-erp SOAP contract tests (Karate, frozen WSDLs): .github#2
+
+
+ARTIFACTS
+esb-int-artifacts
+karate-contract-report
+
+For more information about a job, try: gh run view --job=<job-id>
+View this run on GitHub: https://github.com/xenoaitham/silkroute/actions/runs/34754791890
