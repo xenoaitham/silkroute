@@ -6,7 +6,7 @@
 
 SilkRoute is a multi-region enterprise integration platform for the fictional Canadian retailer (300 stores + e-commerce) entering **Singapore** (international hub) and **mainland China** (PIPL data-residency partition). It mediates modern REST traffic into an untouchable SOAP ERP estate on Apache Camel — saga orchestration with compensation, retry/circuit-breaker/DLQ, idempotent consumption, region-based PII masking — and pairs that with a Terraform (`alicloud`) landing zone, CI-provable data-residency checks, measured load/chaos evidence, and a cost model priced from fetched pricing pages. Everything runtime-provable runs locally in **sim mode** at zero cloud spend; the cloud side is **validated IaC** — schema- and plan-proven, never applied, creating nothing ([ADR-0002](decisions/ADR-0002-cloud-account-path.md)).
 
-**Status: all 9 project phases built** — the last build phase, the ETL data plane (CDC + Spark lake), is built and sim-measured (E-030..E-034); the gate record lives in [ROADMAP.md](ROADMAP.md). **35 evidence rows** in the ledger ([evidence/EVIDENCE.md](evidence/EVIDENCE.md), E-001..E-035), each with a re-runnable command. CI green 5/5 (E-035).
+**Status: all 9 project phases built** — the last build phase, the ETL data plane (CDC + Spark lake), is built and sim-measured (E-030..E-034); the gate record lives in [ROADMAP.md](ROADMAP.md). **35 evidence rows** in the ledger ([evidence/EVIDENCE.md](evidence/EVIDENCE.md), E-001..E-035), each with a re-runnable command. CI is green 5/5 (run 34789050660, sha 96c3fd2, E-035).
 
 ## Architecture
 
