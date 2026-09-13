@@ -15,3 +15,11 @@ recon-NC-exit=2 (expected 2)
 2026-09-13 23:53:59,917 INFO  com.mapleretail.silkroute.batch.dq.JdbcDqWriter - RECON-REPORT-WRITTEN run=run-20260913T205352Z-13601e11 businessDate=2026-09-13 allMatch=false
 2026-09-13 23:53:59,921 INFO  com.mapleretail.silkroute.batch.BatchMain - BATCH-DONE runId=run-20260913T205352Z-13601e11 allMatch=false reportPath=/tmp/silkroute-recon-report.json
 recon-restore-exit=0 (expected 0)
+
+== Appendix (gate-cycle closure): the exact negative-control statements, runnable from this artifact alone ==
+-- inject the phantom source row (recon MUST go red: source=31 vs gold=30):
+docker exec sim-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "INSERT INTO silkroute_oms.oms_order (order_id,external_order_ref,source_system,store_id,region,customer_ref,channel,status,reservation_id,total_amount_minor,currency,correlation_id,kafka_partition,kafka_offset,raw_event,ingested_at) VALUES ('ORD-NC-1','WEB-NC-1','NEG_CONTROL','ST-CA-01','CA','cust-x','WEB_STORE','COMPLETED','res-1',9999,'CAD','nc-1',0,999999,'{}',UTC_TIMESTAMP(3));"
+make batch-run ARGS="recon-only --business-date <UTC date of the gold build>"   # expect exit 2
+-- remove it (recon green again):
+docker exec sim-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "DELETE FROM silkroute_oms.oms_order WHERE order_id='ORD-NC-1';"
+make batch-run ARGS="recon-only --business-date <UTC date of the gold build>"   # expect exit 0

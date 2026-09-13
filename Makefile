@@ -183,9 +183,9 @@ cdc-run: ## boot BOTH cdc mains: engine (binlog->topic) + bronze writer (topic->
 	@if [ -f $(CDC_ENGINE_PID) ] && kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null; then echo "cdc-run: engine already running (pid $$(cat $(CDC_ENGINE_PID)))"; exit 0; fi
 	@test -f $(CDC_JAR) || $(MAKE) --no-print-directory cdc-build
 	$(java17_env) \
-		nohup java -jar $(CDC_JAR) > $(CDC_ENGINE_LOG) 2>&1 & echo $$! > $(CDC_ENGINE_PID)
+		touch $(CDC_ENGINE_LOG) && nohup java -jar $(CDC_JAR) >> $(CDC_ENGINE_LOG) 2>&1 & echo $$! > $(CDC_ENGINE_PID)
 	$(java17_env) \
-		nohup java -jar $(CDC_BRONZE_JAR) > $(CDC_BRONZE_LOG) 2>&1 & echo $$! > $(CDC_BRONZE_PID)
+		touch $(CDC_BRONZE_LOG) && nohup java -jar $(CDC_BRONZE_JAR) >> $(CDC_BRONZE_LOG) 2>&1 & echo $$! > $(CDC_BRONZE_PID)
 	@echo "waiting for the CDC engine to start capturing (timeout 180s)..."
 	@timeout 180 bash -c 'until grep -qE "CDC-ENGINE-START|CDC-CAPTURE" $(CDC_ENGINE_LOG) 2>/dev/null; do \
 		kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null || { echo "ERROR: CDC engine died — see $(CDC_ENGINE_LOG)"; tail -30 $(CDC_ENGINE_LOG); exit 1; }; sleep 2; done' \

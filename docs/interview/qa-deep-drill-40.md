@@ -15,7 +15,7 @@ Rehearsal material. Each answer = the crisp spoken version (say it out loud), th
 | Delivery model & trade-offs | Q31–Q36 (sequencing, dual-mode, with-an-account, money, test strategy, real-team rollout) |
 | War stories (failure → root cause → fix → lesson) | Q37–Q40 (smoke that couldn't fail, double-encoding + ambiguous timeout, plan-green/apply-impossible, WSS wire) |
 
-Every number is measured and traces to `evidence/EVIDENCE.md` (E-001…E-035). The ETL answers (Q21–Q24) carry the Phase-3 sim measurements (E-030/E-031) with their honest boundaries: the IaC is still validated-not-applied, SLS ingest of the pipeline's metrics verifies at activation, and the CN partition was never applied.
+Every number is measured and traces to `evidence/EVIDENCE.md` (E-001…E-036). The ETL answers (Q21–Q24) carry the Phase-3 sim measurements (E-030/E-031) with their honest boundaries: the IaC is still validated-not-applied, SLS ingest of the pipeline's metrics verifies at activation, and the CN partition was never applied.
 
 ---
 
