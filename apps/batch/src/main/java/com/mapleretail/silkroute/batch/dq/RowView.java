@@ -4,7 +4,7 @@ import java.util.Set;
 
 /**
  * CRITICAL DESIGN CONSTRAINT (build brief): the DQ rule PREDICATES operate on
- * this minimal row-view interface so they are pure-Java — unit-testable
+ * this minimal row-view interface so they are pure-Java - unit-testable
  * WITHOUT Spark and reusable by `selftest`. The Spark layer only adapts rows
  * to this interface.
  */

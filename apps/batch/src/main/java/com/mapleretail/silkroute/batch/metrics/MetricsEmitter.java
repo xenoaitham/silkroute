@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The exact pipeline-metrics contract shape (E-019 / ADR-0006 decision 4):
- * {"metric":"<name>","value":<N>,"pipeline":"batch"} — ONLY these three keys,
+ * {"metric":"<name>","value":<N>,"pipeline":"batch"} - ONLY these three keys,
  * value in whole seconds. Printed to stdout AND appended to ${METRICS_FILE}
  * when set (evidence artifact).
  */

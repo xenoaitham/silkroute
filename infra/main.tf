@@ -56,7 +56,7 @@ module "cn_partition" {
   source = "./cn-partition"
   count  = var.enable_cn_region ? 1 : 0
 
-  # Region placement is enforced HERE, at the provider graph — not by tags or
+  # Region placement is enforced HERE, at the provider graph - not by tags or
   # name strings (SEC-4-01). Without this block the module silently inherits
   # the default ap-southeast-1 provider.
   providers = { alicloud = alicloud.cn }

@@ -13,7 +13,7 @@ import com.mapleretail.silkroute.legacyerp.contract.common.MoneyType;
  *
  * <p>Money math (constraint C5): every amount is an integer minor unit count.
  * Conversion applies a fixed factor to the CAD minor amount and rounds HALF_UP to
- * a whole minor unit via BigDecimal with scale 0 — no float/double is involved
+ * a whole minor unit via BigDecimal with scale 0 - no float/double is involved
  * anywhere in the estate. Example: CAD base 12999 minor x SGD 0.98 = 12739.02 ->
  * 12739 SGD minor.
  */

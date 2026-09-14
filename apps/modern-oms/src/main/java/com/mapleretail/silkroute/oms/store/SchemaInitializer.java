@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Ensures the CDC-source schema exists on boot (CREATE TABLE IF NOT EXISTS,
- * plain JDBC — no JPA, no migration tooling). Idempotent: running against an
+ * plain JDBC - no JPA, no migration tooling). Idempotent: running against an
  * existing silkroute_oms changes nothing.
  *
  * oms_order carries the full event copy (raw_event JSON) + Kafka lineage

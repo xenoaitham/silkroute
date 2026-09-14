@@ -1,4 +1,4 @@
-# SILKROUTE Phase 3 — modern OMS event store (apps/modern-oms) configuration.
+# SILKROUTE the data plane - modern OMS event store (apps/modern-oms) configuration.
 #
 # The CDC SOURCE of the ETL data plane: consumes ESB success events into MySQL
 # silkroute_oms (oms_order + oms_order_line) with at-least-once semantics and a

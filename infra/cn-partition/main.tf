@@ -66,7 +66,7 @@ resource "alicloud_db_instance" "cn_oms" {
   # Whitelist the CN VPC only; never 0.0.0.0/0 (SEC-4-09).
   security_ips = [var.cn_vpc_cidr]
   tde_status   = "Enabled"
-  # TDE key pinned to the CN partition's own key — never the SG keys (C1).
+  # TDE key pinned to the CN partition's own key - never the SG keys (C1).
   tde_encryption_key = alicloud_kms_key.cn_data.arn
   tags               = local.cn_tags
 
@@ -212,7 +212,7 @@ resource "alicloud_sae_application" "esb_cn" {
 }
 
 # CN Kafka: same topic NAMES as the cloud SG partition (dot-free ApsaraMQ
-# constraint — dots are rejected by CreateTopic; the sim keeps its dotted
+# constraint - dots are rejected by CreateTopic; the sim keeps its dotted
 # defaults selected via env indirection).
 resource "alicloud_alikafka_instance" "cn" {
   name        = "silkroute-cn-kafka"

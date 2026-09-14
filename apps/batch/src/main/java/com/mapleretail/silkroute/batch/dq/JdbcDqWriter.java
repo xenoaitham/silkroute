@@ -21,8 +21,8 @@ import com.mapleretail.silkroute.batch.recon.ReconMath;
  * The schema is ensured here too (CREATE TABLE IF NOT EXISTS) so the batch is
  * self-sufficient after `etl-setup` granted the writer user.
  *
- * NOTE: the quarantine timestamp column is spelled `quaranted_at` — exactly as
- * specified in the Phase-3 build brief (sic); kept verbatim for contract parity.
+ * NOTE: the quarantine timestamp column is spelled `quaranted_at` - exactly as
+ * specified in the build brief (sic); kept verbatim for contract parity.
  */
 public final class JdbcDqWriter implements AutoCloseable {
 

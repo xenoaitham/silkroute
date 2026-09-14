@@ -45,7 +45,7 @@ class BatchWindowEvaluatorTest {
         assertEquals("2026-09-14T05:30:00 Asia/Singapore", early.completedAtSgt());
         assertTrue(early.withinWindow());
 
-        // 2026-09-14T06:05 SGT — just past the boundary
+        // 2026-09-14T06:05 SGT - just past the boundary
         BatchWindowEvaluator.Result late = BatchWindowEvaluator.evaluate(sgt(6, 5), "2026-09-13");
         assertEquals("2026-09-14T06:05:00 Asia/Singapore", late.completedAtSgt());
         assertFalse(late.withinWindow());

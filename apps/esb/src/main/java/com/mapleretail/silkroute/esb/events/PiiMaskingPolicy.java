@@ -11,15 +11,15 @@ import org.springframework.stereotype.Component;
 /**
  * C1/PIPL policy point (PII residency): Chinese-customer PII must remain in the
  * China region. ANY egress of order data from the CN region to a SHARED
- * (non-CN-pinned) destination — the hub's Kafka event topic and DLQ — must carry
+ * (non-CN-pinned) destination - the hub's Kafka event topic and DLQ - must carry
  * a pseudonymized customerRef.
  *
  * Pseudonymization format: "msk-" + first 12 hex chars of
  * HMAC-SHA256(egress-secret, customerRef). Keyed with an ESB-held secret so the
  * transformation is deterministic (analytics can still correlate) but NOT
  * dictionary-reversible for guessable reference patterns. This is
- * PSEUDONYMIZATION, not anonymization — the secret-holder could brute-force
- * known values; true anonymization/residency is Phase 5 scope.
+ * PSEUDONYMIZATION, not anonymization - the secret-holder could brute-force
+ * known values; true anonymization/residency is compliance scope.
  * Non-CN customerRef stays clear; absent stays absent.
  */
 @Component

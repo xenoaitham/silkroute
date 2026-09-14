@@ -79,8 +79,8 @@ resource "alicloud_ram_policy" "esb_runtime" {
       {
         # SSE-KMS uploads need GenerateDataKey, not just Decrypt (SEC-4-03);
         # without it every bronze PutObject against the encrypted bucket fails.
-        # Only the OSS key is granted: RDS consumes its TDE key internally —
-        # the application never touches it (critic cycle 1).
+        # Only the OSS key is granted: RDS consumes its TDE key internally -
+        # the application never touches it (review cycle 1).
         Sid      = "EncryptDecryptWithLandingZoneKeys"
         Effect   = "Allow"
         Action   = ["kms:Decrypt", "kms:GenerateDataKey"]
@@ -138,7 +138,7 @@ resource "alicloud_ram_user" "ci" {
   comments     = "No access keys managed in IaC; keys are created and rotated out-of-band so no secret material reaches state."
 }
 
-# RAM requires the CALLER to hold sts:AssumeRole — the role's trust policy
+# RAM requires the CALLER to hold sts:AssumeRole - the role's trust policy
 # alone never authorizes it (SEC-4-04). This is the user's ONLY grant: assume
 # the deploy role, nothing else.
 resource "alicloud_ram_policy" "ci_assume" {

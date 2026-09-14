@@ -11,7 +11,7 @@ import java.nio.file.StandardOpenOption;
  * Suite transcript writer: every scenario logs its assertions and MEASURED
  * numbers (attempt counts, circuit-open latency, DLQ hits) to
  * {@code tests/esb-int/target/suite-transcript.log} so the orchestrator can
- * copy it into evidence/. Measurements are never fabricated — each line is
+ * copy it into evidence/. Measurements are never fabricated - each line is
  * written next to the code that produced the number.
  */
 final class Transcript {

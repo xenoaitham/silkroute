@@ -8,7 +8,7 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlType;
 
 /**
- * One order line. quantity is a plain integer (1..999 per schema) — the ERP
+ * One order line. quantity is a plain integer (1..999 per schema) - the ERP
  * contract uses xsd:int as well.
  */
 @XmlAccessorType(XmlAccessType.FIELD)

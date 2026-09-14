@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Frozen Phase 2 contract constants (pinned by the orchestrator) + the tiny
+ * Frozen the hub contract constants (pinned by the orchestrator) + the tiny
  * HTTP/JSON plumbing every scenario shares. ALL endpoints are 127.0.0.1.
  */
 final class Wire {
@@ -112,7 +112,7 @@ final class Wire {
 
     // ------------------------------------------------------------------ order
 
-    /** Body exactly per the frozen Phase 2 contract. tok is unique per order. */
+    /** Body exactly per the frozen the hub contract. tok is unique per order. */
     static String orderBody(String storeId, String skuId, int quantity, String customerRef, String tok) {
         return "{" +
                 "\"externalOrderRef\":\"ESBINT-" + tok + "\"," +
@@ -164,14 +164,14 @@ final class Wire {
             try {
                 collect(MAPPER.readTree(node.asText()), key, hits, depth + 1);
             } catch (IOException ignored) {
-                // a plain string that merely looks like JSON — not a payload
+                // a plain string that merely looks like JSON - not a payload
             }
         }
     }
 
     /** maxAttempts across an attempts object: values are ints; steps that were
      * never reached legitimately record 0 (e.g. an order-step exhaustion never
-     * touches reserve/pricing/confirm) — the max over REACHED steps is the
+     * touches reserve/pricing/confirm) - the max over REACHED steps is the
      * retry signal under test. */
     static int maxAttempts(JsonNode attempts) {
         if (attempts == null || !attempts.isObject() || attempts.isEmpty()) {

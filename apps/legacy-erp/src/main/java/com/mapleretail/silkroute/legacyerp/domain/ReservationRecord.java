@@ -4,7 +4,7 @@ import java.time.Instant;
 
 /**
  * A stock hold placed by reserve(). Holds expire back to available after
- * {@code reservedUntil} (lazy reclaim on the next touch of the same stock row) —
+ * {@code reservedUntil} (lazy reclaim on the next touch of the same stock row) -
  * matching the legacy hold-expiry semantics documented in the frozen contract.
  */
 public record ReservationRecord(

@@ -64,7 +64,7 @@ resource "alicloud_sae_application" "erp" {
 
 # Kafka (AliCloud Message Queue for Apache Kafka) -----------------------------
 # deploy_type 4 = VPC instance. ApsaraMQ for Kafka CreateTopic allows ONLY
-# letters, digits, "_" and "-" in topic names (3-64 chars) — dots are legal in
+# letters, digits, "_" and "-" in topic names (3-64 chars) - dots are legal in
 # vanilla Kafka but rejected by the managed service, so cloud topic names are
 # dot-free and selected via the KAFKA_ORDERS_TOPIC / KAFKA_DLQ_TOPIC env vars
 # (env-indirection is the ADR-0001 swap mechanism; the sim keeps its dotted

@@ -14,7 +14,7 @@ import org.apache.wss4j.common.ext.WSPasswordCallback;
 /**
  * Supplies the expected password to WSS4J's UsernameToken validator (PasswordText
  * mode: WSS4J compares what the caller sent against what this handler returns).
- * Unknown usernames fail here; wrong passwords fail inside WSS4J's validator —
+ * Unknown usernames fail here; wrong passwords fail inside WSS4J's validator -
  * both surface as SOAP security faults, and the username (never the password) is
  * logged once per failure by {@link AuditingWss4jInInterceptor}.
  */

@@ -1,4 +1,4 @@
-# SILKROUTE Phase 2 — Camel ESB (apps/esb) configuration.
+# SILKROUTE the hub - Camel ESB (apps/esb) configuration.
 #
 # Loopback-only bind policy for the shared sim host. Every environment knob uses
 # ${VAR:default} indirection; defaults are the documented sim dummies.
@@ -14,11 +14,11 @@ spring:
       pool:
         # MVC-async dispatch executor for the REST facade (spring-task "task-N"
         # workers). Spring Boot's default is core=8 with an UNBOUNDED queue: a
-        # chaos run measured the consequence (S7, 800ms ERP latency x 10 RPS) —
+        # chaos run measured the consequence (S7, 800ms ERP latency x 10 RPS) -
         # slowed sagas (~3.2s each) saturated the 8 workers, arrivals queued
         # unboundedly, and requests died at the 30s async-request timeout
         # (485 AsyncRequestTimeoutException; k6 p95 pinned at its 30s client
-        # cap) while the ERP calls themselves SUCCEEDED — the breaker and retry
+        # cap) while the ERP calls themselves SUCCEEDED - the breaker and retry
         # ladder never fired because the dependency never failed. Explicit
         # sizing (core 32 = >10 RPS x ~3.2s degraded sagas) plus a BOUNDED
         # queue converts saturation into bounded waiting instead of a silent
@@ -34,7 +34,7 @@ spring:
       port: ${REDIS_PORT:16379}
       # Bounded degradation for the idempotency store's allow-through design.
       # RedisIdempotencyStore catches ALL Redis exceptions and degrades to
-      # allow-through — but the catch only fires when the CLIENT surfaces an
+      # allow-through - but the catch only fires when the CLIENT surfaces an
       # error, and Lettuce's default command timeout is 60s: a chaos run (S7,
       # 40s redis outage x 10 RPS) measured requests blocking the full async
       # timeout with ZERO allow-through lines until 61s after the outage began

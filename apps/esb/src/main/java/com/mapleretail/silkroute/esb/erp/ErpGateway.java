@@ -37,7 +37,7 @@ import com.mapleretail.silkroute.esb.xslt.XsltTransformer;
  *  - inventory reserve/release: direct typed CXF calls (frozen contract, no XSLT required)
  *
  * Resilience performed here: retry with exponential backoff on INFRA errors only
- * (timeout/connect — never on ERP business faults, ADR-0003), counting real
+ * (timeout/connect - never on ERP business faults, ADR-0003), counting real
  * attempts into the saga's attempts object. Business faults are returned as
  * {@link ErpCallResult#business} so they do NOT trip the circuit breaker; infra
  * failures propagate as {@link ErpInfraException} and DO.

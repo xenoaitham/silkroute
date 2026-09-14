@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
- * Phase 2 ESB proof suite (black-box over the frozen contract).
+ * the hub ESB proof suite (black-box over the frozen contract).
  *
- * Scenarios (each one PROVES a Phase 2 property under induced failure —
+ * Scenarios (each one PROVES a the hub property under induced failure -
  * nothing is mocked, every number is measured):
  *
  *   0. harness self-check: ERP SOAP ground truth + toxiproxy + kafka topics
@@ -74,12 +74,12 @@ class EsbIntegrationTest {
         int available = Integer.parseInt(String.valueOf(stock.get("availableQuantity")));
         assertTrue(available > 0, "ST-SG-01/SKU-0002 must have stock, got " + available);
 
-        // Frozen pricing math (C5) — the numbers scenario 1's totals are built on.
+        // Frozen pricing math (C5) - the numbers scenario 1's totals are built on.
         assertEquals(624, ErpSoap.unitPriceMinor("SKU-0002", "SGD"), "HALF_UP(637 x 0.98)");
         assertEquals(3268, ErpSoap.unitPriceMinor("SKU-0002", "CNY"), "HALF_UP(637 x 5.13)");
         assertEquals(637, ErpSoap.unitPriceMinor("SKU-0002", "CAD"), "CAD base price");
 
-        // Topics exist and are consumable (possibly with records from prior runs — fine).
+        // Topics exist and are consumable (possibly with records from prior runs - fine).
         KafkaBoxes.ensureTopics(Wire.TOPIC_DLQ, Wire.TOPIC_EVENTS);
         KafkaBoxes.consumeAll(Wire.TOPIC_DLQ);
         Transcript.log("s0: harness self-check passed (erp soap, pricing 624/3268/637, toxiproxy, kafka)");
@@ -168,7 +168,7 @@ class EsbIntegrationTest {
         // Idempotency-Key: per the frozen contract the ESB idempotency key IS the
         // header when present, so this is a NEW saga whose ERP submit hits the
         // ERP's OWN duplicate-ref guard (ORD-DUP-REF). Either outcome proves the
-        // same external guarantee — one externalOrderRef can never create two
+        // same external guarantee - one externalOrderRef can never create two
         // orders: 409 DUPLICATE (ESB-level) or 422 ORD-DUP-REF (ERP backstop).
         String bodyOtherKey = body.replace("corr-" + tokDup, "corr-other-" + tokDup);
         Wire.Resp third = Wire.post(Wire.ORDERS_URL, bodyOtherKey, "Idempotency-Key", "corr-other-" + tokDup);
@@ -220,9 +220,9 @@ class EsbIntegrationTest {
     void s4_retry_persistentToxic_exhaustion_thenTransientRecovery() {
         assumeFullMode();
 
-        // Part A (deterministic): persistent 2500ms latency toxic — ABOVE the
+        // Part A (deterministic): persistent 2500ms latency toxic - ABOVE the
         // ESB's documented 2000ms per-call read timeout (apps/esb/application.yml)
-        // — fails every attempt -> 3 attempts -> exhaustion -> 503 RECEIVER with
+        // - fails every attempt -> 3 attempts -> exhaustion -> 503 RECEIVER with
         // attempts==3. Retries CANNOT be fabricated.
         Toxi.addLatency(2500);
         String tokA = "s4lat-" + unique();
@@ -253,7 +253,7 @@ class EsbIntegrationTest {
         // starts (attempt 1 provably timed out at 2000ms + 200ms backoff) so the
         // retry succeeds. Assert 201 and the retried step records 2-3 attempts.
         // If the toxic is removed too early (attempt 1 succeeds) this FAILS with
-        // attempts==1 — which is exactly the deviation the suite must surface.
+        // attempts==1 - which is exactly the deviation the suite must surface.
         Toxi.addLatency(2500);
         String tokB = "s4rec-" + unique();
         long t0 = System.nanoTime();
@@ -275,12 +275,12 @@ class EsbIntegrationTest {
         // Attempt 1's submitOrder is an AMBIGUOUS outcome: the ESB saw a timeout,
         // but the ERP (delayed, not dead) may have created the order anyway. Two
         // honest endings exist, and both prove consistency:
-        //  (a) 201 — attempt 2 arrived before the ERP committed attempt 1, or the
+        //  (a) 201 - attempt 2 arrived before the ERP committed attempt 1, or the
         //      ERP never got attempt 1: clean recovery, order ORD-... created once;
-        //  (b) 422 ORD-DUP-REF — the ERP DID create attempt 1's order, and its
+        //  (b) 422 ORD-DUP-REF - the ERP DID create attempt 1's order, and its
         //      frozen duplicate-ref guard refused attempt 2's double-submit
         //      (C6: the ERP cannot change; no lookup-by-ref exists in v1, so the
-        //      saga cannot resume — the guard is what prevents two orders).
+        //      saga cannot resume - the guard is what prevents two orders).
         boolean cleanRecovery = recovered.status() == 201;
         boolean ambiguousTimeout = recovered.status() == 422
                 && "ORD-DUP-REF".equals(recovered.json().path("code").asText())
@@ -390,7 +390,7 @@ class EsbIntegrationTest {
         int after = ErpSoap.availableQuantity(store, sku);
         assertEquals(before, after,
                 "the saga reserved then released: ERP stock must be back to " + before
-                        + " (got " + after + ") — the hold was really released");
+                        + " (got " + after + ") - the hold was really released");
         Transcript.log("s6: 503 SAGA-COMPENSATED releasedReservationId=%s, stock %d -> %d (release proven)",
                 releasedId, before, after);
 
@@ -417,12 +417,12 @@ class EsbIntegrationTest {
         assertFalse(dlqCn.contains(cnClearRef), "clear CN customerRef must not reach the DLQ");
         Transcript.log("s6: DLQ CN masking proven (msk-* on dlq record, clear value absent)");
 
-        // Regression (critic cycle-1 high): a FAILED saga must release its Redis
-        // idempotency claim — retrying the SAME Idempotency-Key after the 503 is
+        // Regression (review cycle-1 high): a FAILED saga must release its Redis
+        // idempotency claim - retrying the SAME Idempotency-Key after the 503 is
         // exactly what the key exists for. The saga re-executes; because the first
         // attempt's submitOrder already committed at the ERP (fail-pricing fires
         // AFTER submit), the ERP's own duplicate-ref guard backstops the re-submit
-        // (422 ORD-DUP-REF) — a fresh 201 is equally acceptable. A 409 DUPLICATE
+        // (422 ORD-DUP-REF) - a fresh 201 is equally acceptable. A 409 DUPLICATE
         // for this key would be the defect.
         Wire.Resp retrySameKey = Wire.post(Wire.ORDERS_URL,
                 Wire.orderBody(store, sku, 1, "cust-ca-" + tokCa, tokCa), "Idempotency-Key", "corr-" + tokCa);

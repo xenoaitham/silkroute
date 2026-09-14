@@ -23,15 +23,15 @@ import maple.erp.pricing.v1.PricingServicePortType;
 
 /**
  * CXF SOAP client wiring for the FROZEN ERP estate. Wire-exact WS-Security
- * (hard-won in Phase 2 S2 — the ERP has a BSP-strict, nonce-replay-caching
+ * (hard-won in the hub S2 - the ERP has a BSP-strict, nonce-replay-caching
  * WSS4JInInterceptor):
  *
  *  - UsernameToken, PasswordText. WSS4JOutInterceptor with passwordType
  *    PasswordText emits the OASIS UsernameToken PROFILE URI on the wire
- *    (...username-token-profile-1.0#PasswordText) — the secext spelling is
+ *    (...username-token-profile-1.0#PasswordText) - the secext spelling is
  *    rejected.
  *  - addNonce=true: a FRESH SecureRandom Base64 nonce per request WITH
- *    EncodingType=...soap-message-security-1.0#Base64Binary (BSP:R4220) — the
+ *    EncodingType=...soap-message-security-1.0#Base64Binary (BSP:R4220) - the
  *    ERP keeps a live replay cache.
  *  - addCreated=true: wsu:Created UTC xsd:dateTime.
  *

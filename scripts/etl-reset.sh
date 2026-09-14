@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# SILKROUTE Phase-3 data-plane RESET — returns the ETL world to a clean slate
+# SILKROUTE data-plane data-plane RESET - returns the ETL world to a clean slate
 # so a seeded-order-day run starts from nothing (single-run provenance per the
-# evidence rules; also what the critic uses before its independent re-run).
+# evidence rules; also what an independent re-run uses as its slate).
 #
 # Maple Retail Group is a fictional company; self-directed reference implementation.
 #
@@ -10,7 +10,7 @@
 #   2. TRUNCATEs the OMS tables and empties the lake DQ/recon tables
 #   3. deletes the oms + bronze-writer Kafka consumer groups
 #   4. deletes + recreates the two data-plane topics (envelope purge; DLQ untouched)
-#   5. empties the bronze/silver/gold bucket contents (buckets stay — IaC parity names)
+#   5. empties the bronze/silver/gold bucket contents (buckets stay - IaC parity names)
 #   6. removes CDC offset/history files + /tmp run artifacts (metrics, recon, logs)
 #
 # NEVER touches: the ESB DLQ topic contents, the ERP ledger, busforge/helios,
@@ -42,7 +42,7 @@ docker exec sim-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "
   TRUNCATE TABLE silkroute_lake.dq_quarantine;
   TRUNCATE TABLE silkroute_lake.dq_results;
   TRUNCATE TABLE silkroute_lake.recon_report;" 2>/dev/null \
-  || { echo "RESET FAIL: cannot reach sim-mysql / tables missing — run: make etl-setup"; exit 1; }
+  || { echo "RESET FAIL: cannot reach sim-mysql / tables missing - run: make etl-setup"; exit 1; }
 
 # --- 3. delete consumer groups ------------------------------------------------
 for group in "${OMS_CONSUMER_GROUP:-silkroute-oms}" "${CDC_BRONZE_GROUP:-silkroute-bronze-writer}"; do
@@ -72,4 +72,4 @@ rm -f /tmp/silkroute-cdc-offsets.json /tmp/silkroute-cdc-history.dat \
       /tmp/silkroute-recon-report.json /tmp/silkroute-oms.log \
       /tmp/silkroute-cdc-engine.log /tmp/silkroute-cdc-bronze.log
 
-step "OK — data plane is clean (oms tables empty, groups gone, topics fresh, buckets empty, offsets gone)"
+step "OK - data plane is clean (oms tables empty, groups gone, topics fresh, buckets empty, offsets gone)"

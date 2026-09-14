@@ -27,7 +27,7 @@ import maple.erp.inventory.v1.UnknownReservationFault;
  * typed fault (OutOfStockFault) with a distinct errorCode. getStock() declares no
  * fault in the frozen contract, so unknown store/SKU references there surface as
  * a generic SOAP server fault (returning fabricated zeros would mislead the
- * Phase 2 region routing).
+ * the hub region routing).
  */
 @Service
 @SchemaValidation(type = SchemaValidationType.IN)
@@ -112,7 +112,7 @@ public class InventoryServiceImpl implements InventoryServicePortType {
         }
 
         GetStockResponse response = new GetStockResponse();
-        // Region stays prominent in the response: Phase 2 routes on it.
+        // Region stays prominent in the response: the hub routes on it.
         response.setRegion(store.region());
         response.setStoreId(store.storeId());
         response.setSkuId(request.getSkuId());

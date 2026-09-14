@@ -11,7 +11,7 @@ import com.mapleretail.silkroute.batch.dq.RowView;
 import com.mapleretail.silkroute.batch.dq.Violation;
 
 /**
- * DQ-UNIQUE (MASTER_PROMPT §3): the key columns must be unique within the
+ * DQ-UNIQUE (the component spec): the key columns must be unique within the
  * table pass. Stateful per run: feed rows once, in order; the SECOND and any
  * later occurrence of a key is a violation (the first stays in gold).
  * Instances are NOT thread-safe and NOT reusable across runs.

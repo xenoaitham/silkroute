@@ -18,7 +18,7 @@ import com.mapleretail.silkroute.legacyerp.ledger.StoreDirectory;
  * Deterministic boot-time seed: 50 SKUs, 8 stores (3x CA, 3x SG, 2x CN) and one
  * stock row per store x SKU. Stock quantities come from Random(42) so every boot
  * of the sim produces identical data. The "ERP SEED" log line is the evidence
- * record for the seed counts — keep its format greppable and stable.
+ * record for the seed counts - keep its format greppable and stable.
  */
 @Component
 public class ErpSeedData {

@@ -13,14 +13,14 @@ import org.springframework.stereotype.Component;
  * The consumer loop body. Semantics (at-least-once, ADR-0006 decision 2):
  *
  * - the offset is acknowledged ONLY after the store reports success (or the
- *   event was skipped as poison/duplicate — both are terminal outcomes);
- * - malformed (poison) events are logged as OMS-POISON and acknowledged —
+ *   event was skipped as poison/duplicate - both are terminal outcomes);
+ * - malformed (poison) events are logged as OMS-POISON and acknowledged -
  *   they NEVER kill the consumer loop;
  * - store failures (DB down etc.) propagate WITHOUT acknowledging: the
  *   container's error handler retries forever with a fixed backoff, loudly,
  *   and the record is not lost.
  *
- * C1: this class performs NO transformation of customerRef — the verbatim
+ * C1: this class performs NO transformation of customerRef - the verbatim
  * value from the event copy flows into the store unchanged.
  */
 @Component

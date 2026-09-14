@@ -15,7 +15,7 @@ import static org.apache.spark.sql.functions.lit;
 
 /**
  * Gold star schema (ADR-0006 decision 3): fact_orders, fact_order_lines,
- * dim_sku, dim_store, dim_date — Parquet, partitioned dt=<date>, written with
+ * dim_sku, dim_store, dim_date - Parquet, partitioned dt=<date>, written with
  * dynamic-partition overwrite so ONLY the business date's partitions are
  * replaced (bronze is never touched; silver is rebuilt for the date first).
  * Dims derive from the DQ-PASSED silver of the day.

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Canonical failure event published to the shared DLQ topic
  * (silkroute.esb.dlq) after retries are exhausted (infra) or a compensated saga.
  * The customerRef field is masked per C1 when region=CN (enforced by the
- * constructor — the masked value must be supplied through PiiMaskingPolicy).
+ * constructor - the masked value must be supplied through PiiMaskingPolicy).
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DlqPayload {

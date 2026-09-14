@@ -10,10 +10,10 @@ import com.mapleretail.silkroute.batch.dq.RowView;
 import com.mapleretail.silkroute.batch.dq.Violation;
 
 /**
- * DQ-REFERENTIAL (MASTER_PROMPT §3): the row's foreign key must exist in the
+ * DQ-REFERENTIAL (the component spec): the row's foreign key must exist in the
  * referenced key set (e.g. every fact_order_lines.order_id exists in
  * fact_orders; every fact_orders.store_id exists in dim_store). Constructed
- * with the referenced key set — per-run instance.
+ * with the referenced key set - per-run instance.
  */
 public final class ReferentialKeysRule implements DqRule {
 

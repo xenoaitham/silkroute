@@ -30,9 +30,9 @@ import java.util.stream.Stream;
  *      at its (contract-pinned) default = through the proxy; waits for
  *      18082 /actuator/health UP.
  *
- * A missing jar or a boot failure FAILS the suite with build instructions —
+ * A missing jar or a boot failure FAILS the suite with build instructions -
  * never a skip. PIDs are recorded to target/*.pid and teardown destroys the
- * recorded Process handles (@AfterAll + shutdown hook) — NEVER pkill -f.
+ * recorded Process handles (@AfterAll + shutdown hook) - NEVER pkill -f.
  * External overrides: ESB_TEST_BASEURL / ERP_TEST_BASEURL.
  * Opt-in diagnostics: ESBINT_HARNESS_ONLY=true boots and verifies only the
  * harness (ERP + toxiproxy + kafka) and skips the ESB.
@@ -203,19 +203,19 @@ final class Apps {
 
     // ------------------------------------------------------- falsifiable fail
 
-    /** Ports the suite will BOOT on must be free — fail fast with clarity. */
+    /** Ports the suite will BOOT on must be free - fail fast with clarity. */
     private static void checkPortsFree(int... ports) {
         for (int port : ports) {
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress("127.0.0.1", port), 500);
                 throw new IllegalStateException("port " + port
-                        + " is already in use — the suite refuses to boot over a live process."
+                        + " is already in use - the suite refuses to boot over a live process."
                         + " Free the port (check target/*.pid, /tmp/silkroute-esb-*.pid, or"
                         + " `ss -ltnp sport = :" + port + "`) and re-run.");
             } catch (IllegalStateException e) {
                 throw e;
             } catch (IOException expected) {
-                // nothing listening — good
+                // nothing listening - good
             }
         }
     }
@@ -231,14 +231,14 @@ final class Apps {
             Transcript.log("infra: toxiproxy %s", version.body().trim());
         } catch (RuntimeException e) {
             throw new IllegalStateException("toxiproxy API not reachable at 127.0.0.1:"
-                    + Wire.TOXIPROXY_API_PORT + " (" + e.getMessage() + ") — run: make up");
+                    + Wire.TOXIPROXY_API_PORT + " (" + e.getMessage() + ") - run: make up");
         }
         for (int port : new int[]{Wire.KAFKA_PORT, Wire.REDIS_PORT}) {
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress("127.0.0.1", port), 1000);
             } catch (IOException e) {
                 throw new IllegalStateException("required sim service not listening on 127.0.0.1:"
-                        + port + " — run: make up");
+                        + port + " - run: make up");
             }
         }
         Transcript.log("infra: kafka:%d and redis:%d reachable", Wire.KAFKA_PORT, Wire.REDIS_PORT);
@@ -328,7 +328,7 @@ final class Apps {
 
     // -------------------------------------------------------------- teardown
 
-    /** Kill by the recorded Process handle / PID — NEVER pkill -f. */
+    /** Kill by the recorded Process handle / PID - NEVER pkill -f. */
     private static void destroy(String name, Process process, Path pidFile) {
         if (pidFile != null && Files.exists(pidFile)) {
             try {

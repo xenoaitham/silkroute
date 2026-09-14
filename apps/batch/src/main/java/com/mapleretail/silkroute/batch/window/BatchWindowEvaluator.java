@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * C4/C5 window evaluator (ADR-0006 decision 4): the T+1 batch must complete by
- * 06:00 Asia/Singapore. ZoneId is HARDCODED (not a knob — the window is a
+ * 06:00 Asia/Singapore. ZoneId is HARDCODED (not a knob - the window is a
  * business fact), the java.time.Clock is INJECTABLE so the negative case
  * (a clock past 06:00 must evaluate withinWindow=false) is unit-testable.
  *
@@ -33,7 +33,7 @@ public final class BatchWindowEvaluator {
 
     public static Result evaluate(Clock clock, String businessDate) {
         ZonedDateTime now = ZonedDateTime.now(clock.withZone(WINDOW_ZONE));
-        // "complete by 06:00" — 06:00:00.000 itself is the boundary, still within
+        // "complete by 06:00" - 06:00:00.000 itself is the boundary, still within
         boolean within = !now.toLocalTime().isAfter(WINDOW_END_SGT);
         String completedAt = now.format(SGT_FORMAT) + " Asia/Singapore";
         return new Result(businessDate, completedAt, within);

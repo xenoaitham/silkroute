@@ -21,7 +21,7 @@ public class SkuCatalog {
         skusById.put(sku.skuId(), sku);
     }
 
-    /** Returns null when unknown — callers decide which typed fault fits. */
+    /** Returns null when unknown - callers decide which typed fault fits. */
     public SkuRecord find(String skuId) {
         return skuId == null ? null : skusById.get(skuId);
     }

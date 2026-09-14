@@ -56,10 +56,10 @@ public class EventPublisher {
     /**
      * Publishes the canonical confirmed order to the event topic. The event
      * copy carries customerRef as the C1-masked value (masked for CN, clear
-     * otherwise) — the REST body never carries customerRef. The event copy is
+     * otherwise) - the REST body never carries customerRef. The event copy is
      * also the only payload that carries the order LINES (skuId, quantity,
      * per-line unit price as integer minor units + currency, C5): downstream
-     * consumers (the Phase-3 OMS event store) rebuild fact_order_lines from
+     * consumers (the data-plane OMS event store) rebuild fact_order_lines from
      * it. The REST body stays unchanged.
      */
     public void publishSuccess(OrderSubmissionResponse response, String egressCustomerRef,

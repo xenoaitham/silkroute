@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import com.mapleretail.silkroute.esb.config.EsbProperties;
 
 /**
- * SILKROUTE Phase 2 — Maple Retail Group (fictional) integration hub.
+ * SILKROUTE the hub - Maple Retail Group (fictional) integration hub.
  *
  * Apache Camel (Spring Boot) ESB: REST facade on platform-http (loopback only),
  * hand-rolled saga to the FROZEN SOAP ERP estate, XSLT mediation legs, retry +

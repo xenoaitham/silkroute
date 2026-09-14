@@ -1,11 +1,11 @@
 /*
- * SILKROUTE Phase 6 (S7) — ESB order-mediation STEPPED STRESS profile (constraint C3).
+ * SILKROUTE operations (S7) - ESB order-mediation STEPPED STRESS profile (constraint C3).
  *
- * Sibling of tests/load/k6-orders.js (the Phase-2 constant-rate profile, evidence
- * row E-010 — do not modify that file; this one reuses its payload conventions and
+ * Sibling of tests/load/k6-orders.js (the hub constant-rate profile, evidence
+ * row E-010 - do not modify that file; this one reuses its payload conventions and
  * deliberately diverges in purpose): k6-orders.js re-proves comfort at a fixed
- * 20 RPS, THIS profile exists to find where the C3 budget actually BREAKS —
- * the saturation point — by stepping the arrival rate UP until latency or
+ * 20 RPS, THIS profile exists to find where the C3 budget actually BREAKS -
+ * the saturation point - by stepping the arrival rate UP until latency or
  * infra integrity degrades.
  *
  * Shape (env-tunable):
@@ -17,38 +17,38 @@
  * Each step is its OWN k6 scenario (executor ramping-arrival-rate, sequenced via
  * startTime, no gaps). Two reasons:
  *   1. ramping-arrival-rate semantics: step 1 ramps startRate(1) -> 10, later
- *      steps ramp from the PREVIOUS step's target to their own target — the
- *      "ramp within steps" — then hold at the target for the rest of the step.
+ *      steps ramp from the PREVIOUS step's target to their own target - the
+ *      "ramp within steps" - then hold at the target for the rest of the step.
  *   2. every k6 metric is tagged `scenario:<name>`; per-step 201-only
  *      percentiles are surfaced via REPORTING thresholds on those tagged
  *      sub-metrics (see options.thresholds) because --summary-export carries
- *      AGGREGATE trend stats only — verified live during the S7 integration
+ *      AGGREGATE trend stats only - verified live during the S7 integration
  *      run (the original assumption that the export emits per-tag sub-metrics
  *      was wrong; the thresholds mechanism is the k6-blessed way to export
  *      them).
  *
  * BREAKING-POINT DEFINITION (evaluated per step from the summary export):
  *   The saturation point is the FIRST step where EITHER
- *     (a) infra failures exceed 1% of that step's requests — infra failures are
+ *     (a) infra failures exceed 1% of that step's requests - infra failures are
  *         everything that is NOT a business rejection: HTTP 5xx, timeouts,
- *         connection resets / network errors (status 0) — OR
+ *         connection resets / network errors (status 0) - OR
  *     (b) p95 of the 201-ONLY duration trend (order_req_duration_201) for that
  *         step exceeds the 300 ms C3 budget.
  *   Business rejections (422 INV-OUT-OF-STOCK stock exhaustion, 422/409 dup-ref
  *   paths) are FAST rejections that inflate raw throughput and MUST NOT be
- *   counted as saturation — hence metric (c) below counts them separately and
+ *   counted as saturation - hence metric (c) below counts them separately and
  *   the 201-only trend (b) keeps the latency percentile honest under heavy 422
  *   rates (ERP seeds stock 5..100/row, so at 70-90 RPS most rows legitimately
  *   exhaust mid-run; that is expected here, not a failure).
  *
- * Metrics discipline (the key design point) — three separate records:
+ * Metrics discipline (the key design point) - three separate records:
  *   order_req_duration_all    Trend of ALL request durations (raw view)
  *   order_req_duration_201    Trend of ONLY 201-response durations (C3 view)
  *   order_status_201/422/409/503/5xx/other + order_network_errors
  *                             Counters per status class (503 is also included
  *                             in the 5xx counter, so infra% = (5xx + network) / total)
  * Threshold discipline: the options.thresholds block holds REPORTING-only
- * thresholds at the 300 ms C3 boundary (no abortOnFail — nothing aborts; exit
+ * thresholds at the 300 ms C3 boundary (no abortOnFail - nothing aborts; exit
  * 99 means some step breached). k6-orders.js itself keeps zero thresholds.
  *
  * Run (ERP 18080 + toxiproxy 18180 + ESB 18081 must be up; k6 is NOT on PATH):
@@ -71,7 +71,7 @@ const PREALLOCATED_VUS = parseInt(__ENV.PREALLOCATED_VUS || '50', 10);
 const MAX_VUS = parseInt(__ENV.MAX_VUS || '600', 10);
 const BASE = (__ENV.ESB_BASEURL || 'http://127.0.0.1:18081').replace(/\/$/, '');
 
-// 50 SKUs x 3 SG stores — SG stores ONLY, deliberately: the C3 mediation path
+// 50 SKUs x 3 SG stores - SG stores ONLY, deliberately: the C3 mediation path
 // under stress is the SG flow (same combo set as k6-orders.js).
 const COMBOS = 150;
 
@@ -102,13 +102,13 @@ export const options = {
   scenarios,
   // Reporting thresholds at the C3 boundary (evolved during the first S7
   // integration run): k6's --summary-export carries AGGREGATE trend stats only
-  // (verified live — the original header's per-tag-sub-metrics assumption was
+  // (verified live - the original header's per-tag-sub-metrics assumption was
   // wrong), so per-step 201-only percentiles are made machine-readable via
   // thresholds on the scenario-tagged sub-metric. They are REPORTING
   // instruments, not assertions: no abortOnFail (a breach never aborts the
   // run), each step's p(95)/p(99) against the 300 ms budget lands in the
   // export under metrics[].thresholds, and exit code 99 = "some step breached
-  // the budget" — the falsifiable breaking-point signal. The breaking point
+  // the budget" - the falsifiable breaking-point signal. The breaking point
   // itself is still ANALYZED per the rule above, never asserted-pass here.
   thresholds: Object.fromEntries(
     STEPS.map((rps, i) => [
@@ -164,19 +164,19 @@ export function orderPost() {
   durAll.add(res.timings.duration);
 
   if (res.status === 201) {
-    dur201.add(res.timings.duration); // (b) 201-only trend — the honest C3 percentile
+    dur201.add(res.timings.duration); // (b) 201-only trend - the honest C3 percentile
     c201.add(1);
   } else if (res.status === 422) {
-    c422.add(1); // business rejection (stock exhausted / dup-ref guard) — NEVER saturation
+    c422.add(1); // business rejection (stock exhausted / dup-ref guard) - NEVER saturation
   } else if (res.status === 409) {
     c409.add(1); // idempotent replay semantics
   } else if (res.status === 503) {
     c503.add(1); // CIRCUIT-OPEN / SAGA-COMPENSATED
     c5xx.add(1);
   } else if (res.status >= 500) {
-    c5xx.add(1); // other 5xx — infra
+    c5xx.add(1); // other 5xx - infra
   } else if (res.status === 0) {
-    cNet.add(1); // timeout / connection reset / refused — infra
+    cNet.add(1); // timeout / connection reset / refused - infra
   } else {
     cOther.add(1);
   }
@@ -187,7 +187,7 @@ export default function () {
   orderPost();
 }
 
-// NOTE: no handleSummary on purpose — same reasoning as k6-orders.js: k6's
+// NOTE: no handleSummary on purpose - same reasoning as k6-orders.js: k6's
 // --summary-export writes the complete metric values (p(95) per scenario tag
 // included) only when no custom summary handler is defined. That JSON is the
 // evidence artifact the orchestrator copies into evidence/ with hardware context.

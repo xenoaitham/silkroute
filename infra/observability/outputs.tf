@@ -9,7 +9,7 @@ output "log_store_names" {
 }
 
 output "audit_log_store_arn" {
-  description = "ARN of the audit store (ActionTrail target, Phase-5 groundwork)."
+  description = "ARN of the audit store (ActionTrail target, compliance groundwork)."
   value       = "acs:log:${var.region}:${var.account_id}:project/${alicloud_log_project.sg.project_name}/logstore/audit"
 }
 

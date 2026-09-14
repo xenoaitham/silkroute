@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SILKROUTE Phase 3 — the REAL seeded order day: drive N orders through the
+# SILKROUTE the data plane - the REAL seeded order day: drive N orders through the
 # LIVE ESB REST facade (no synthetic SQL anywhere).
 #
 # Maple Retail Group is a fictional company; self-directed reference
@@ -8,13 +8,13 @@
 # Store mix (deliberate, multi-currency C5 + masking C1):
 #   ~half CA (ST-CA-01, customerRef cust-ca-<i>, CAD)
 #   ~a quarter SG (ST-SG-01, customerRef cust-sg-<i>, SGD)
-#   ~a quarter CN (ST-CN-01, customerRef cust-cn-<i> — the ESB masks it to
+#   ~a quarter CN (ST-CN-01, customerRef cust-cn-<i> - the ESB masks it to
 #     msk-* at egress; the lake inherits ONLY the msk-* value)
 # Quantities 1-3, SKUs rotating over SKU-0001..SKU-0050 (stays well inside the
 # ERP per-SKU stock pool 5..100: ~30 orders x <=3 qty spread over 50 SKUs).
 #
 # Every accepted (201) order produces exactly ONE ESB success event on
-# silkroute.orders.events — the expected-event count is derivable from the
+# silkroute.orders.events - the expected-event count is derivable from the
 # summary (SEED-DAY expectedEvents=<ok201>).
 #
 # Usage: scripts/seed-day.sh [N]      # default 30
@@ -31,11 +31,11 @@ command -v jq >/dev/null    || { echo "SEED-DAY ERROR: jq is required"; exit 1; 
 
 # ---- prereq: ERP + ESB must be up (REFUSE with instructions otherwise) ------
 if ! curl -sf "$ERP_URL/actuator/health" | grep -q UP; then
-  echo "SEED-DAY ERROR: ERP not healthy at $ERP_URL — boot it with: make esb-run" >&2
+  echo "SEED-DAY ERROR: ERP not healthy at $ERP_URL - boot it with: make esb-run" >&2
   exit 1
 fi
 if ! curl -sf "$ESB_HEALTH_URL/actuator/health" | grep -q UP; then
-  echo "SEED-DAY ERROR: ESB not healthy at $ESB_HEALTH_URL (management port; facade $ESB_URL) — boot it with: make esb-run" >&2
+  echo "SEED-DAY ERROR: ESB not healthy at $ESB_HEALTH_URL (management port; facade $ESB_URL) - boot it with: make esb-run" >&2
   exit 1
 fi
 
@@ -79,7 +79,7 @@ post_order() {
     ok201=$((ok201 + 1))
   else
     non201=$((non201 + 1))
-    # a 422 out-of-stock is a legitimate business outcome — counted, not hidden
+    # a 422 out-of-stock is a legitimate business outcome - counted, not hidden
     local err
     err=$(printf '%s' "$json" | jq -r '.error.code // .error // "unknown"' 2>/dev/null || echo "unparseable")
     failures+=("key=$key http=$code error=$err")

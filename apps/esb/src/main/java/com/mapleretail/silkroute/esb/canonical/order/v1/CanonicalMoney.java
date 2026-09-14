@@ -16,7 +16,7 @@ import jakarta.xml.bind.annotation.XmlType;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CanonicalMoney {
 
-    /** Minor units as a signed 64-bit integer — never a float. */
+    /** Minor units as a signed 64-bit integer - never a float. */
     @XmlElement(name = "amountMinor", required = true, namespace = CanonicalOrder.NS)
     private Long amountMinor;
 

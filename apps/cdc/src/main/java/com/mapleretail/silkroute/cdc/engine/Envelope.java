@@ -48,7 +48,7 @@ public final class Envelope {
         return text(path(path(root, "source"), "name"));
     }
 
-    /** Source-commit timestamp (ts_ms inside source) — the freshness contract input. */
+    /** Source-commit timestamp (ts_ms inside source) - the freshness contract input. */
     public Long sourceTsMs() {
         JsonNode n = path(path(root, "source"), "ts_ms");
         return n == null || !n.canConvertToLong() ? null : n.asLong();
@@ -57,7 +57,7 @@ public final class Envelope {
     /**
      * Region tag for the bronze key (C1): after.region for c/r/u, before.region
      * for deletes; empty string when neither is present (caller must fail fast
-     * — never land an object without its region tag).
+     * - never land an object without its region tag).
      */
     public String region() {
         String r = text(path(path(root, "after"), "region"));

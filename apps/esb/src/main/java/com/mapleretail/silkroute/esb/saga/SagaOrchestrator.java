@@ -41,7 +41,7 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
  * Compensation: on ANY failure after reserve (or a partial reserve), every
  * collected reservationId is released best-effort, the response carries
  * compensated:true / releasedReservationId (code SAGA-COMPENSATED) and the
- * failure goes to the shared DLQ — masked per C1 for CN.
+ * failure goes to the shared DLQ - masked per C1 for CN.
  *
  * Class mapping (ADR-0003): ERP business faults → 422 BUSINESS (Sender class,
  * no retry, never trip the breaker); timeouts/connect failures → retry ladder →
@@ -149,7 +149,7 @@ public class SagaOrchestrator {
 
     /** ERP business fault after reserve: compensate, DLQ, 422 BUSINESS (+compensation info). */
     private SagaOutcome businessAfterReserve(ErpBusinessException e, String step, SagaContext ctx) {
-        LOG.info("Saga failed on step '{}' with ERP business fault {}: {} — compensating", step, e.getErrorCode(),
+        LOG.info("Saga failed on step '{}' with ERP business fault {}: {} - compensating", step, e.getErrorCode(),
                 e.getMessage());
         Compensation compensation = compensate(ctx);
         publishDlq(step, ctx, e.getErrorCode(), "BUSINESS", e.getMessage(), compensation);
@@ -192,8 +192,8 @@ public class SagaOrchestrator {
         }
         for (String reservationId : ctx.getReservationIds()) {
             try {
-                // Compensation MUST be possible exactly when the breaker is OPEN —
-                // that is when a saga holding reservations fails — so releases ride
+                // Compensation MUST be possible exactly when the breaker is OPEN -
+                // that is when a saga holding reservations fails - so releases ride
                 // the dedicated breaker-free route (direct:erp-release), never the
                 // guarded direct:erp funnel.
                 erp("direct:erp-release", ErpCall.release(ctx, reservationId));

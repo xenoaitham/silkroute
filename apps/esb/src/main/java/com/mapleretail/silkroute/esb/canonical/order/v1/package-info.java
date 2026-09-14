@@ -7,7 +7,7 @@
  *
  * Classes are dual-annotated: JAXB for the canonical XML representation used by
  * the XSLT legs, Jackson for the wire JSON. Money is integer minor units + ISO
- * currency code (C5) — never floats.
+ * currency code (C5) - never floats.
  */
 @jakarta.xml.bind.annotation.XmlSchema(namespace = com.mapleretail.silkroute.esb.canonical.order.v1.CanonicalOrder.NS, elementFormDefault = jakarta.xml.bind.annotation.XmlNsForm.QUALIFIED)
 package com.mapleretail.silkroute.esb.canonical.order.v1;

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SILKROUTE Phase 2 — Maple Retail Group (fictional) integration hub (apps/esb).
+  SILKROUTE the hub - Maple Retail Group (fictional) integration hub (apps/esb).
 
   The ESB mediates modern REST/JSON to the FROZEN SOAP ERP estate (constraint C6):
   wsdl2java reads the WSDLs/XSDs at ../legacy-erp (read-only, single source of truth,
@@ -128,7 +128,7 @@
     <plugins>
       <!-- wsdl2java: READ-ONLY generation from the FROZEN contracts (C6).
            Same WSDLs and JAXB binding files as the ERP build, referenced by path.
-           Never edit anything under ../legacy-erp — freeze tag contract-freeze-erp-v1. -->
+           Never edit anything under ../legacy-erp - freeze tag contract-freeze-erp-v1. -->
       <plugin>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-codegen-plugin</artifactId>

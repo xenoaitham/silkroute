@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
  * Kafka access for the suite, via {@code docker exec sim-kafka} (the compose
  * container from docker-compose.yml, apache/kafka:3.8.0 with in-container CLI
  * at /opt/kafka/bin). DOCUMENTED CHOICE per the contract: docker exec instead
- * of a kafka-clients dependency — the Maven mirror is flaky and the container
+ * of a kafka-clients dependency - the Maven mirror is flaky and the container
  * already ships a working client. Topics are created --if-not-exists; reads
  * are `kafka-console-consumer --from-beginning --timeout-ms ...` passes (exit
  * code 0 on timeout), so every pass sees ALL records ever written to the
@@ -112,7 +112,7 @@ final class KafkaBoxes {
             throw new IllegalStateException("docker exec " + CONTAINER + " failed (exit "
                     + p.exitValue() + "): " + command
                     + "\nstderr: " + stderr
-                    + "\n— is the sim network up? run: make up");
+                    + "\n- is the sim network up? run: make up");
         }
         return stdout;
     }

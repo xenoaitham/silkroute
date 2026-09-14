@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * externalOrderRef, storeId, region, channel, reservationId,
  * totalAmount{amountMinor,currency}, unitPrices[], saga[], attempts{}, route{},
  * audit{sourceSystem,correlationId}) PLUS customerRef (clear for CA/SG,
- * msk-* pseudonym for CN — stored verbatim, C1) PLUS lines[] =
+ * msk-* pseudonym for CN - stored verbatim, C1) PLUS lines[] =
  * {skuId, quantity, unitPriceMinor, currency}.
  *
  * Poison rules (OrderEventParseException): invalid JSON; missing orderId /

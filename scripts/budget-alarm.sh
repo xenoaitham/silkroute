@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Budget alarm for the SilkRoute AliCloud account (~$20/month, MASTER_PROMPT §8).
+# Budget alarm for the SilkRoute AliCloud account (~$20/month, ).
 #
 # WHY A SCRIPT, NOT TERRAFORM: provider aliyun/alicloud 1.285.0 ships no
 # budget/BSS resource type (verified by case-insensitive grep over all 1161
@@ -7,7 +7,7 @@
 # therefore an out-of-band BssOpenApi call, documented here and executed only
 # against a real account.
 #
-# API CONTRACT (corrected per critic cycle 1 — the original draft targeted a
+# API CONTRACT (corrected in review cycle 1 - the original draft targeted a
 # SetBudgets action that is not findable in the docs): CreateBudget, BssOpenApi
 # version 2023-09-30. Key parameters verified against
 # https://help.aliyun.com/en/user-center/developer-reference/api-bssopenapi-2023-09-30-createbudget :
@@ -61,7 +61,7 @@ JSON
 )
 
 if [[ "${LIVE:-0}" != "1" ]]; then
-  echo "DRY RUN (default) — no API call performed. To execute against a real account:"
+  echo "DRY RUN (default) - no API call performed. To execute against a real account:"
   echo "  LIVE=1 ALICLOUD_ACCESS_KEY_ID=... ALICLOUD_ACCESS_KEY_SECRET=... bash $0"
   echo
   echo "BssOpenApi CreateBudget (2023-09-30) payload: monthly cap \$${BUDGET_AMOUNT}, warn at ${ALERT_THRESHOLD}%:"

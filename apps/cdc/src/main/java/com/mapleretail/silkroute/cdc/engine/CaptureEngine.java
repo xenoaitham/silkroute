@@ -22,11 +22,11 @@ import org.slf4j.LoggerFactory;
 import com.mapleretail.silkroute.cdc.common.Env;
 
 /**
- * Main A — the embedded Debezium engine (ADR-0006 decision 1).
+ * Main A - the embedded Debezium engine (ADR-0006 decision 1).
  *
  * Captures MySQL binlog changes of silkroute_oms.oms_order / oms_order_line
  * (MySqlConnector, snapshot.mode=initial, offsets + schema history in local
- * file stores — deterministic kill/restart for chaos beats) and publishes each
+ * file stores - deterministic kill/restart for chaos beats) and publishes each
  * FULL envelope (op, ts_ms, source{ts_ms,table,server}, before, after) as JSON
  * (schemas.enable=false) to ${KAFKA_CDC_TOPIC}. The per-record
  *
@@ -37,7 +37,7 @@ import com.mapleretail.silkroute.cdc.common.Env;
  * NO poll/table-scan fallback exists in this codebase).
  *
  * Publish is synchronous (producer.send().get()): a record is "published"
- * only once the broker acked — that is the freshness contract's success point.
+ * only once the broker acked - that is the freshness contract's success point.
  * A publish or engine failure is LOUD: the completion callback logs and the
  * process exits non-zero (offsets are only flushed for successfully handled
  * batches).
@@ -78,7 +78,7 @@ public final class CaptureEngine {
         props.setProperty("database.port", String.valueOf(mysqlPort));
         props.setProperty("database.user", mysqlUser);
         props.setProperty("database.password", mysqlPassword);
-        // deterministic and distinct from the MySQL server_id (1 on sim) — the replication client identity
+        // deterministic and distinct from the MySQL server_id (1 on sim) - the replication client identity
         props.setProperty("database.server.id", String.valueOf(serverId));
         props.setProperty("topic.prefix", serverName);
         props.setProperty("database.include.list", Env.get("CDC_DATABASE_INCLUDE", "silkroute_oms"));
@@ -170,7 +170,7 @@ public final class CaptureEngine {
             try {
                 envelope = Envelope.fromJson(value);
             } catch (Exception e) {
-                // a non-envelope record cannot be routed or reconciled — fail loudly
+                // a non-envelope record cannot be routed or reconciled - fail loudly
                 throw new IllegalStateException("CDC-ENVELOPE-UNPARSEABLE destination=" + record.destination(), e);
             }
             LOG.info("CDC-CAPTURE op={} table={} sourceTsMs={} server={}",

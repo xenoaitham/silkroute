@@ -7,7 +7,7 @@ import java.util.TreeMap;
 
 /**
  * Pure reconciliation math (the AC: source vs gold must be 100%). No Spark,
- * no IO — unit-testable on in-memory rows. Currency totals are keyed by the
+ * no IO - unit-testable on in-memory rows. Currency totals are keyed by the
  * ISO code (C5): money is compared per currency, never across.
  */
 public final class ReconMath {

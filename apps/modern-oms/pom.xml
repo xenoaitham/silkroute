@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SILKROUTE Phase 3 — Maple Retail Group (fictional) modern OMS event store
+  SILKROUTE the data plane - Maple Retail Group (fictional) modern OMS event store
   (apps/modern-oms): the CDC SOURCE of the ETL data plane.
 
   Consumes ESB success events (topic silkroute.orders.events) into MySQL
@@ -10,8 +10,8 @@
   so replays never double-insert (ADR-0006 decision 2).
 
   Money discipline (C5): integer minor units + CAD/SGD/CNY code everywhere,
-  integer multiplication for line totals — NEVER float/double. PII residency
-  (C1): customerRef is stored VERBATIM as received on the event copy — it is
+  integer multiplication for line totals - NEVER float/double. PII residency
+  (C1): customerRef is stored VERBATIM as received on the event copy - it is
   ALREADY the ESB-masked value (msk-*) for CN stores; nothing here can unmask.
 
   No HTTP port (web-application-type=none): the shared sim host must gain zero
@@ -20,7 +20,7 @@
   Fat-jar note: built with spring-boot-maven-plugin (same style as apps/esb).
   Plain maven-shade would silently drop duplicate
   META-INF/spring/...AutoConfiguration.imports files (one per autoconfigure
-  module), losing e.g. KafkaAutoConfiguration — the Boot repackage is the
+  module), losing e.g. KafkaAutoConfiguration - the Boot repackage is the
   correct fat jar for a Spring app and java -jar works identically.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -39,7 +39,7 @@
   <artifactId>oms</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <name>oms</name>
-  <description>Maple Retail (fictional) modern OMS: ESB success-event store, the CDC source (Phase 3)</description>
+  <description>Maple Retail (fictional) modern OMS: ESB success-event store, the CDC source (the data plane)</description>
 
   <properties>
     <java.version>17</java.version>
@@ -47,7 +47,7 @@
   </properties>
 
   <dependencies>
-    <!-- Core (logging, YAML config) — NO web starter: zero listening ports. -->
+    <!-- Core (logging, YAML config) - NO web starter: zero listening ports. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>

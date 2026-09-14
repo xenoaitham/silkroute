@@ -5,7 +5,7 @@ import java.time.Clock;
 import java.time.ZoneId;
 
 /**
- * Business-date helpers — C5 timezone-explicit: the T+1 batch window is defined
+ * Business-date helpers - C5 timezone-explicit: the T+1 batch window is defined
  * in Asia/Singapore (the ops hub), the bronze dt= partitions are UTC dates of
  * the source-commit timestamp (ADR-0006). Both facts are pinned in code, never
  * left to the JVM default zone.
@@ -27,7 +27,7 @@ public final class BusinessDates {
         return businessDate.replace("-", "");
     }
 
-    /** Strict parse — a malformed --business-date arg must fail loudly, not misroute a partition. */
+    /** Strict parse - a malformed --business-date arg must fail loudly, not misroute a partition. */
     public static LocalDate parse(String businessDate) {
         return LocalDate.parse(businessDate);
     }

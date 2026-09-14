@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SILKROUTE Phase 3 — Spark bronze→silver→gold batch (apps/batch).
+  SILKROUTE the data plane - Spark bronze→silver→gold batch (apps/batch).
 
-  MASTER_PROMPT §3 component 3: bronze (raw, immutable, region-tagged) → Spark
+  the component spec component 3: bronze (raw, immutable, region-tagged) → Spark
   batch silver (cleansed/conformed) → gold star schema (fact_orders,
   fact_order_lines, dim_sku, dim_store, dim_date) with reconciliation totals
   (source vs gold, must be 100%) and DQ rules (completeness, uniqueness,
@@ -13,9 +13,9 @@
   - s3a against ${S3_ENDPOINT} (MinIO in sim) with path-style access; buckets
     mirror the IaC family names (ADR-0006 decision 3).
   - Money discipline (C5): every monetary column is BIGINT minor units + a
-    currency STRING — FloatType/DoubleType appear NOWHERE in this module; the
+    currency STRING - FloatType/DoubleType appear NOWHERE in this module; the
     only floating-point-ish concept (freshness seconds) is emitted as integers.
-  - DQ predicates are pure-Java (RowView) — unit-testable and reusable by
+  - DQ predicates are pure-Java (RowView) - unit-testable and reusable by
     selftest WITHOUT Spark; the Spark layer only adapts rows (see dq package).
   - CLI: full | recon-only | selftest (optional business-date argument).
 -->
@@ -29,7 +29,7 @@
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>batch</name>
-  <description>Maple Retail (fictional) Spark bronze/silver/gold + DQ + reconciliation (Phase 3)</description>
+  <description>Maple Retail (fictional) Spark bronze/silver/gold + DQ + reconciliation (the data plane)</description>
 
   <properties>
     <maven.compiler.release>17</maven.compiler.release>

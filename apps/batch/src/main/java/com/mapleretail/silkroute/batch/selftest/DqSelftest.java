@@ -17,13 +17,13 @@ import com.mapleretail.silkroute.batch.dq.rules.ReferentialKeysRule;
 import com.mapleretail.silkroute.batch.dq.rules.UniqueKeysRule;
 
 /**
- * `selftest` mode — the negative control for the DQ layer itself (mirrors
+ * `selftest` mode - the negative control for the DQ layer itself (mirrors
  * scripts/residency-tests.sh --selftest and make audit-demo precedent):
  * ONE JVM process, NO MySQL/MinIO/Spark dependency, fixtures with KNOWN
  * violations, run through the SAME pure predicate classes the pipeline uses.
  *
  * Exit 0 iff EVERY rule caught its own fixture violation; exit 2 if any rule
- * missed — a check that cannot fail is not a check.
+ * missed - a check that cannot fail is not a check.
  *
  * Fixtures (each rule gets a dedicated one):
  *   DQ-COMPLETE(orders)  : order missing store_id

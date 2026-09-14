@@ -1,7 +1,7 @@
 package com.mapleretail.silkroute.batch;
 
 /**
- * C5: line totals are INTEGER minor-unit multiplication — long math only,
+ * C5: line totals are INTEGER minor-unit multiplication - long math only,
  * never float/double. Used by the selftest fixture builder and pinned by
  * unit tests; the Spark column expression mirrors this exact semantics
  * (both operands cast to long BEFORE multiplying).

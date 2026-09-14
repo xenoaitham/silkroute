@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SilkRoute - multi-region integration platform, visual walkthrough</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --text:#d0d7de; --dim:#8b949e; --accent:#d29922; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.65 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
+  a { color:#58a6ff; text-decoration:none; } a:hover { text-decoration:underline; }
+  .wrap { max-width:1060px; margin:0 auto; padding:0 24px 80px; }
+  header { padding:48px 0 8px; }
+  header h1 { font-size:34px; margin:0; letter-spacing:-0.5px; }
+  header h1 span { color:var(--accent); }
+  header p.sub { color:var(--dim); margin:8px 0 0; font-size:17px; max-width:760px; }
+  .links { margin-top:14px; font-size:14.5px; }
+  .links a { margin-right:18px; }
+  h2 { font-size:21px; margin:52px 0 6px; padding-top:18px; border-top:1px solid var(--line); }
+  p.lead { color:var(--dim); margin-top:4px; }
+  figure { margin:26px 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  figure img { display:block; width:100%; height:auto; }
+  figcaption { padding:12px 16px; font-size:14.5px; color:var(--dim); border-top:1px solid var(--line); }
+  figcaption b { color:var(--text); font-weight:600; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px 18px; overflow-x:auto; font:13.5px/1.6 ui-monospace,SFMono-Regular,Consolas,Menlo,monospace; color:#c9d1d9; }
+  pre .c { color:#7ee787; }
+  .note { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; padding:14px 18px; font-size:14.5px; color:var(--dim); }
+  footer { margin-top:64px; padding-top:20px; border-top:1px solid var(--line); color:var(--dim); font-size:13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Silk<span>Route</span></h1>
+  <p class="sub">A multi-region enterprise integration platform: SOAP mediation into an untouchable legacy ERP, change data capture, and a governed data lake. Everything on this page runs in docker on one machine.</p>
+  <div class="links">
+    <a href="https://github.com/xenoaitham/silkroute">GitHub repository</a>
+    <a href="https://github.com/xenoaitham/silkroute/actions">CI runs</a>
+    <a href="https://github.com/xenoaitham/silkroute/blob/main/evidence/EVIDENCE.md">Evidence ledger</a>
+  </div>
+</header>
+
+<h2>Continuous integration</h2>
+<p class="lead">Every push runs five checks: the compose stack and its smoke test, the SOAP contract suite against the frozen WSDLs, the ESB fault-injection suite, the data-plane unit tests, and the Terraform landing-zone validation.</p>
+<figure>
+  <img src="screenshots/gh-actions.png" alt="GitHub Actions run with all five checks green">
+  <figcaption><b>All five checks green.</b> The run is reproducible: every job maps to a make target, and the evidence ledger pins the commit each verdict was rendered on.</figcaption>
+</figure>
+
+<h2>The data lake, partitioned by region</h2>
+<p class="lead">Orders flow: REST facade -> saga into the SOAP ERP -> Kafka events -> MySQL (OMS) -> Debezium reads the binlog -> Kafka -> bronze objects in object storage. Chinese-market orders are pseudonymized at the integration layer, and every bronze object carries its region in the key.</p>
+<figure>
+  <img src="screenshots/minio-login.png" alt="Object storage console login">
+  <figcaption><b>The object store console.</b> This is MinIO standing in for OSS in the local runtime; the same S3 API calls target the cloud bucket family when an account exists.</figcaption>
+</figure>
+<figure>
+  <img src="screenshots/minio-bronze.png" alt="Bronze bucket partitioned by region">
+  <figcaption><b>The bronze bucket.</b> Hive-style partitioning: region=CA, region=CN, region=SG. The residency rule is visible right in the key layout - nothing from the CN partition lands outside its prefix.</figcaption>
+</figure>
+<figure>
+  <img src="screenshots/minio-cn-partition.png" alt="Inside the CN partition, per-table prefixes">
+  <figcaption><b>Inside region=CN.</b> One prefix per source table. Customer references here are the masked msk-* pseudonyms, never plaintext - a checked property, not a promise.</figcaption>
+</figure>
+<figure>
+  <img src="screenshots/minio-cn-objects.png" alt="Raw CDC envelope objects with timestamps and sizes">
+  <figcaption><b>Raw change events, write-once.</b> Each object is a batch of Debezium envelopes straight from the binlog, keyed by topic, partition, and offset. There is no update or delete code path in the writer.</figcaption>
+</figure>
+
+<h2>Proof, not promises</h2>
+<p class="lead">Two of the runs behind the numbers. The ledger entry for each carries the exact command to reproduce it.</p>
+<figure>
+  <img src="screenshots/terminal-seed-recon.png" alt="Seeded order day reconciling to the minor unit">
+  <figcaption><b>A seeded order day, reconciled.</b> 30 real orders through the live saga, then source-versus-gold: counts and money totals match per currency to the minor unit, and the batch finishes inside the 06:00 Singapore window.</figcaption>
+</figure>
+<figure>
+  <img src="screenshots/terminal-etl-int.png" alt="Six-scenario integration suite passing">
+  <figcaption><b>The integration suite.</b> Replay safety, a capture process killed mid-stream and restarted with zero loss and zero duplicates, the freshness metric contract, data-quality rules that catch their own fixtures, and a reconciliation that goes red when stabbed.</figcaption>
+</figure>
+
+<h2>Run it yourself</h2>
+<p class="lead">Docker, jq, curl, and a JDK. From a clean checkout:</p>
+<pre>
+make up && make smoke                      <span class="c"># six-service sim stack, falsifiable smoke</span>
+./mvnw -B -f apps/legacy-erp/pom.xml clean package
+./mvnw -B -f apps/esb/pom.xml clean package
+make esb-run                               <span class="c"># ERP on 18080, ESB on 18081, PID files</span>
+scripts/demo-order.sh                      <span class="c"># one order through the full saga, HTTP 201</span>
+make plan-sg                               <span class="c"># Terraform plan: 87 to add, creates nothing</span>
+</pre>
+<p class="lead">The data plane in one command each:</p>
+<pre>
+make etl-setup                             <span class="c"># databases, users, topics, buckets (idempotent)</span>
+make oms-run && make cdc-run               <span class="c"># event store + binlog capture + bronze writer</span>
+make seed-day N=30                         <span class="c"># 30 live orders through the ESB</span>
+make cdc-stop
+make batch-run ARGS="full --business-date $(date -u +%F)"
+                                           <span class="c"># silver -> gold, DQ gates, reconciliation report</span>
+make etl-int                               <span class="c"># the six-scenario suite, ~4 minutes</span>
+</pre>
+
+<div class="note">
+  Honest boundaries, stated plainly: the runtime evidence here is the local docker environment. The AliCloud landing zone is
+  written, validated, and planned against the real provider - and never applied, because no account exists. Cloud-only
+  behaviors (log ingestion, alerts, runtime residency enforcement) are labeled verify-at-activation throughout the docs.
+  The scenario company is fictional; this is a self-directed reference implementation.
+</div>
+
+<footer>
+  SilkRoute - self-directed reference implementation (2026). Maple Retail Group is fictional.
+  Source: <a href="https://github.com/xenoaitham/silkroute">github.com/xenoaitham/silkroute</a>
+</footer>
+
+</div>
+</body>
+</html>

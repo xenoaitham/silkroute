@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SILKROUTE Phase 1 — legacy ERP estate (apps/legacy-erp).
+  SILKROUTE the ERP layer - legacy ERP estate (apps/legacy-erp).
 
   Contract-first build (constraint C6): the WSDLs/XSDs under src/main/resources
   are FROZEN. cxf-codegen-plugin (wsdl2java) generates the Java binding from them

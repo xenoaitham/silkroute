@@ -21,16 +21,16 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * WAR STORY (S9, found by the live mini-run): the first implementation opened
  * the connection with {@code try (var conn = DataSourceUtils.getConnection(...))}
- * inside the transaction — try-with-resources closed the TRANSACTION-BOUND
+ * inside the transaction - try-with-resources closed the TRANSACTION-BOUND
  * Hikari proxy directly (bypassing DataSourceUtils' close semantics), so every
  * commit failed with "Connection is closed" and the record retried forever.
  * Fix: statements run through JdbcTemplate, which participates in the Spring
  * transaction and manages its own connection lifecycle correctly.
  *
  * Idempotency is belt-and-braces (ADR-0006 decision 2):
- *  1. a code-level business-key check (source_system, external_order_ref) — a
+ *  1. a code-level business-key check (source_system, external_order_ref) - a
  *     duplicate REPLAY-SKIPs before touching lines, so no partial dupes;
- *  2. INSERT ... ON DUPLICATE KEY UPDATE <pk>=<pk> — a deliberate no-op that
+ *  2. INSERT ... ON DUPLICATE KEY UPDATE <pk>=<pk> - a deliberate no-op that
  *     can never double-insert even if two consumers raced between the check
  *     and the insert.
  */
@@ -108,7 +108,7 @@ public class JdbcOrderEventStore implements OrderEventStore {
             ps.setString(3, event.getSourceSystem());
             setNullableString(ps, 4, event.getStoreId());
             setNullableString(ps, 5, event.getRegion());
-            // C1: stored verbatim — for CN this is ALREADY the msk-* pseudonym from the ESB egress.
+            // C1: stored verbatim - for CN this is ALREADY the msk-* pseudonym from the ESB egress.
             setNullableString(ps, 6, event.getCustomerRef());
             setNullableString(ps, 7, event.getChannel());
             setNullableString(ps, 8, event.getStatus());

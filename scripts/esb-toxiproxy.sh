@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SILKROUTE Phase 2 — BUILD-ESB helper (apps/esb).
+# SILKROUTE the hub - BUILD-ESB helper (apps/esb).
 #
 # Idempotent management of the toxiproxy proxy "erp" on the ESB fault-injection
 # toxiproxy (127.0.0.1:18474, host-network container sim-esb-toxiproxy). ALL ERP
@@ -11,12 +11,12 @@
 #   upstream 127.0.0.1:18080   (legacy ERP sim, app port)
 #
 # Why a SECOND toxiproxy (and not the sim stack's 8474 one): the ERP jar binds
-# host 127.0.0.1:18080. sim-toxiproxy is bridge-mode — from inside it, 127.0.0.1
+# host 127.0.0.1:18080. sim-toxiproxy is bridge-mode - from inside it, 127.0.0.1
 # is the container itself and this rootless setup has no slirp host alias, so it
 # cannot upstream to the host. sim-esb-toxiproxy runs network_mode: host, so its
 # proxy binds REAL host loopback (127.0.0.1:18180, loopback-only).
 #
-# NOTE: unrelated toxiproxies exist too (sim stack 8474, busforge 8475) — never touch those.
+# NOTE: unrelated toxiproxies exist too (sim stack 8474, busforge 8475) - never touch those.
 # NEVER restart the docker daemon or other stacks from here.
 #
 # usage:

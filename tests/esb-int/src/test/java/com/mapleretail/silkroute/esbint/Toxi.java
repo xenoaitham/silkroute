@@ -5,11 +5,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 /**
  * Toxiproxy REST client (http://127.0.0.1:8474, container sim-toxiproxy) for
  * the proxy named "erp": listen 127.0.0.1:18180 -> upstream 127.0.0.1:18080
- * (both real host-loopback binds — the API toxiproxy, sim-esb-toxiproxy on
+ * (both real host-loopback binds - the API toxiproxy, sim-esb-toxiproxy on
  * 18474, runs with network_mode: host precisely so the upstream reaches the
  * host-bound ERP jar; the bridge-mode sim-toxiproxy cannot).
  * ALL ERP traffic from the ESB flows through it. Every call is against the
- * public toxiproxy v2 API, pure JSON — identical to what tests/chaos/esb-faults.sh
+ * public toxiproxy v2 API, pure JSON - identical to what tests/chaos/esb-faults.sh
  * does from the shell.
  */
 final class Toxi {
@@ -32,12 +32,12 @@ final class Toxi {
             if (created.status() != 201 && created.status() != 200) {
                 throw new IllegalStateException("cannot create toxiproxy proxy '" + PROXY_NAME
                         + "' (" + created.status() + "): " + created.body()
-                        + " — is the sim network up? run: make up");
+                        + " - is the sim network up? run: make up");
             }
             Transcript.log("toxiproxy: created proxy %s %s -> %s", PROXY_NAME, LISTEN, UPSTREAM);
         } else if (get.status() != 200) {
             throw new IllegalStateException("toxiproxy API unreachable at " + API + " (HTTP "
-                    + get.status() + ") — is the sim network up? run: make up");
+                    + get.status() + ") - is the sim network up? run: make up");
         } else {
             JsonNode proxy = get.json();
             if (!UPSTREAM.equals(proxy.path("upstream").asText())) {
@@ -48,7 +48,7 @@ final class Toxi {
         setEnabled(true);
     }
 
-    /** POST /proxies/erp {"enabled":bool} — the hard-down / heal switch. */
+    /** POST /proxies/erp {"enabled":bool} - the hard-down / heal switch. */
     static void setEnabled(boolean enabled) {
         Wire.Resp r = Wire.post(API + "/proxies/" + PROXY_NAME, "{\"enabled\":" + enabled + "}");
         if (r.status() != 200) {
@@ -70,7 +70,7 @@ final class Toxi {
     }
 
     static void removeToxic(String name) {
-        // DELETE /proxies/erp/toxics/<name> — 204 on success, 404 when absent.
+        // DELETE /proxies/erp/toxics/<name> - 204 on success, 404 when absent.
         try {
             java.net.http.HttpRequest req = java.net.http.HttpRequest
                     .newBuilder(java.net.URI.create(API + "/proxies/" + PROXY_NAME + "/toxics/" + name))

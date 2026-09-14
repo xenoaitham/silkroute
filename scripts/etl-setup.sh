@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# SILKROUTE Phase 3 — idempotent data-plane bootstrap (sim mode).
+# SILKROUTE the data plane - idempotent data-plane bootstrap (sim mode).
 #
 # Creates, IF NOT EXISTS (re-running must exit 0 and change nothing):
 #   - MySQL databases     silkroute_oms (OMS event store, CDC source)
 #                         silkroute_lake (DQ quarantine/results + recon_report)
-#   - MySQL users         silkroute_oms (ALL on both DBs — event store + DQ writer)
-#                         silkroute_cdc (SELECT on silkroute_oms + REPLICATION SLAVE/CLIENT — the Debezium requirements)
+#   - MySQL users         silkroute_oms (ALL on both DBs - event store + DQ writer)
+#                         silkroute_cdc (SELECT on silkroute_oms + REPLICATION SLAVE/CLIENT - the Debezium requirements)
 #   - MySQL lake tables   dq_quarantine, dq_results, recon_report
 #   - Kafka topic         silkroute.cdc.oms (partitions 1, replication 1)
 #   - MinIO buckets       silkroute-sg-bronze / -silver / -gold (IaC bucket-family names)
@@ -47,7 +47,7 @@ fail() { echo "ETL-SETUP FAIL: $*" >&2; exit 1; }
 
 # ---- step 0: the sim stack must be up --------------------------------------
 for c in "$MYSQL_CONTAINER" "$KAFKA_CONTAINER" "$MINIO_CONTAINER"; do
-  docker ps --format '{{.Names}}' | grep -qx "$c" || fail "container $c is not running — boot the sim stack first: make up"
+  docker ps --format '{{.Names}}' | grep -qx "$c" || fail "container $c is not running - boot the sim stack first: make up"
 done
 pass "sim containers running ($MYSQL_CONTAINER, $KAFKA_CONTAINER, $MINIO_CONTAINER)"
 
@@ -55,9 +55,9 @@ pass "sim containers running ($MYSQL_CONTAINER, $KAFKA_CONTAINER, $MINIO_CONTAIN
 log_bin=$(mysql_exec -e "SHOW VARIABLES LIKE 'log_bin'" | awk '{print $2}')
 binlog_format=$(mysql_exec -e "SHOW VARIABLES LIKE 'binlog_format'" | awk '{print $2}')
 binlog_row_image=$(mysql_exec -e "SHOW VARIABLES LIKE 'binlog_row_image'" | awk '{print $2}')
-[ "$log_bin" = "ON" ] || fail "MySQL log_bin=$log_bin (must be ON) — the CDC engine cannot capture without the binlog"
-[ "$binlog_format" = "ROW" ] || fail "MySQL binlog_format=$binlog_format (must be ROW) — Debezium requires row-based binlog"
-[ "$binlog_row_image" = "FULL" ] || fail "MySQL binlog_row_image=$binlog_row_image (must be FULL) — the lake needs complete before/after images"
+[ "$log_bin" = "ON" ] || fail "MySQL log_bin=$log_bin (must be ON) - the CDC engine cannot capture without the binlog"
+[ "$binlog_format" = "ROW" ] || fail "MySQL binlog_format=$binlog_format (must be ROW) - Debezium requires row-based binlog"
+[ "$binlog_row_image" = "FULL" ] || fail "MySQL binlog_row_image=$binlog_row_image (must be FULL) - the lake needs complete before/after images"
 pass "binlog preconditions: log_bin=ON binlog_format=ROW binlog_row_image=FULL"
 
 # ---- step 2: databases ------------------------------------------------------
@@ -75,8 +75,8 @@ mysql_exec -e "ALTER USER 'silkroute_cdc'@'%' IDENTIFIED BY '$CDC_DB_PASSWORD'"
 mysql_exec -e "GRANT SELECT ON silkroute_oms.* TO 'silkroute_cdc'@'%'"
 # LOCK TABLES + RELOAD are Debezium's documented MySQL snapshot privileges
 # (consistent-snapshot step: LOCK TABLES + FLUSH TABLES WITH READ LOCK); the
-# engine failed twice on these until granted (S9 war story). RDS-parity note:
-# managed MySQL that cannot grant RELOAD uses snapshot.locking.mode=none —
+# engine failed twice on these until granted (hit during the build). RDS-parity note:
+# managed MySQL that cannot grant RELOAD uses snapshot.locking.mode=none -
 # an env-indirected knob on the engine, not a code change.
 mysql_exec -e "GRANT LOCK TABLES ON silkroute_oms.* TO 'silkroute_cdc'@'%'"
 mysql_exec -e "GRANT RELOAD ON *.* TO 'silkroute_cdc'@'%'"
@@ -128,9 +128,9 @@ topics=$(docker exec "$KAFKA_CONTAINER" /opt/kafka/bin/kafka-topics.sh --bootstr
 echo "$topics" | grep -qx "silkroute.cdc.oms" || fail "topic silkroute.cdc.oms still missing after creation attempt"
 pass "kafka topic ensured: silkroute.cdc.oms (1 partition, RF 1)"
 if ! echo "$topics" | grep -qx "silkroute.orders.events"; then
-  echo "ETL-SETUP WARN: silkroute.orders.events (the ESB success topic) is missing — boot the ESB once (make esb-run) so its topic is created" >&2
+  echo "ETL-SETUP WARN: silkroute.orders.events (the ESB success topic) is missing - boot the ESB once (make esb-run) so its topic is created" >&2
 else
-  pass "kafka topic present: silkroute.orders.events (ESB success events — the OMS input)"
+  pass "kafka topic present: silkroute.orders.events (ESB success events - the OMS input)"
 fi
 
 # ---- step 6: MinIO buckets (mirror the IaC bucket-family names) -------------

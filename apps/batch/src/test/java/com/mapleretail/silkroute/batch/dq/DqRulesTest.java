@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The DQ predicates pinned as JUnit (the selftest runs the same classes;
- * these tests prove each rule catches its fixture violation — a check that
+ * these tests prove each rule catches its fixture violation - a check that
  * cannot fail is not a check).
  */
 class DqRulesTest {

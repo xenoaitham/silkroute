@@ -84,7 +84,7 @@ public class InventoryLedger {
     /**
      * Releases part (or all) of a reservation. A null/non-positive quantity means
      * "release everything outstanding"; an over-large partial quantity is clamped
-     * to what is actually outstanding — the contract offers no typed fault for
+     * to what is actually outstanding - the contract offers no typed fault for
      * this case and the ERP sim never releases more than was reserved.
      */
     public ReleaseAttempt release(String reservationId, Integer quantity) {
@@ -156,7 +156,7 @@ public class InventoryLedger {
 
     /**
      * Immutable stock reading. {@code available} is always {@code onHand - reserved}
-     * — the ledger never lets that go negative.
+     * - the ledger never lets that go negative.
      */
     public record StockSnapshot(int onHand, int reserved, int available) {
     }

@@ -1,11 +1,11 @@
 /*
- * SILKROUTE Phase 2 — ESB order-mediation load profile (constraint C3).
+ * SILKROUTE the hub - ESB order-mediation load profile (constraint C3).
  *
  * Constant-arrival-rate happy-path POSTs to the ESB (POST /api/v1/orders):
  * 10 s ramp-up, then 60 s at 20 req/s (env-tunable: RPS, DURATION).
  *
  * C3 discipline: MEASURE, never assert a passing number. There are deliberately
- * NO thresholds in this script — nothing aborts, the real p95 is recorded into
+ * NO thresholds in this script - nothing aborts, the real p95 is recorded into
  * the JSON summary (k6 --summary-export, see the Makefile `load-orders` target)
  * and the orchestrator copies it into evidence/ together with the hardware
  * context. Stock safety: iterations round-robin over 150 sku/store combos
@@ -73,13 +73,13 @@ export default function () {
     headers: { 'Content-Type': 'application/json', 'Idempotency-Key': correlationId },
     timeout: '30s',
   });
-  // Visibility only — a failed check never aborts the run.
+  // Visibility only - a failed check never aborts the run.
   check(res, {
     'status is 201': (r) => r.status === 201,
   });
 }
 
-// NOTE: no handleSummary on purpose — k6's --summary-export (see the Makefile
+// NOTE: no handleSummary on purpose - k6's --summary-export (see the Makefile
 // `load-orders` target) writes the complete metric values (p(95) included)
 // only when no custom summary handler is defined. The end-of-test summary k6
 // prints already shows the measured p95; the exported JSON is the evidence

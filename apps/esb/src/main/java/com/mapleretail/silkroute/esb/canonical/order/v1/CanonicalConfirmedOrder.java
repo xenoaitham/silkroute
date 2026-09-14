@@ -10,7 +10,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlType;
 
 /**
- * Canonical confirmed order — what the ERP submit leg produced, mediated back to
+ * Canonical confirmed order - what the ERP submit leg produced, mediated back to
  * canonical form by submit-response-to-canonical.xsl. The REST/event view adds
  * saga, attempts and route data on top (see api/OrderSubmissionResponse).
  */
@@ -31,7 +31,7 @@ public class CanonicalConfirmedOrder {
     @XmlElement(name = "externalOrderRef", required = true, namespace = CanonicalOrder.NS)
     private String externalOrderRef;
 
-    /** Not carried by the frozen submitOrderResponse — supplied as an XSLT parameter from the request context. */
+    /** Not carried by the frozen submitOrderResponse - supplied as an XSLT parameter from the request context. */
     @XmlElement(name = "storeId", required = true, namespace = CanonicalOrder.NS)
     private String storeId;
 

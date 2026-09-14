@@ -1,4 +1,4 @@
-# SILKROUTE — task runner. Sim-first per ADR-0001; cloud targets are
+# SILKROUTE - task runner. Sim-first per ADR-0001; cloud targets are
 # validated-plans mode per ADR-0002 (no AliCloud account: plans prove the HCL,
 # nothing is ever applied; deploy targets are guarded).
 SHELL := /bin/bash
@@ -34,7 +34,7 @@ smoke: ## assert connectivity to ALL five sim services (exit non-zero on any fai
 clean: ## remove stray compose artifacts
 	docker compose down -v --remove-orphans --rmi local 2>/dev/null || true
 
-# --- Phase 2: ESB proof layer (tests/esb-int, tests/load, tests/chaos) -------
+# --- the hub: ESB proof layer (tests/esb-int, tests/load, tests/chaos) -------
 ESB_ERP_JAR := apps/legacy-erp/target/legacy-erp-1.0.0-SNAPSHOT.jar
 ESB_APP_JAR := apps/esb/target/esb-1.0.0-SNAPSHOT.jar
 K6_BIN ?= $(HOME)/tools/k6/k6
@@ -50,10 +50,10 @@ esb-int: ## build legacy-erp + esb jars, then run the esb-int suite (it boots bo
 
 esb-run: ## convenience: ensure toxiproxy erp proxy, boot ERP(18080) + ESB(18081) with PID files under /tmp, print healths
 	@command -v jq >/dev/null || { echo "ERROR: jq is required by 'make esb-run'."; exit 1; }
-	@test -f $(ESB_ERP_JAR) || { echo "ERROR: missing $(ESB_ERP_JAR) — run: ./mvnw -B -f apps/legacy-erp/pom.xml package -DskipTests"; exit 1; }
-	@test -f $(ESB_APP_JAR) || { echo "ERROR: missing $(ESB_APP_JAR) — run: ./mvnw -B -f apps/esb/pom.xml package -DskipTests"; exit 1; }
+	@test -f $(ESB_ERP_JAR) || { echo "ERROR: missing $(ESB_ERP_JAR) - run: ./mvnw -B -f apps/legacy-erp/pom.xml package -DskipTests"; exit 1; }
+	@test -f $(ESB_APP_JAR) || { echo "ERROR: missing $(ESB_APP_JAR) - run: ./mvnw -B -f apps/esb/pom.xml package -DskipTests"; exit 1; }
 	@if [ -f scripts/esb-toxiproxy.sh ]; then bash scripts/esb-toxiproxy.sh; \
-	else curl -sf http://127.0.0.1:18474/version >/dev/null || { echo "ERROR: esb toxiproxy not on 18474 — run: make up"; exit 1; }; \
+	else curl -sf http://127.0.0.1:18474/version >/dev/null || { echo "ERROR: esb toxiproxy not on 18474 - run: make up"; exit 1; }; \
 		curl -sf -o /dev/null http://127.0.0.1:18474/proxies/erp || \
 		curl -s -X POST http://127.0.0.1:18474/proxies -H 'Content-Type: application/json' \
 			-d '{"name":"erp","listen":"127.0.0.1:18180","upstream":"127.0.0.1:18080","enabled":true}' >/dev/null; fi
@@ -80,7 +80,7 @@ load-orders: ## run the k6 orders load profile (needs ERP+proxy+ESB from esb-run
 	@mkdir -p tests/load/results
 	$(K6_BIN) run tests/load/k6-orders.js --summary-export=tests/load/results/k6-orders-summary.json
 
-# --- Phase 4: AliCloud landing zone (validated-plans mode, ADR-0002) ---------
+# --- the landing zone: AliCloud landing zone (validated-plans mode, ADR-0002) ---------
 TF_BIN ?= $(HOME)/tools/terraform/terraform
 TF_DIR := infra
 # deploy/destroy are HARD-GUARDED: they create/destroy real billable resources,
@@ -90,7 +90,7 @@ TF_DIR := infra
 CLOUD_GUARD = @if [ "$${SILKROUTE_CLOUD_CONFIRM:-}" != "YES" ] || [ -z "$${ALICLOUD_ACCESS_KEY:-}$${ALICLOUD_ACCESS_KEY_ID:-}" ]; then \
 	echo "REFUSING: this target touches a real AliCloud account (billable)."; \
 	echo "It requires SILKROUTE_CLOUD_CONFIRM=YES and ALICLOUD_ACCESS_KEY(_ID)/SECRET in the env."; \
-	echo "Validated-plans mode (ADR-0002): use 'make plan-sg' — plans create nothing."; exit 2; fi
+	echo "Validated-plans mode (ADR-0002): use 'make plan-sg' - plans create nothing."; exit 2; fi
 
 .PHONY: plan-sg deploy-sg destroy budget-alarm tf-fmt-check residency audit-demo
 
@@ -121,7 +121,7 @@ destroy: ## GUARDED: terraform destroy of whatever the account holds (§8 hygien
 budget-alarm: ## budget alarm (~$20): dry-run by default; `make budget-alarm LIVE=1` + creds to execute
 	@bash scripts/budget-alarm.sh
 
-# --- Phase 3: ETL data plane (apps/modern-oms, apps/cdc, apps/batch) ---------
+# --- the data plane: ETL data plane (apps/modern-oms, apps/cdc, apps/batch) ---------
 # Same PID-file/no-pkill hygiene as the esb-run/esb-stop pair above. Every
 # process runs as a host JVM with ZERO new listening ports. Knobs are env
 # vars with ${VAR:default} defaults inside the apps (see apps/*/README.md).
@@ -153,10 +153,10 @@ full recon-only selftest:
 etl-setup: ## idempotent data-plane bootstrap: DBs, users, lake tables, cdc topic, lake buckets (scripts/etl-setup.sh)
 	@bash scripts/etl-setup.sh
 
-etl-reset: ## clean-slate the ETL world (stops oms/cdc/esb, truncates oms/lake tables, purges topics/groups/buckets/offsets) — scripts/etl-reset.sh
+etl-reset: ## clean-slate the ETL world (stops oms/cdc/esb, truncates oms/lake tables, purges topics/groups/buckets/offsets) - scripts/etl-reset.sh
 	@bash scripts/etl-reset.sh
 
-etl-int: ## ETL integration suite (6 scenarios: pipeline, replay, cdc kill/restart, freshness contract, dq/recon falsifiability, C1) — tests/etl-int/run.sh
+etl-int: ## ETL integration suite (6 scenarios: pipeline, replay, cdc kill/restart, freshness contract, dq/recon falsifiability, C1) - tests/etl-int/run.sh
 	@bash tests/etl-int/run.sh
 
 oms-run: ## boot the OMS event store (builds if needed); waits for OMS-CONSUMER-START; PID $(OMS_PID) log $(OMS_LOG)
@@ -166,8 +166,8 @@ oms-run: ## boot the OMS event store (builds if needed); waits for OMS-CONSUMER-
 		nohup java -jar $(OMS_JAR) > $(OMS_LOG) 2>&1 & echo $$! > $(OMS_PID)
 	@echo "waiting for the OMS consumer to subscribe (timeout 180s)..."
 	@timeout 180 bash -c 'until grep -q OMS-CONSUMER-START $(OMS_LOG) 2>/dev/null; do \
-		kill -0 "$$(cat $(OMS_PID))" 2>/dev/null || { echo "ERROR: OMS process died — see $(OMS_LOG)"; tail -20 $(OMS_LOG); exit 1; }; sleep 2; done' \
-		|| { echo "ERROR: OMS did not reach OMS-CONSUMER-START within 180s — see $(OMS_LOG)"; exit 1; }
+		kill -0 "$$(cat $(OMS_PID))" 2>/dev/null || { echo "ERROR: OMS process died - see $(OMS_LOG)"; tail -20 $(OMS_LOG); exit 1; }; sleep 2; done' \
+		|| { echo "ERROR: OMS did not reach OMS-CONSUMER-START within 180s - see $(OMS_LOG)"; exit 1; }
 	@echo "OMS running: pid $$(cat $(OMS_PID)) log $(OMS_LOG) (stop with: make oms-stop)"
 
 oms-build: ## build apps/modern-oms (jar + unit tests skipped here; run ./mvnw package for tests)
@@ -188,11 +188,11 @@ cdc-run: ## boot BOTH cdc mains: engine (binlog->topic) + bronze writer (topic->
 		touch $(CDC_BRONZE_LOG) && nohup java -jar $(CDC_BRONZE_JAR) >> $(CDC_BRONZE_LOG) 2>&1 & echo $$! > $(CDC_BRONZE_PID)
 	@echo "waiting for the CDC engine to start capturing (timeout 180s)..."
 	@timeout 180 bash -c 'until grep -qE "CDC-ENGINE-START|CDC-CAPTURE" $(CDC_ENGINE_LOG) 2>/dev/null; do \
-		kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null || { echo "ERROR: CDC engine died — see $(CDC_ENGINE_LOG)"; tail -30 $(CDC_ENGINE_LOG); exit 1; }; sleep 2; done' \
-		|| { echo "ERROR: CDC engine did not start within 180s — see $(CDC_ENGINE_LOG)"; exit 1; }
+		kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null || { echo "ERROR: CDC engine died - see $(CDC_ENGINE_LOG)"; tail -30 $(CDC_ENGINE_LOG); exit 1; }; sleep 2; done' \
+		|| { echo "ERROR: CDC engine did not start within 180s - see $(CDC_ENGINE_LOG)"; exit 1; }
 	@sleep 5
-	@if ! kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null; then echo "ERROR: CDC engine died right after start (snapshot/binlog failure?) — see $(CDC_ENGINE_LOG)"; tail -30 $(CDC_ENGINE_LOG); exit 1; fi
-	@if ! kill -0 "$$(cat $(CDC_BRONZE_PID))" 2>/dev/null; then echo "ERROR: bronze writer died right after start — see $(CDC_BRONZE_LOG)"; tail -30 $(CDC_BRONZE_LOG); exit 1; fi
+	@if ! kill -0 "$$(cat $(CDC_ENGINE_PID))" 2>/dev/null; then echo "ERROR: CDC engine died right after start (snapshot/binlog failure?) - see $(CDC_ENGINE_LOG)"; tail -30 $(CDC_ENGINE_LOG); exit 1; fi
+	@if ! kill -0 "$$(cat $(CDC_BRONZE_PID))" 2>/dev/null; then echo "ERROR: bronze writer died right after start - see $(CDC_BRONZE_LOG)"; tail -30 $(CDC_BRONZE_LOG); exit 1; fi
 	@echo "CDC engine running: pid $$(cat $(CDC_ENGINE_PID)) log $(CDC_ENGINE_LOG)"
 	@echo "Bronze writer running: pid $$(cat $(CDC_BRONZE_PID)) log $(CDC_BRONZE_LOG) (stop with: make cdc-stop)"
 
@@ -206,7 +206,7 @@ cdc-stop: ## stop engine + bronze writer by their recorded PID files only (never
 			kill $$pid 2>/dev/null || echo "cdc-stop: pid $$pid already gone"; \
 			rm -f $$f; else echo "cdc-stop: no $$f (nothing to stop)"; fi; done
 
-seed-day: ## drive N live orders through the ESB: make seed-day N=12 (default 30) — no synthetic SQL
+seed-day: ## drive N live orders through the ESB: make seed-day N=12 (default 30) - no synthetic SQL
 	@bash scripts/seed-day.sh $(if $(N),$(N),30)
 
 batch-run: ## Spark batch: make batch-run ARGS="full --business-date 2026-09-13" | ARGS="recon-only" | ARGS="selftest" (default full)
@@ -219,15 +219,15 @@ etl-check: ## cheap postcondition ritual: oms rows exist, bronze objects exist, 
 	@echo "ETL-CHECK oms rows (silkroute_oms.oms_order / oms_order_line):"
 	@docker exec sim-mysql mysql -uroot -p"$${MYSQL_ROOT_PASSWORD:-silkroute}" -N -B \
 		-e "SELECT 'orders=', COUNT(*) FROM silkroute_oms.oms_order UNION ALL SELECT 'lines=', COUNT(*) FROM silkroute_oms.oms_order_line;" 2>/dev/null \
-		|| { echo "ETL-CHECK FAIL: cannot query silkroute_oms — run make etl-setup + oms-run first"; exit 1; }
+		|| { echo "ETL-CHECK FAIL: cannot query silkroute_oms - run make etl-setup + oms-run first"; exit 1; }
 	@echo "ETL-CHECK bronze objects (per bucket prefix):"
 	@docker exec sim-minio mc find local/silkroute-sg-bronze --name '*.jsonl' 2>/dev/null | head -5
 	@n=$$(docker exec sim-minio mc find local/silkroute-sg-bronze --name '*.jsonl' 2>/dev/null | wc -l); \
-		[ "$$n" -gt 0 ] || { echo "ETL-CHECK FAIL: no bronze objects landed — run make cdc-run + seed-day first"; exit 1; }; \
+		[ "$$n" -gt 0 ] || { echo "ETL-CHECK FAIL: no bronze objects landed - run make cdc-run + seed-day first"; exit 1; }; \
 		echo "ETL-CHECK PASS: $$n bronze object(s)"
 	@if [ -f /tmp/silkroute-recon-report.json ]; then \
 		jq -e '.allMatch == true' /tmp/silkroute-recon-report.json >/dev/null \
 			&& echo "ETL-CHECK PASS: recon report allMatch=true" \
-			|| { echo "ETL-CHECK FAIL: recon report allMatch!=true — see /tmp/silkroute-recon-report.json"; exit 1; }; \
-	else echo "ETL-CHECK WARN: no recon report at /tmp/silkroute-recon-report.json yet — run make batch-run ARGS=full"; fi
+			|| { echo "ETL-CHECK FAIL: recon report allMatch!=true - see /tmp/silkroute-recon-report.json"; exit 1; }; \
+	else echo "ETL-CHECK WARN: no recon report at /tmp/silkroute-recon-report.json yet - run make batch-run ARGS=full"; fi
 	@echo "ETL-CHECK PASS: data plane postconditions hold"

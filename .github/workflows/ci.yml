@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: Validate compose file
         run: docker compose config -q
-      - name: Bring up sim network via the documented path (retried — Docker Hub anonymous pull denials are intermittent)
+      - name: Bring up sim network via the documented path (retried - Docker Hub anonymous pull denials are intermittent)
         run: |
           for i in 1 2 3; do
             if make up; then exit 0; fi
@@ -29,12 +29,12 @@ jobs:
         if: always()
         run: make down
 
-  # Phase 1+: java-build (mvnw test), contract-tests (karate), terraform-validate land here.
+  # the ERP layer+: java-build (mvnw test), contract-tests (karate), terraform-validate land here.
 
   legacy-erp-contract-tests:
     name: legacy-erp SOAP contract tests (Karate, frozen WSDLs)
     runs-on: ubuntu-latest
-    # Black-box: boots the packaged fat jar itself (SERVER_PORT=18090) — no
+    # Black-box: boots the packaged fat jar itself (SERVER_PORT=18090) - no
     # containers, no docker, no services. Fails loudly if the jar is missing
     # or the app does not become healthy (falsifiable by construction).
     steps:
@@ -57,7 +57,7 @@ jobs:
           path: tests/contract/target/karate-reports
           retention-days: 7
 
-  # Phase 2: ESB proof suite — retry / circuit-breaker / DLQ / saga compensation
+  # the hub: ESB proof suite - retry / circuit-breaker / DLQ / saga compensation
   # under induced failure (toxiproxy), plus k6 p95 measurement happens on demand
   # via `make load-orders` (see tests/load/).
   esb-integration-tests:
@@ -66,7 +66,7 @@ jobs:
     # Black-box: the suite boots the legacy-erp (18080) and esb (18081) fat jars
     # itself against the sim containers (toxiproxy 18474, kafka 39092, redis
     # 16379). Fails loudly if a jar is missing or an app does not become
-    # healthy — never skips (falsifiable by construction).
+    # healthy - never skips (falsifiable by construction).
     steps:
       - uses: actions/checkout@v5
       - name: Set up Temurin JDK 21
@@ -103,12 +103,12 @@ jobs:
         if: always()
         run: make down
 
-  # Phase 3: ETL data plane — unit falsifiability in CI (DQ rule predicates,
-  # window evaluator, recon aggregate math, envelope parsing — all pure JVM).
+  # the data plane: ETL data plane - unit falsifiability in CI (DQ rule predicates,
+  # window evaluator, recon aggregate math, envelope parsing - all pure JVM).
   # The FULL pipeline (seeded day → gold) and the tests/etl-int integration
   # suite stay LOCAL evidence rows with a hardware note (Spark local + full sim
   # data plane are heavy for a shared runner); the decision is recorded in the
-  # Phase-3 evidence rows.
+  # data-plane evidence rows.
   etl-unit-tests:
     name: "etl data-plane unit tests (oms + cdc + batch: DQ predicates, window evaluator, recon math)"
     runs-on: ubuntu-latest
@@ -120,14 +120,14 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Unit tests — apps/modern-oms (event mapping, replay guard, C5 integer money)
+      - name: Unit tests - apps/modern-oms (event mapping, replay guard, C5 integer money)
         run: ./mvnw -B -f apps/modern-oms/pom.xml package
-      - name: Unit tests — apps/cdc (envelope parsing, freshness computation, bronze keys)
+      - name: Unit tests - apps/cdc (envelope parsing, freshness computation, bronze keys)
         run: ./mvnw -B -f apps/cdc/pom.xml package
-      - name: Unit tests — apps/batch (DQ predicates, window evaluator, recon math, line math)
+      - name: Unit tests - apps/batch (DQ predicates, window evaluator, recon math, line math)
         run: ./mvnw -B -f apps/batch/pom.xml package
 
-  # Phase 4: AliCloud landing zone — validated-plans mode (ADR-0002). fmt +
+  # the landing zone: AliCloud landing zone - validated-plans mode (ADR-0002). fmt +
   # validate + plan with placeholder credentials; plans perform NO AliCloud API
   # calls (resources only, no API-calling data sources) and apply nothing. The
   # CN partition is plan-validated but never applied (ADR-0005).
@@ -158,5 +158,5 @@ jobs:
         run: terraform -chdir=infra validate
       - name: plan (SG hub only, creates nothing)
         run: terraform -chdir=infra plan -input=false -no-color
-      - name: plan (CN partition design — validated, never applied)
+      - name: plan (CN partition design - validated, never applied)
         run: terraform -chdir=infra plan -input=false -no-color -var enable_cn_region=true

@@ -29,18 +29,18 @@ import com.mapleretail.silkroute.cdc.common.Env;
 import com.mapleretail.silkroute.cdc.engine.Envelope;
 
 /**
- * Main B — bronze landing (ADR-0006 decision 3): consume the CDC topic and
+ * Main B - bronze landing (ADR-0006 decision 3): consume the CDC topic and
  * land RAW Debezium envelopes write-once as JSONL objects on the S3 API
  * (MinIO in sim; OSS S3-compat surface in cloud, ADR-0001).
  *
- * Immutability by construction: putObject ONLY — this class has no delete,
+ * Immutability by construction: putObject ONLY - this class has no delete,
  * no copy, no overwrite code path, and keys embed (topic, partition, offset,
  * uuid4) so a replay writes NEW keys; downstream (silver) dedups by PK +
  * source.ts_ms.
  *
  * Offsets are committed ONLY after every object of the poll batch landed
  * (at-least-once). A record whose region cannot be determined or is outside
- * ${BRONZE_ALLOWED_REGIONS} fails the writer FAST and LOUD — an untagged
+ * ${BRONZE_ALLOWED_REGIONS} fails the writer FAST and LOUD - an untagged
  * object would break the C1 residency story, so it must never land.
  */
 public final class BronzeWriter {
@@ -128,11 +128,11 @@ public final class BronzeWriter {
         if (region.isBlank() || table.isBlank() || sourceTsMs == null) {
             throw new IllegalStateException("BRONZE-REJECT missing routing fields (region/table/sourceTsMs) topic="
                     + record.topic() + " partition=" + record.partition() + " offset=" + record.offset()
-                    + " — an object without its region tag can never land (C1)");
+                    + " - an object without its region tag can never land (C1)");
         }
         if (!allowedRegions.contains(region)) {
             throw new IllegalStateException("BRONZE-REJECT region=" + region + " is not in the allowed set " + allowedRegions
-                    + " for bucket " + bucket + " — refusing to land an untagged/mis-tagged object (C1)");
+                    + " for bucket " + bucket + " - refusing to land an untagged/mis-tagged object (C1)");
         }
         return new Landing(envelope, value, record.topic(), record.partition(), record.offset(), sourceTsMs);
     }
@@ -160,7 +160,7 @@ public final class BronzeWriter {
             s3.putObject(bucket, key, new java.io.ByteArrayInputStream(body), metadata);
         } catch (RuntimeException e) {
             throw new IllegalStateException("BRONZE-LAND-FAILED bucket=" + bucket + " key=" + key
-                    + " — check that the bucket exists and the S3 endpoint/credentials are correct", e);
+                    + " - check that the bucket exists and the S3 endpoint/credentials are correct", e);
         }
         LOG.info("BRONZE-LAND region={} table={} object={} records={} firstTsMs={} lastTsMs={}",
                 envelope.region(), envelope.table(), key, landings.size(), firstTsMs, lastTsMs);

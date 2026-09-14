@@ -4,12 +4,12 @@ import java.util.List;
 
 /**
  * Normalized view of one ESB success event (the OrderSubmissionResponse body
- * plus customerRef and lines[] — the event-copy-only fields, see
+ * plus customerRef and lines[] - the event-copy-only fields, see
  * apps/esb EventPublisher). Money is ALWAYS integer minor units + currency
  * code (C5); line totals are integer multiplication performed here, never
  * floating point.
  *
- * C1: customerRef is carried VERBATIM — for CN stores the ESB already masked
+ * C1: customerRef is carried VERBATIM - for CN stores the ESB already masked
  * it to msk-* before publishing; nothing in this codebase can or may unmask.
  */
 public final class OrderEventData {
@@ -116,7 +116,7 @@ public final class OrderEventData {
         }
     }
 
-    /** C5: integer minor-unit math only. Overflow is arithmetic long overflow — quantities are 1..999 and prices minor units, so realistic values stay far below Long.MAX_VALUE. */
+    /** C5: integer minor-unit math only. Overflow is arithmetic long overflow - quantities are 1..999 and prices minor units, so realistic values stay far below Long.MAX_VALUE. */
     public static final class LineMath {
         private LineMath() {
         }

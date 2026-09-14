@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# SILKROUTE Phase-3 ETL integration suite (tests/etl-int) — BUILD-QA.
+# SILKROUTE data-plane ETL integration suite (tests/etl-int) - BUILD-QA.
 #
 # One command:   bash tests/etl-int/run.sh
 #
-# Drives the REAL data plane end to end (no synthetic SQL for seeding — the
+# Drives the REAL data plane end to end (no synthetic SQL for seeding - the
 # only direct SQL is the recon negative control, which injects a phantom row
 # on purpose and deletes it). Six scenarios, each printing "PASS <name>";
 # the suite exits non-zero on the FIRST failed assertion ("FAIL: ..." line).
 #
 # House style follows scripts/smoke.sh: `set -uo pipefail` WITHOUT -e and
-# every assertion written as an explicit `|| fail` / [ ... ] || fail — never
+# every assertion written as an explicit `|| fail` / [ ... ] || fail - never
 # an &&-list that can silently pass, never a command substitution that
 # swallows a failure exit code.
 #
@@ -17,11 +17,11 @@
 #   - processes are ONLY ever started/stopped via the make PID-file targets
 #     (esb-run/oms-run/cdc-run, esb-stop/oms-stop/cdc-stop); NEVER pkill;
 #   - a trap stops esb+oms+cdc on ANY exit path (success, failure, Ctrl-C);
-#   - on SUCCESS the suite finishes with `make etl-reset` so ORCH-LEAD and
-#     the critic start from a known slate;
+#   - on SUCCESS the suite finishes with `make etl-reset` so the maintainer and
+#     an independent re-run starts from a known slate;
 #   - never touches busforge/helios or anything outside the sim compose stack;
 #   - the full transcript is tee'd to /tmp/s9-etl-int-run.txt (NOT committed;
-#     ORCH-LEAD copies what it needs into evidence/).
+#     the maintainer copies what it needs into evidence/).
 set -uo pipefail
 
 cd "$(dirname "$0")/../.." || { echo "cannot find repo root"; exit 1; }
@@ -93,12 +93,12 @@ await_quiescence() { # $1 = minimum capture lines expected, $2 = label
     fi
     waited=$((waited + 10))
     if [ "$waited" -ge 240 ]; then
-      fail "quiescence timeout ($label): captures=$n2 want>=$want — see $CDC_ENGINE_LOG"
+      fail "quiescence timeout ($label): captures=$n2 want>=$want - see $CDC_ENGINE_LOG"
     fi
   done
 }
 
-# After cdc-stop, SIGTERM shutdown is not instantaneous — wait until the
+# After cdc-stop, SIGTERM shutdown is not instantaneous - wait until the
 # engine log is static so the "CDC is DOWN" window is deterministic (a capture
 # line appearing after this point would be a real violation, not shutdown lag).
 await_engine_dead() { # $1 = label
@@ -113,7 +113,7 @@ await_engine_dead() { # $1 = label
     fi
     waited=$((waited + 3))
     if [ "$waited" -ge 60 ]; then
-      fail "engine log still moving 60s after cdc-stop ($label) — engine did not die"
+      fail "engine log still moving 60s after cdc-stop ($label) - engine did not die"
     fi
   done
 }
@@ -129,7 +129,7 @@ await_replay_skips() { # $1 = min REPLAY-SKIP lines, $2 = label
     fi
     sleep 5; waited=$((waited + 5))
     if [ "$waited" -ge 120 ]; then
-      fail "replay wait timeout ($label): REPLAY-SKIP=$n want>=$want — see $OMS_LOG"
+      fail "replay wait timeout ($label): REPLAY-SKIP=$n want>=$want - see $OMS_LOG"
     fi
   done
 }
@@ -145,7 +145,7 @@ await_oms_orders() { # $1 = expected count, $2 = label
     fi
     sleep 5; waited=$((waited + 5))
     if [ "$waited" -ge 120 ]; then
-      fail "OMS catch-up timeout ($label): orders=$n want=$want — see $OMS_LOG"
+      fail "OMS catch-up timeout ($label): orders=$n want=$want - see $OMS_LOG"
     fi
   done
 }
@@ -159,7 +159,7 @@ bronze_keys_for_table() { # $1 = table name
 }
 
 # Count raw JSONL records across every bronze object of one table (host-side
-# counting only — NO grep/cat INSIDE the minio container, pipe to the host).
+# counting only - NO grep/cat INSIDE the minio container, pipe to the host).
 bronze_table_records() { # $1 = table name -> echoes total record count
   local table="$1" total=0 key n
   while IFS= read -r key; do
@@ -170,11 +170,11 @@ bronze_table_records() { # $1 = table name -> echoes total record count
   echo "$total"
 }
 
-seed_and_check() { # $1 = N orders, $2 = label — runs make seed-day, asserts N/N 201s
+seed_and_check() { # $1 = N orders, $2 = label - runs make seed-day, asserts N/N 201s
   local n="$1" label="$2"
   make seed-day N="$n" 2>&1 | tee "$SCRATCH/seed-$label.txt" || fail "$label: make seed-day N=$n failed"
   grep -q "posted=$n ok201=$n non201=0" "$SCRATCH/seed-$label.txt" \
-    || fail "$label: seed summary did not show posted=$n ok201=$n non201=0 — see $SCRATCH/seed-$label.txt"
+    || fail "$label: seed summary did not show posted=$n ok201=$n non201=0 - see $SCRATCH/seed-$label.txt"
   grep -q "^SEED-DAY OK" "$SCRATCH/seed-$label.txt" || fail "$label: seed-day did not report OK"
   echo "$label: seeded $n/$n orders (201) through the live ESB"
 }
@@ -185,7 +185,7 @@ assert_recon_report() { # $1 = expected orders, $2 = expected lines, $3 = label
   jq -e --argjson o "$want_o" --argjson l "$want_l" \
       '.orders.source==$o and .orders.gold==$o and .lines.source==$l and .lines.gold==$l and .allMatch==true' \
       "$RECON_REPORT" >/dev/null \
-    || fail "$label: recon report did not show orders=$o/$o lines=$l/$l allMatch=true — see $RECON_REPORT"
+    || fail "$label: recon report did not show orders=$o/$o lines=$l/$l allMatch=true - see $RECON_REPORT"
   echo "$label: recon report orders=$want_o/$want_o lines=$want_l/$want_l allMatch=true"
 }
 
@@ -208,7 +208,7 @@ assert_oms_rows 12 12 "s1 after quiescence"
 make cdc-stop || fail "s1: make cdc-stop failed"
 
 make batch-run ARGS="full --business-date $TODAY" 2>&1 | tee "$SCRATCH/batch-s1.txt" \
-  || fail "s1: make batch-run full exited non-zero — see $SCRATCH/batch-s1.txt"
+  || fail "s1: make batch-run full exited non-zero - see $SCRATCH/batch-s1.txt"
 grep -q "BATCH-DONE" "$SCRATCH/batch-s1.txt" || fail "s1: batch full produced no BATCH-DONE line"
 assert_recon_report 12 12 s1
 
@@ -217,7 +217,7 @@ echo "PASS 1-clean-slate-pipeline"
 # =========================================================== SCENARIO 2 =====
 step "scenario 2: replay safety (OMS re-consumes the same envelopes -> no-op, no duplicates)"
 
-# state carried over from scenario 1 (12/12 in OMS) — do NOT reset here.
+# state carried over from scenario 1 (12/12 in OMS) - do NOT reset here.
 # A consumer-group offset reset requires the group to be INACTIVE -> stop OMS first.
 make oms-stop || fail "s2: make oms-stop failed"
 
@@ -231,7 +231,7 @@ for _ in $(seq 1 12); do
 done
 [ -n "$reset_ok" ] || { cat "$SCRATCH/s2-reset.txt"; fail "s2: consumer-group offset reset failed (group active?)"; }
 grep -q "NEW-OFFSET" "$SCRATCH/s2-reset.txt" \
-  || fail "s2: offset reset produced no NEW-OFFSET lines — see $SCRATCH/s2-reset.txt"
+  || fail "s2: offset reset produced no NEW-OFFSET lines - see $SCRATCH/s2-reset.txt"
 
 make oms-run || fail "s2: make oms-run failed (restart after offset reset)"
 
@@ -240,14 +240,14 @@ await_replay_skips 12 s2
 
 stored_after="$(log_count OMS-ORDER-STORED "$OMS_LOG")"
 [ "$stored_after" = "0" ] \
-  || fail "s2: replay inserted NEW rows ($stored_after OMS-ORDER-STORED lines) — replay guard broken"
+  || fail "s2: replay inserted NEW rows ($stored_after OMS-ORDER-STORED lines) - replay guard broken"
 assert_oms_rows 12 12 "s2 after replay"
 echo "s2 evidence: $(grep -m2 REPLAY-SKIP "$OMS_LOG" | head -2)"
 
 echo "PASS 2-replay-safety"
 
 # =========================================================== SCENARIO 3 =====
-step "scenario 3: CDC kill mid-stream (chaos-lite) — catch-up on restart, no loss, no dup"
+step "scenario 3: CDC kill mid-stream (chaos-lite) - catch-up on restart, no loss, no dup"
 
 make etl-reset 2>&1 | tee "$SCRATCH/reset-s3.txt" || fail "s3: make etl-reset failed"
 grep -q "RESET OK" "$SCRATCH/reset-s3.txt" || fail "s3: etl-reset did not reach its OK banner"
@@ -311,7 +311,7 @@ dup_offsets=$(sort -n "$SCRATCH/s3-offsets.txt" | uniq -d | wc -l)
 echo "s3: $(wc -l < "$SCRATCH/s3-offsets.txt") bronze objects, all topic-partition-offsets unique"
 
 make batch-run ARGS="full --business-date $TODAY" 2>&1 | tee "$SCRATCH/batch-s3.txt" \
-  || fail "s3: make batch-run full after chaos exited non-zero — see $SCRATCH/batch-s3.txt"
+  || fail "s3: make batch-run full after chaos exited non-zero - see $SCRATCH/batch-s3.txt"
 assert_recon_report 12 12 s3
 
 echo "PASS 3-cdc-kill-mid-stream"
@@ -343,7 +343,7 @@ done < "$SCRATCH/s4-metrics.txt"
 echo "s4: CDC-METRIC lines ($(wc -l < "$SCRATCH/s4-metrics.txt") total), all match the exact contract shape"
 echo "s4: distinct freshness values: $(grep -oE '"value":[0-9]+(\.[0-9]+)?' "$SCRATCH/s4-metrics.txt" | sort -u | tr '\n' ' ')"
 [ "$(grep -oE '"value":[0-9]+(\.[0-9]+)?' "$SCRATCH/s4-metrics.txt" | sort -u | wc -l)" -ge 2 ] \
-  || fail "s4: freshness values are all identical — looks like a constant, not a measurement"
+  || fail "s4: freshness values are all identical - looks like a constant, not a measurement"
 
 echo "PASS 4-freshness-metric-contract"
 
@@ -351,15 +351,15 @@ echo "PASS 4-freshness-metric-contract"
 step "scenario 5: DQ selftest + recon falsifiability (negative control flips recon red, then green)"
 
 make batch-run ARGS=selftest 2>&1 | tee "$SCRATCH/selftest.txt" \
-  || fail "s5: make batch-run selftest exited non-zero — see $SCRATCH/selftest.txt"
+  || fail "s5: make batch-run selftest exited non-zero - see $SCRATCH/selftest.txt"
 grep -q "DQ-SELFTEST-OK" "$SCRATCH/selftest.txt" \
-  || fail "s5: DQ-SELFTEST-OK not printed — DQ rules did not all catch their fixture violations"
+  || fail "s5: DQ-SELFTEST-OK not printed - DQ rules did not all catch their fixture violations"
 
 # --- negative control: inject a phantom SOURCE row into oms_order.
 # Same instrument as evidence/runs/E-030 (its delta there: CAD +9999 minor);
 # E-030 does not carry the literal INSERT, so it is reconstructed here against
 # the oms_order DDL (apps/modern-oms SchemaInitializer). CDC is running, so the
-# phantom is captured like any row — recon-only must go red (exit 2).
+# phantom is captured like any row - recon-only must go red (exit 2).
 NEG_ID="s9-negctl-$(date +%s)"
 NEG_TS="$(date -u '+%Y-%m-%d %H:%M:%S.000')"
 docker exec sim-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "
@@ -375,9 +375,9 @@ ph="$(mysql_scalar "SELECT COUNT(*) FROM silkroute_oms.oms_order WHERE order_id=
 
 rc=0
 make batch-run ARGS="recon-only --business-date $TODAY" > "$SCRATCH/recon-nc.txt" 2>&1 || rc=$?
-[ "$rc" = "2" ] || { tail -5 "$SCRATCH/recon-nc.txt"; fail "s5: recon-only with phantom row expected exit 2, got $rc — recon is NOT falsifiable"; }
+[ "$rc" = "2" ] || { tail -5 "$SCRATCH/recon-nc.txt"; fail "s5: recon-only with phantom row expected exit 2, got $rc - recon is NOT falsifiable"; }
 jq -e '.allMatch==false' "$RECON_REPORT" >/dev/null || fail "s5: recon report after phantom row is not allMatch=false"
-echo "s5: negative control — phantom row made recon-only exit 2 (allMatch=false)"
+echo "s5: negative control - phantom row made recon-only exit 2 (allMatch=false)"
 
 docker exec sim-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e \
   "DELETE FROM silkroute_oms.oms_order WHERE order_id='$NEG_ID';" 2>/dev/null \
@@ -394,11 +394,11 @@ assert_recon_report 12 12 s5
 echo "PASS 5-dq-selftest-and-recon-falsifiability"
 
 # =========================================================== SCENARIO 6 =====
-step "scenario 6: C1 spot-check — CN customerRefs in bronze are msk-*, never plaintext"
+step "scenario 6: C1 spot-check - CN customerRefs in bronze are msk-*, never plaintext"
 
 # from scenario 3's run (12 seeded orders include 3 CN orders)
 cn_objects="$(bronze_keys | grep -c '^local/silkroute-sg-bronze/region=CN/' 2>/dev/null)"; cn_objects="${cn_objects:-0}"
-[ "$cn_objects" -ge 1 ] || fail "s6: no region=CN bronze objects found — nothing to spot-check"
+[ "$cn_objects" -ge 1 ] || fail "s6: no region=CN bronze objects found - nothing to spot-check"
 echo "s6: region=CN bronze objects: $cn_objects"
 
 plain_total=0
@@ -409,7 +409,7 @@ while IFS= read -r key; do
   plain_total=$((plain_total + n))
 done < <(bronze_keys)
 [ "$plain_total" = "0" ] \
-  || fail "s6: C1 VIOLATION — $plain_total plaintext 'cust-cn-' occurrence(s) in bronze"
+  || fail "s6: C1 VIOLATION - $plain_total plaintext 'cust-cn-' occurrence(s) in bronze"
 
 msk_total=0
 while IFS= read -r key; do
@@ -419,8 +419,8 @@ while IFS= read -r key; do
   msk_total=$((msk_total + n))
 done < <(bronze_keys | grep '^local/silkroute-sg-bronze/region=CN/')
 [ "$msk_total" -ge 1 ] \
-  || fail "s6: no '\"customer_ref\":\"msk-\" found in region=CN bronze objects — masking not observable"
-echo "s6: C1 OK — plaintext cust-cn- occurrences across ALL bronze: 0; '\"customer_ref\":\"msk-\"' in region=CN objects: $msk_total"
+  || fail "s6: no '\"customer_ref\":\"msk-\" found in region=CN bronze objects - masking not observable"
+echo "s6: C1 OK - plaintext cust-cn- occurrences across ALL bronze: 0; '\"customer_ref\":\"msk-\"' in region=CN objects: $msk_total"
 
 echo "PASS 6-c1-cn-masking-bronze"
 

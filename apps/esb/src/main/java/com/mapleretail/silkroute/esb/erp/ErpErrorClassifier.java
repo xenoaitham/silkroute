@@ -17,7 +17,7 @@ import jakarta.xml.soap.SOAPFault;
 import jakarta.xml.ws.soap.SOAPFaultException;
 
 /**
- * ADR-0003 fault mapping (an explicit Phase 2 acceptance item): the frozen ERP
+ * ADR-0003 fault mapping (an explicit the hub acceptance item): the frozen ERP
  * emits its business faults with wire fault code soap:Receiver (a CXF default
  * the estate will not change), so the WIRE CODE MUST BE IGNORED. Classification
  * keys on the fault SHAPE instead:
@@ -27,7 +27,7 @@ import jakarta.xml.ws.soap.SOAPFaultException;
  *       → BUSINESS (Sender class), even though the wire code says Receiver;</li>
  *   <li>a raw SOAP fault whose Detail carries one of the frozen fault detail
  *       elements (InvalidOrderFault | OutOfStockFault | UnknownSkuFault |
- *       UnknownReservationFault) → BUSINESS (Sender class) — this is the
+ *       UnknownReservationFault) → BUSINESS (Sender class) - this is the
  *       "Receiver wire code" case;</li>
  *   <li>everything else (connect refused, timeout, transport/security failures)
  *       → INFRA (Receiver class).</li>

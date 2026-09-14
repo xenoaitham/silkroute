@@ -27,7 +27,7 @@ import static org.apache.spark.sql.functions.row_number;
  * - Keeps the FULL Debezium envelope semantics: ops c/r/u with a non-null
  *   after-image; latest-per-PK dedup keyed (table, PK, source.ts_ms) with a
  *   deterministic tiebreak (bronze_object DESC); op=d latest wins -> PK dropped.
- * - Types: money = BIGINT minor units + currency STRING (C5 — FloatType and
+ * - Types: money = BIGINT minor units + currency STRING (C5 - FloatType and
  *   DoubleType appear NOWHERE in this module); line_total_minor = integer
  *   multiplication with both operands cast to long BEFORE multiplying.
  * - Lineage: bronze_object = input_file_name().
@@ -52,7 +52,7 @@ public final class SilverPipeline {
         } catch (RuntimeException e) {
             // missing partition (AnalysisException "Path does not exist") or unreadable bucket: fail LOUD
             throw new IllegalStateException("BRONZE-READ-FAILED dt=" + dt + " path=" + bronzePath
-                    + " — no bronze objects landed for this business date (check the date arg or run the day first); cause: "
+                    + " - no bronze objects landed for this business date (check the date arg or run the day first); cause: "
                     + e.getMessage(), e);
         }
 
@@ -65,7 +65,7 @@ public final class SilverPipeline {
                         get_json_object(col("value"), "$.before").as("before_json"),
                         input_file_name().as("bronze_object"))
                 .filter(col("op").isin("c", "r", "u", "d"))
-                // c/r/u carry the after-image; d carries only the before-image — the PK
+                // c/r/u carry the after-image; d carries only the before-image - the PK
                 // below falls back to it so a DELETE removes its own earlier insert
                 .filter(col("after_json").isNotNull().or(col("before_json").isNotNull()))
                 .filter(col("source_ts_ms").isNotNull())
@@ -108,7 +108,7 @@ public final class SilverPipeline {
                         get_json_object(col("after_json"), "$.region").as("region"),
                         col("source_ts_ms"),
                         col("bronze_object"))
-                // C5: integer minor-unit math — both operands cast to long BEFORE the multiply
+                // C5: integer minor-unit math - both operands cast to long BEFORE the multiply
                 .withColumn("line_total_minor",
                         col("quantity").cast("long").multiply(col("unit_price_minor").cast("long")))
                 .withColumn("dt", lit(dt))
@@ -126,7 +126,7 @@ public final class SilverPipeline {
     /**
      * Latest-per-PK with DELETE awareness: for each (table_name, pk) keep the row
      * with the highest source.ts_ms (ties broken deterministically by
-     * bronze_object DESC) — and if the LATEST record for a PK is op=d, the PK is
+     * bronze_object DESC) - and if the LATEST record for a PK is op=d, the PK is
      * DROPPED (the delete wins; its earlier insert must not reach gold). The PK
      * expression resolves from the after-image, falling back to the before-image
      * for deletes (which carry no after).

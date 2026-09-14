@@ -109,7 +109,7 @@ public class OrderRequestProcessor implements Processor {
 
     private void respond(Exchange exchange, int httpCode, Object payload) {
         try {
-            // String payloads (SagaOutcome.responseJson) are ALREADY canonical JSON —
+            // String payloads (SagaOutcome.responseJson) are ALREADY canonical JSON -
             // serializing them again would double-encode the whole body as a JSON
             // string literal. Only POJOs (ErrorBody) need serialization here.
             exchange.getMessage().setBody(payload instanceof String s ? s : mapper.writeValueAsString(payload));

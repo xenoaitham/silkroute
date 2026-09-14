@@ -24,7 +24,7 @@ import jakarta.xml.soap.SOAPFault;
 import jakarta.xml.ws.soap.SOAPFaultException;
 
 /**
- * ADR-0003 fault mapping (Phase 2 acceptance item): ERP business faults arrive
+ * ADR-0003 fault mapping (the hub acceptance item): ERP business faults arrive
  * with wire fault code soap:Receiver (CXF default the frozen estate keeps), yet
  * they MUST map to SENDER/BUSINESS class. The wire code is ignored; the typed
  * fault exception / Detail element decides. Network faults map to RECEIVER/infra.
@@ -87,7 +87,7 @@ class ErpErrorClassifierTest {
         SOAPFault fault = factory.createFault();
         fault.setFaultCode(SOAPConstants.SOAP_SENDER_FAULT); // payload code is irrelevant to classification
         ((SOAPElement) fault).addChildElement(new QName(SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE, "Code"));
-        // set the 1.2 Code/Value explicitly to soap:Receiver — the CXF default on this estate
+        // set the 1.2 Code/Value explicitly to soap:Receiver - the CXF default on this estate
         fault.setFaultCode(new QName(SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE, "Receiver"));
         Detail detail = fault.addDetail();
         SOAPElement element = detail.addDetailEntry(new QName(ns, detailLocalName));

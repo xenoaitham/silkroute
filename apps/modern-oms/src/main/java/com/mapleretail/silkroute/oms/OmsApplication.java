@@ -18,7 +18,7 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
 /**
- * SILKROUTE Phase 3 — modern OMS event store (the CDC source of the data plane).
+ * SILKROUTE the data plane - modern OMS event store (the CDC source of the data plane).
  *
  * Design (ADR-0006 decision 2): consume ESB success events
  * (silkroute.orders.events) into MySQL silkroute_oms (oms_order + oms_order_line)
@@ -26,7 +26,7 @@ import org.springframework.util.backoff.FixedBackOff;
  * writes succeed; a business-key guard (unique source_system + external_order_ref
  * plus INSERT ... ON DUPLICATE KEY UPDATE no-op) makes replays safe.
  *
- * ZERO listening ports (web-application-type=none) — the shared sim host gains
+ * ZERO listening ports (web-application-type=none) - the shared sim host gains
  * no new sockets. Money is integer minor units + currency everywhere (C5);
  * customerRef is stored verbatim (already ESB-masked for CN, C1).
  */
@@ -50,7 +50,7 @@ public class OmsApplication {
     /**
      * Manual-ack container, built programmatically (not @KafkaListener) so the
      * start is explicit and the OMS-CONSUMER-START log line is emitted after
-     * subscription — the readiness signal the Makefile wait loop greps for.
+     * subscription - the readiness signal the Makefile wait loop greps for.
      */
     @Bean
     ConcurrentMessageListenerContainer<String, String> omsContainer(
@@ -70,7 +70,7 @@ public class OmsApplication {
         container.setAutoStartup(false);
 
         // A failed write (DB down) must NEVER be skipped: retry forever with a
-        // fixed backoff — loud logs, loop alive, offset unacknowledged. Malformed
+        // fixed backoff - loud logs, loop alive, offset unacknowledged. Malformed
         // (poison) events never reach this path: the listener logs OMS-POISON and
         // acknowledges them explicitly.
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(new FixedBackOff(2_000L, FixedBackOff.UNLIMITED_ATTEMPTS));

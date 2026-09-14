@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import com.mapleretail.silkroute.legacyerp.domain.OrderRecord;
 
 /**
- * In-memory order store (recorded decision: no database — the ERP's real store
+ * In-memory order store (recorded decision: no database - the ERP's real store
  * stays behind the mainframe). Enforces externalOrderRef uniqueness per
  * sourceSystem and issues sequential ORD-2026-NNNNNN ids. State resets on
  * restart, which is acceptable for the sim.
@@ -32,7 +32,7 @@ public class OrderLedger {
 
     /**
      * Registers a validated order. Returns the pre-existing order id when the
-     * (sourceSystem, externalOrderRef) pair was already used — callers turn that
+     * (sourceSystem, externalOrderRef) pair was already used - callers turn that
      * into a typed ORD-DUP-REF fault.
      */
     public Optional<String> tryRegister(OrderRecord record) {

@@ -23,8 +23,8 @@ import com.mapleretail.silkroute.esb.canonical.order.v1.CanonicalUnitPrice;
 import com.mapleretail.silkroute.esb.config.EsbProperties;
 
 /**
- * Pins the event-copy contract for the Phase-3 data plane: the Kafka success
- * event carries order LINES (skuId, quantity, unitPriceMinor, currency — C5
+ * Pins the event-copy contract for the data-plane data plane: the Kafka success
+ * event carries order LINES (skuId, quantity, unitPriceMinor, currency - C5
  * integer money) that the REST 201 body does not, mirroring the customerRef
  * injection precedent. The OMS event store rebuilds fact_order_lines from it.
  */

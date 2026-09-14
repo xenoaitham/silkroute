@@ -1,9 +1,9 @@
 locals {
   # Log-store TTLs (days): app logs 30, audit 180 (ActionTrail target, the
-  # "who did what" groundwork for Phase 5), order-event traces 30, pipeline
-  # metrics 30. pipeline-metrics is the DESIGNED home for the Phase-3 CDC/batch
+  # "who did what" groundwork for compliance), order-event traces 30, pipeline
+  # metrics 30. pipeline-metrics is the DESIGNED home for the data-plane CDC/batch
   # freshness metric (C4). The producer is now BUILT and measured in sim
-  # (apps/cdc + apps/batch; E-030/E-031) — but SLS ingest is the cloud receiving
+  # (apps/cdc + apps/batch; E-030/E-031) - but SLS ingest is the cloud receiving
   # end and has never run (verify-at-activation, ADR-0002), so this store still
   # receives nothing until an account exists; the dashboard panel and the SLO
   # report say so explicitly rather than implying a live cloud freshness signal.
@@ -95,11 +95,11 @@ resource "alicloud_log_store_index" "pipeline_metrics" {
     token           = ",;\"'()[]{}?@&<>=#:-"
   }
 
-  # Phase-3 producer contract: JSON events shaped
+  # data-plane producer contract: JSON events shaped
   # {"metric":"cdc_freshness_seconds"|"batch_completion","value":<number>,
   #  "pipeline":"cdc"|"batch"} so the freshness panel and the C4 SLO read one
   # name. The producer EXISTS and is measured in sim (apps/cdc emits the
-  # freshness line, apps/batch the batch line — E-030/E-031); these events land
+  # freshness line, apps/batch the batch line - E-030/E-031); these events land
   # in this store only via SLS ingest, which is the cloud receiving end and
   # verifies at activation (ADR-0002).
   field_search {
@@ -115,7 +115,7 @@ resource "alicloud_log_store_index" "pipeline_metrics" {
   }
 }
 
-# ActionTrail: management events into the audit store - the Phase-5 "who did
+# ActionTrail: management events into the audit store - the compliance "who did
 # what" foundation. Write role is the service-linked role (out-of-band).
 resource "alicloud_actiontrail" "sg" {
   trail_name         = "silkroute-sg-trail"
@@ -130,7 +130,7 @@ resource "alicloud_log_dashboard" "overview" {
   dashboard_name = "silkroute-overview"
   display_name   = "SilkRoute SG overview"
   # Three charts: ESB latency p95 on esb-app; DLQ depth on orders-events;
-  # CDC freshness on pipeline-metrics (the producer is live in sim — E-030/E-031;
+  # CDC freshness on pipeline-metrics (the producer is live in sim - E-030/E-031;
   # the panel renders in the cloud only once SLS ingest runs, see the store
   # comment and docs/slo-report.md SLO-6).
   char_list = jsonencode([
@@ -170,10 +170,10 @@ resource "alicloud_log_dashboard" "overview" {
     },
     {
       # C4 (freshness <= 15 min): the producer is BUILT and measured in sim
-      # (apps/cdc emits cdc_freshness_seconds — E-030/E-031). This panel renders
+      # (apps/cdc emits cdc_freshness_seconds - E-030/E-031). This panel renders
       # nothing in the cloud until SLS ingest runs (verify-at-activation,
-      # ADR-0002) — that is the honest boundary, not a gap to paper over.
-      title = "CDC freshness (s) — cdc_freshness_seconds (C4; producer live in sim, E-030/E-031)"
+      # ADR-0002) - that is the honest boundary, not a gap to paper over.
+      title = "CDC freshness (s) - cdc_freshness_seconds (C4; producer live in sim, E-030/E-031)"
       type  = "linePro"
       search = {
         logstore     = "pipeline-metrics"

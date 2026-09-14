@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Typed view of the silkroute.* block in application.yml. Every value is
- * env-indirected (${VAR:default}) at the YAML layer — this class only holds the
+ * env-indirected (${VAR:default}) at the YAML layer - this class only holds the
  * resolved sim values.
  */
 @ConfigurationProperties(prefix = "silkroute")
@@ -83,7 +83,7 @@ public class EsbProperties {
 
         public static class Wss {
             // Sim credentials are env-indirected in application.yml
-            // (${ERP_WSS_USERNAME:esb-client} / ${ERP_WSS_PASSWORD:...}) — kept
+            // (${ERP_WSS_USERNAME:esb-client} / ${ERP_WSS_PASSWORD:...}) - kept
             // literal-free here so source never carries credential values.
             private String username = "";
             private String password = "";

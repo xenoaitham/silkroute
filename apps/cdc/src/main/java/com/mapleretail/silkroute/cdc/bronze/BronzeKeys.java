@@ -8,7 +8,7 @@ import com.mapleretail.silkroute.cdc.common.Env;
  *   region=&lt;REGION&gt;/table=&lt;table&gt;/dt=&lt;YYYYMMDD&gt;/&lt;topic&gt;-&lt;partition&gt;-&lt;offset&gt;-&lt;uuid4&gt;.jsonl
  *
  * Uniqueness of (topic, partition, offset, uuid4) makes keys unique per landing
- * attempt: a re-run writes NEW keys — bronze is write-once by construction.
+ * attempt: a re-run writes NEW keys - bronze is write-once by construction.
  * There is deliberately NO delete/copy/overwrite helper anywhere in this module.
  */
 public final class BronzeKeys {

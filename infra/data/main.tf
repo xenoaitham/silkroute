@@ -15,7 +15,7 @@ locals {
 }
 
 # RDS MySQL ---------------------------------------------------------------
-# Postpaid (pay-as-you-go) per the Phase-4 cost guardrails. UTC storage is the
+# Postpaid (pay-as-you-go) per the landing-zone cost guardrails. UTC storage is the
 # C5 multi-timezone rule: all money timestamps persist in UTC; presentation
 # timezones (Canada/Saskatchewan, Asia/Singapore, Asia/Shanghai) are applied at
 # the app/batch-scheduling layer, never in the database session.
@@ -34,7 +34,7 @@ resource "alicloud_db_instance" "oms" {
   # Whitelist the VPC only (SEC-4-09); never widen this to 0.0.0.0/0.
   security_ips = [var.vpc_cidr]
   # At-rest encryption is not optional in the SG tier either (PDPA-relevant
-  # customer data) — key from the security module, mirror of the CN instance
+  # customer data) - key from the security module, mirror of the CN instance
   # (SEC-4-08).
   tde_status         = "Enabled"
   tde_encryption_key = var.rds_kms_key_arn
@@ -55,7 +55,7 @@ resource "alicloud_db_database" "oms" {
   instance_id    = alicloud_db_instance.oms.id
   data_base_name = var.db_name
   character_set  = "utf8mb4"
-  description    = "Order-management database; schema-parity with sim-mysql (Phase 3)."
+  description    = "Order-management database; schema-parity with sim-mysql (the data plane)."
 }
 
 resource "random_password" "oms_app" {

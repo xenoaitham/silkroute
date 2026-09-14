@@ -10,7 +10,7 @@ import org.apache.wss4j.common.ext.WSPasswordCallback;
 
 /**
  * Supplies the WSS UsernameToken password to WSS4J on the outbound path. The
- * password itself comes from env-indirected sim config (${ERP_WSS_PASSWORD}) —
+ * password itself comes from env-indirected sim config (${ERP_WSS_PASSWORD}) -
  * it is never logged.
  */
 public final class WssPasswordCallbackHandler implements CallbackHandler {

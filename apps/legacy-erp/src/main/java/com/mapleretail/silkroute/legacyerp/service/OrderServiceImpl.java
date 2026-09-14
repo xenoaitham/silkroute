@@ -38,7 +38,7 @@ import maple.erp.orders.v1.OrderServicePortType;
  * OrderService implementation. Validation order is deliberate and stable (the ESB
  * contract tests rely on it): audit block, store, then every line (sku, quantity),
  * then duplicate externalOrderRef at commit time. Totals are priced in the store's
- * region currency — CA->CAD, SG->SGD, CN->CNY — through the same CAD-based
+ * region currency - CA->CAD, SG->SGD, CN->CNY - through the same CAD-based
  * conversion as priceForSku (constraint C5: integer minor units only).
  */
 @Service

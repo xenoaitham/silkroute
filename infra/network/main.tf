@@ -42,8 +42,8 @@ resource "alicloud_vswitch" "private_2" {
 }
 
 # Enhanced NAT is the only internet egress path out of the private vSwitches.
-# The SNAT entries below are what actually connect them — without a snat_entry
-# the NAT gateway forwards nothing (corrected per critic cycle 1; the old
+# The SNAT entries below are what actually connect them - without a snat_entry
+# the NAT gateway forwards nothing (corrected in review cycle 1; the old
 # comment waved this off as "managed at apply time").
 resource "alicloud_nat_gateway" "egress" {
   vpc_id           = alicloud_vpc.hub.id
@@ -88,7 +88,7 @@ resource "alicloud_eip_association" "nat" {
   instance_type = "NatGateway"
 }
 
-# Security groups follow the allowlist in MASTER_PROMPT section 2:
+# Security groups follow the allowlist in the project charter section 2:
 # no 0.0.0.0/0 inbound anywhere; ESB is the only caller of the ERP and data tier.
 
 resource "alicloud_security_group" "esb" {
@@ -137,9 +137,9 @@ resource "alicloud_security_group_rule" "esb_admin_18082" {
   priority          = 1
 }
 
-# EGRESS HONESTY (corrected per critic cycle 1): these are BASIC security
+# EGRESS HONESTY (corrected in review cycle 1): these are BASIC security
 # groups (`security_group_type = "normal"`), and AliCloud basic groups are
-# DEFAULT-ALLOW on egress — the rules below document intended flows and pin
+# DEFAULT-ALLOW on egress - the rules below document intended flows and pin
 # reachability intent, but they do NOT deny anything. Deny-all-else egress
 # would require `advanced` security groups; deferred until an account exists
 # to validate the advanced-group ACL semantics. Inbound claims (the

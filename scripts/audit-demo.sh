@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Audit-trail demo — "who did what" query pattern, proven against sim-mode data.
+# Audit-trail demo - "who did what" query pattern, proven against sim-mode data.
 #
 # What this PROVES: the audit-event schema (compliance/audit-trail-design.md §1),
-# the seed data, and the five cookbook queries behave as designed — including
+# the seed data, and the five cookbook queries behave as designed - including
 # the two reads that matter most in practice: denied actions (who attempted
 # what from where) and the region-anomaly canary.
 #
 # What this does NOT prove: anything about a live cloud. The production store
-# is SLS fed by the designed ActionTrail (infra/observability/main.tf) — that
+# is SLS fed by the designed ActionTrail (infra/observability/main.tf) - that
 # trail has never run because no AliCloud account exists (ADR-0002,
 # validated-plans mode). This demo runs against the SIM MySQL (silkroute_audit
 # database inside sim-mysql) and seed rows are SIMULATED events: identities,
@@ -28,7 +28,7 @@ command -v docker >/dev/null || fail "docker not available"
 docker compose ps mysql 2>/dev/null | grep -q sim-mysql || fail "sim-mysql not running (make up first)"
 
 # SQL on stdin -> MySQL in the sim container (password from container env,
-# never hardcoded — same pattern as scripts/smoke.sh). sqlddl connects WITHOUT
+# never hardcoded - same pattern as scripts/smoke.sh). sqlddl connects WITHOUT
 # a default database (the database may not exist yet); sql/sqln default to
 # silkroute_audit, which the DDL step guarantees exists.
 sqlddl() { docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot --table'; }
@@ -37,7 +37,7 @@ sqln()   { docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" 
 
 echo "== audit-trail demo: schema + seed + \"who did what\" cookbook (sim-mode, per audit-trail-design.md) =="
 
-# 1. Schema — the DDL is the one committed in compliance/audit-trail-design.md §1.
+# 1. Schema - the DDL is the one committed in compliance/audit-trail-design.md §1.
 sqlddl <<'SQL' >/dev/null || fail "schema DDL failed"
 CREATE DATABASE IF NOT EXISTS silkroute_audit;
 USE silkroute_audit;
@@ -63,7 +63,7 @@ SQL
 
 # 2. Seed only when empty (8 simulated management events, 2026-09-13).
 count="$(echo "SELECT COUNT(*) FROM silkroute_audit.audit_event;" | sqln 2>/dev/null | tail -1)"
-[ "$count" = "0" ] || { echo "seed: table already holds $count rows — skipping seed"; }
+[ "$count" = "0" ] || { echo "seed: table already holds $count rows - skipping seed"; }
 if [ "$count" = "0" ]; then
 sqlddl <<'SQL' >/dev/null || fail "seed insert failed"
 USE silkroute_audit;
@@ -94,7 +94,7 @@ INSERT INTO audit_event
  ('seed-006','2026-09-13 10:06:29.610','ram.aliyuncs.com','CreatePolicy','RAMPOLICY','silkroute-ci-assume',
   'ap-southeast-1','assumed-role','silkroute-ci','198.51.100.42','Terraform/1.16.2',
   NULL,NULL,'req-8c10d5','{"PolicyName":"silkroute-ci-assume"}'),
- -- Q5 target: a region-anomaly event — an action OUTSIDE the hub region
+ -- Q5 target: a region-anomaly event - an action OUTSIDE the hub region
  ('seed-007','2026-09-13 11:41:18.947','oss.aliyuncs.com','CreateBucket','OSSBUCKET','silkroute-cn-bronze',
   'cn-beijing','ram-user','mrg-secops','203.0.113.17','aliyun-cli/3.0.214',
   NULL,NULL,'req-9d44e7','{"BucketName":"silkroute-cn-bronze"}'),
@@ -143,7 +143,7 @@ FROM audit_event
 WHERE region <> 'ap-southeast-1'
 ORDER BY event_time DESC;" | sql || fail "Q5 failed"
 
-# 4. Assertions — the demo must be able to fail if the pattern breaks.
+# 4. Assertions - the demo must be able to fail if the pattern breaks.
 deny_count="$(echo "SELECT COUNT(*) FROM silkroute_audit.audit_event WHERE error_code IS NOT NULL;" | sqln | tail -1)"
 [ "$deny_count" = "2" ] || fail "expected 2 denied actions in seed, got: '$deny_count'"
 stop_denied="$(echo "SELECT COUNT(*) FROM silkroute_audit.audit_event WHERE event_name='StopLogging' AND error_code IS NOT NULL;" | sqln | tail -1)"
@@ -155,5 +155,5 @@ rotation="$(echo "SELECT COUNT(*) FROM silkroute_audit.audit_event WHERE event_n
 
 echo
 echo "audit-demo OK: schema + seed + 5 cookbook queries; assertions held (2 denials visible, 1 region anomaly, rotation attributable)"
-echo "honest label: sim-mode query-pattern demonstration — the production store is SLS via the DESIGNED trail (ADR-0002; verify at activation)"
+echo "honest label: sim-mode query-pattern demonstration - the production store is SLS via the DESIGNED trail (ADR-0002; verify at activation)"
 exit 0

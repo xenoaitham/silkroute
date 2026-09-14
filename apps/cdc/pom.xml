@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SILKROUTE Phase 3 — CDC capture + bronze landing (apps/cdc).
+  SILKROUTE the data plane - CDC capture + bronze landing (apps/cdc).
 
   ADR-0006 decision 1: an EMBEDDED Debezium Engine (debezium-embedded +
-  debezium-connector-mysql) in a plain host-JVM app — NOT a Kafka Connect
+  debezium-connector-mysql) in a plain host-JVM app - NOT a Kafka Connect
   cluster. Zero new containers, zero new listening ports; the interface
   contract (Debezium envelope JSON on a Kafka topic) is IDENTICAL under both
   engines, so the ADR-0001 cloud swap stays configuration-only.
@@ -15,10 +15,10 @@
                                       write-once JSONL objects, ADR-0006 key format)
 
   Versions (pinned, compatible with sim broker Kafka 3.8.0 and MySQL 8.0.46):
-    Debezium 2.7.3.Final (Kafka Connect clients 3.7.x — wire-compatible with the
+    Debezium 2.7.3.Final (Kafka Connect clients 3.7.x - wire-compatible with the
     3.8.0 broker), AWS SDK v1 1.12.x for the S3 API surface.
 
-  Money discipline (C5): this module never touches monetary values — envelopes
+  Money discipline (C5): this module never touches monetary values - envelopes
   pass through verbatim. Residency (C1): bronze keys carry the region= tag from
   the row; nothing here unmasks customerRef.
 -->
@@ -32,7 +32,7 @@
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>cdc</name>
-  <description>Maple Retail (fictional) CDC: embedded Debezium engine + bronze writer (Phase 3)</description>
+  <description>Maple Retail (fictional) CDC: embedded Debezium engine + bronze writer (the data plane)</description>
 
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
@@ -106,7 +106,7 @@
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.6.0</version>
         <executions>
-          <!-- Main A: CaptureEngine — the main artifact. -->
+          <!-- Main A: CaptureEngine - the main artifact. -->
           <execution>
             <id>shade-engine</id>
             <phase>package</phase>
@@ -131,7 +131,7 @@
               </filters>
             </configuration>
           </execution>
-          <!-- Main B: BronzeWriter — attached with classifier "bronze". -->
+          <!-- Main B: BronzeWriter - attached with classifier "bronze". -->
           <execution>
             <id>shade-bronze</id>
             <phase>package</phase>

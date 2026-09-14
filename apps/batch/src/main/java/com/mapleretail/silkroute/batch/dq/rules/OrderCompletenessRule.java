@@ -8,7 +8,7 @@ import com.mapleretail.silkroute.batch.dq.RowView;
 import com.mapleretail.silkroute.batch.dq.Violation;
 
 /**
- * DQ-COMPLETE for orders (MASTER_PROMPT §3: completeness): order_id, store_id,
+ * DQ-COMPLETE for orders (the component spec: completeness): order_id, store_id,
  * region, total_amount_minor, currency must all be non-null.
  */
 public final class OrderCompletenessRule implements DqRule {

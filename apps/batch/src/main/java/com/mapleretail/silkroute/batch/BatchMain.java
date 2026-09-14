@@ -125,7 +125,7 @@ public final class BatchMain {
                 dq.writeResults(runId, allResults, nowUtc);
 
                 if (!allViolations.isEmpty()) {
-                    LOG.warn("DQ-QUARANTINE-NONEMPTY run={} violations={} — quarantined rows are EXCLUDED from gold; "
+                    LOG.warn("DQ-QUARANTINE-NONEMPTY run={} violations={} - quarantined rows are EXCLUDED from gold; "
                             + "the reconciliation is expected to go RED while violations exist (by design)",
                             runId, allViolations.size());
                 }

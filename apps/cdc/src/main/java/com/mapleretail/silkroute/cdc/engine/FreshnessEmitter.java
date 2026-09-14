@@ -16,12 +16,12 @@ import org.slf4j.LoggerFactory;
  *   timestamp of the latest Debezium record the CDC app SUCCESSFULLY published
  *   to the Kafka CDC topic, measured by the producer at emission time.
  *
- * Emitted as {"metric":"cdc_freshness_seconds","value":N,"pipeline":"cdc"} —
- * the exact contract shape of the Phase-6 pipeline-metrics store (E-019):
+ * Emitted as {"metric":"cdc_freshness_seconds","value":N,"pipeline":"cdc"} -
+ * the exact contract shape of the operations pipeline-metrics store (E-019):
  * ONLY these three keys, value in whole seconds (integer; the brief allows
  * 1-decimal but the sim emits integers to keep every number in this repo
  * non-floating-point). The engine emits once per published batch AND on every
- * heartbeat while idle — a growing value under source silence is CORRECT
+ * heartbeat while idle - a growing value under source silence is CORRECT
  * measured lag, not an error.
  *
  * Pure and clock-injectable (all methods take nowMs) so tests can prove the
@@ -65,13 +65,13 @@ public final class FreshnessEmitter {
         return value;
     }
 
-    /** Pure computation — the tested core. Never negative; whole seconds. */
+    /** Pure computation - the tested core. Never negative; whole seconds. */
     public static long freshnessSeconds(long sourceTsMs, long nowMs) {
         long delta = nowMs - sourceTsMs;
         return delta <= 0 ? 0 : delta / 1000L;
     }
 
-    /** The EXACT contract line: only metric, value, pipeline — no other keys. */
+    /** The EXACT contract line: only metric, value, pipeline - no other keys. */
     public static String metricLine(long valueSeconds) {
         return "{\"metric\":\"" + METRIC_NAME + "\",\"value\":" + valueSeconds + ",\"pipeline\":\"" + PIPELINE + "\"}";
     }

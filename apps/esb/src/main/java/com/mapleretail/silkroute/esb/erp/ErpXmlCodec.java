@@ -24,7 +24,7 @@ import jakarta.xml.bind.Unmarshaller;
 
 /**
  * JAXB codec for the FROZEN ERP contract beans (generated read-only from the
- * frozen WSDLs — constraint C6). Used to hand XSLT output to the CXF typed ports
+ * frozen WSDLs - constraint C6). Used to hand XSLT output to the CXF typed ports
  * and to feed typed responses into the XSLT response legs.
  */
 public final class ErpXmlCodec {

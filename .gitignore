@@ -49,3 +49,15 @@ derby.log
 
 # maven-shade residue (generated; never commit)
 dependency-reduced-pom.xml
+
+# personal working files - kept local, never published
+STATE.md
+ROADMAP.md
+MASTER_PROMPT.md
+SESSION-PROMPT-*.md
+AGENTS.md
+docs/interview/
+docs/portfolio-one-pager.md
+demos/video-outline.md
+compliance/*-review*.md
+compliance/citations-verification-*.md

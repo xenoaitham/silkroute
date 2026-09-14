@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SILKROUTE Phase 2 — toxiproxy fault recipes for the ERP path.
+# SILKROUTE the hub - toxiproxy fault recipes for the ERP path.
 #
 # All ERP traffic from the ESB flows through the toxiproxy proxy "erp"
 # (listen 127.0.0.1:18180 -> upstream 127.0.0.1:18080 on the HOST network via
@@ -33,7 +33,7 @@ proxy_url() { echo "$API/proxies/$PROXY"; }
 ensure() {
   local code
   code=$(curl -s -o /dev/null -w '%{http_code}' "$API/version" || true)
-  [ "$code" = "200" ] || { echo "ERROR: toxiproxy API not reachable at $API (HTTP $code) — run: make up"; exit 1; }
+  [ "$code" = "200" ] || { echo "ERROR: toxiproxy API not reachable at $API (HTTP $code) - run: make up"; exit 1; }
   code=$(curl -s -o /dev/null -w '%{http_code}' "$(proxy_url)" || true)
   if [ "$code" = "404" ]; then
     curl -s -X POST "$API/proxies" -H 'Content-Type: application/json' \

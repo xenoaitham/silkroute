@@ -13,7 +13,7 @@ import com.mapleretail.silkroute.esb.events.PiiMaskingPolicy;
 /**
  * C1/PIPL policy hook: CN-region customerRef must be pseudonymized BEFORE egress
  * to shared (non-CN-pinned) destinations; non-CN stays clear. The transform is
- * keyed HMAC-SHA256 — deterministic for correlation, not dictionary-reversible
+ * keyed HMAC-SHA256 - deterministic for correlation, not dictionary-reversible
  * for guessable refs (and NOT anonymization; see the class javadoc).
  */
 class PiiMaskingPolicyTest {

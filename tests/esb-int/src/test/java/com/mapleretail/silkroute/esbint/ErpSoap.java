@@ -24,8 +24,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * Raw SOAP 1.2 + WS-Security UsernameToken client for the legacy ERP — the
- * SAME wire shape the Phase 1 Karate contract suite freezes (tests/contract).
+ * Raw SOAP 1.2 + WS-Security UsernameToken client for the legacy ERP - the
+ * SAME wire shape the the ERP layer Karate contract suite freezes (tests/contract).
  * Used ONLY for independent ground truth (getStock / priceForSku): the proof
  * that saga compensation really released a hold on the ERP, and that business
  * faults leaked no stock. Calls go DIRECT to 127.0.0.1:18080 (not through the
@@ -51,7 +51,7 @@ final class ErpSoap {
     private ErpSoap() {
     }
 
-    /** Fresh UsernameToken per request — the ERP keeps a nonce replay cache. */
+    /** Fresh UsernameToken per request - the ERP keeps a nonce replay cache. */
     private static String securityHeader() {
         byte[] bytes = new byte[16];
         RANDOM.nextBytes(bytes);

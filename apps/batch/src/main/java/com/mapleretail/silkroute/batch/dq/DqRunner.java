@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * The rule runner used by BOTH the Spark pipeline (driver-side row adapter)
  * and the selftest: feed rows in, get per-rule results + violations.
- * A check that cannot fail is not a check — the selftest proves every rule
+ * A check that cannot fail is not a check - the selftest proves every rule
  * catches its own fixture violation.
  */
 public final class DqRunner {

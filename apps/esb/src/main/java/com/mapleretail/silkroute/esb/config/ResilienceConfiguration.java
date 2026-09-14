@@ -23,7 +23,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
  *   failureRateThreshold 50, slidingWindowSize 10, minimumNumberOfCalls 6,
  *   waitDurationInOpenState 2s, permittedNumberOfCallsInHalfOpenState 3.
  *
- * recordExceptions = ErpInfraException (timeouts / connect failures) ONLY —
+ * recordExceptions = ErpInfraException (timeouts / connect failures) ONLY -
  * ERP business faults (ADR-0003 Sender class) never open the breaker. When the
  * breaker is OPEN the call is refused before the wire (fail fast → 503
  * CIRCUIT-OPEN); healing upstream transitions OPEN → HALF_OPEN → CLOSED via
@@ -62,7 +62,7 @@ public class ResilienceConfiguration {
                 // Single ERP gateway funnel wrapped by the shared circuit breaker.
                 // throwExceptionWhenHalfOpenOrOpenState(true) is LOAD-BEARING: with the
                 // default (false) an OPEN breaker would silently pass the exchange
-                // through WITHOUT invoking the gateway — we need the CallNotPermitted
+                // through WITHOUT invoking the gateway - we need the CallNotPermitted
                 // signal so the saga can fail fast with 503 CIRCUIT-OPEN.
                 from("direct:erp")
                         .routeId("erp-gateway-circuit-breaker")
@@ -75,7 +75,7 @@ public class ResilienceConfiguration {
 
                 // Compensation route, deliberately OUTSIDE the breaker: a saga that
                 // is rolling back DURING an outage must still be able to release its
-                // ERP holds — the breaker is exactly what is open at that moment.
+                // ERP holds - the breaker is exactly what is open at that moment.
                 // Releases are still retried-per-call by the gateway itself.
                 from("direct:erp-release")
                         .routeId("erp-release-compensation")

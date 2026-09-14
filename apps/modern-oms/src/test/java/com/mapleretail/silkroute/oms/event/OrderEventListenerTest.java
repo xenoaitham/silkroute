@@ -64,7 +64,7 @@ class OrderEventListenerTest {
 
     @Test
     void integerLineTotalMathIsExactForOddPrices() {
-        // 3 x 3333 = 9999; 7 x 499 = 3493 — long multiplication, C5
+        // 3 x 3333 = 9999; 7 x 499 = 3493 - long multiplication, C5
         assertEquals(9999L, OrderEventData.LineMath.lineTotal(3, 3333L));
         assertEquals(3493L, OrderEventData.LineMath.lineTotal(7, 499L));
         assertThrows(IllegalArgumentException.class, () -> OrderEventData.LineMath.lineTotal(0, 100L));
@@ -73,7 +73,7 @@ class OrderEventListenerTest {
     @Test
     void cnMaskedCustomerRefIsStoredVerbatim() throws Exception {
         OrderEventData event = new OrderEventParser().parse(eventJson(MASKED_CN_REF));
-        // C1: verbatim passthrough — no re-masking, no unmanging, no trimming
+        // C1: verbatim passthrough - no re-masking, no unmanging, no trimming
         assertEquals(MASKED_CN_REF, event.getCustomerRef());
         assertEquals(MASKED_CN_REF, event.getCustomerRef());
     }

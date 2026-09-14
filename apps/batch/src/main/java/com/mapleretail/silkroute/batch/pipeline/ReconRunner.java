@@ -23,14 +23,14 @@ import static org.apache.spark.sql.functions.sum;
 /**
  * Reconciliation (THE acceptance criterion: source vs gold, must be 100%).
  *
- * source = the OMS MySQL (silkroute_oms) read via Spark JDBC — the real system
+ * source = the OMS MySQL (silkroute_oms) read via Spark JDBC - the real system
  * of record; rows scoped to the business date by the UTC calendar date of
  * oms_order.ingested_at (the JDBC URL pins the session to UTC, C5).
  * target = the gold Parquet JUST built, re-read from the gold bucket (a real
  * round trip, not the in-memory frames).
  *
  * Aggregates: orders count, lines count, SUM(total_amount_minor) by currency
- * AND SUM(line_total_minor) by currency — all compared per currency (C5:
+ * AND SUM(line_total_minor) by currency - all compared per currency (C5:
  * money is never summed across currencies).
  *
  * Report JSON keeps the pinned shape {runId, businessDate, orders, lines,

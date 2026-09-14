@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# C1 residency checks — static, machine-checkable, falsifiable.
+# C1 residency checks - static, machine-checkable, falsifiable.
 #
 # What these checks PROVE: the Terraform resource graph pins the CN partition
 # to the CN provider, keeps CN strings out of the SG modules, ships zero
@@ -9,7 +9,7 @@
 # through PiiMaskingPolicy.
 #
 # What they do NOT prove: runtime cloud behavior. No AliCloud account exists
-# (ADR-0002 validated-plans mode) — an actual bucket rejecting a cross-region
+# (ADR-0002 validated-plans mode) - an actual bucket rejecting a cross-region
 # read or a live SAE namespace resolving in cn-beijing is verify-at-activation.
 # This script is the CI side of the C1 consequence; the behavioral side is the
 # fault-injection suite's masked-DLQ assertions (E-009).
@@ -41,7 +41,7 @@ fail() { echo "FAIL [$1] $2"; failures=$((failures + 1)); }
 pass() { echo "ok   [$1] $2"; }
 
 # Resource types in cn-partition WITHOUT a tags attribute in provider
-# alicloud 1.285.0 (schema-verified: SEC-1 review §1/§5, 2026-09-11). The SAE
+# alicloud 1.285.0 (schema-verified in the security review, 2026-09-11). The SAE
 # namespace is residency-pinned by the region prefix in its namespace_id and
 # by the aliased provider instead.
 NO_TAGS_TYPES="alicloud_sae_namespace alicloud_kms_alias alicloud_db_database alicloud_db_account alicloud_db_account_privilege alicloud_oss_bucket_server_side_encryption alicloud_oss_bucket_versioning alicloud_oss_bucket_public_access_block alicloud_oss_bucket_policy random_password"
@@ -58,7 +58,7 @@ check_r1() {
 }
 
 # R2: CN region strings/variables appear ONLY in the wiring files and the
-# cn-partition module — never inside the SG hub modules.
+# cn-partition module - never inside the SG hub modules.
 check_r2() {
   local bad
   bad=$(grep -rnE 'cn[-_]beijing|var\.cn_' "$INFRA_DIR" --include='*.tf' --include='*.tfvars.example' 2>/dev/null \
@@ -79,7 +79,7 @@ check_r3() {
 
 # R4: every resource block in cn-partition carries tags = local.cn_tags,
 # except the schema-tagless types adjudicated in NO_TAGS_TYPES. The check
-# runs INSIDE awk — a body with embedded newlines cannot be streamed line-by-
+# runs INSIDE awk - a body with embedded newlines cannot be streamed line-by-
 # line (every continuation line would read as a phantom untagged block).
 check_r4() {
   ! awk -v exc="$NO_TAGS_TYPES" '
@@ -93,10 +93,10 @@ check_r4() {
   ' "$INFRA_DIR/cn-partition/main.tf" | grep -q '^UNTAGGED'
 }
 
-# R5: bucket name FAMILIES never cross — CN bucket-name literals only inside
+# R5: bucket name FAMILIES never cross - CN bucket-name literals only inside
 # cn-partition, SG names never inside it. The `acs:oss:*:*:silkroute-cn-*`
 # ARN family prefixes in the CI deploy policy (infra/security/main.tf) are
-# management-plane references to both families and are allowed (SEC-1 §2).
+# management-plane references to both families and are allowed (security-review adjudication).
 check_r5() {
   local cn_literal_outside sg_inside
   cn_literal_outside=$(grep -rn 'silkroute-cn-' "$INFRA_DIR" --include='*.tf' 2>/dev/null \
@@ -105,7 +105,7 @@ check_r5() {
   [ "$cn_literal_outside" -eq 0 ] && [ "$sg_inside" -eq 0 ]
 }
 
-# R6: the CN partition has no NAT gateway / EIP — no egress path at all.
+# R6: the CN partition has no NAT gateway / EIP - no egress path at all.
 check_r6() {
   ! grep -qnE '^resource "(alicloud_nat_gateway|alicloud_eip|alicloud_eip_association)"' \
     "$INFRA_DIR/cn-partition/main.tf" 2>/dev/null
@@ -141,7 +141,7 @@ run_checks() {
 
 # ------------------------------------------------------------- selftest ---
 
-# Each mutation must turn the suite red WITH the expected check id — a check
+# Each mutation must turn the suite red WITH the expected check id - a check
 # that survives its own violation is decoration, not a check.
 selftest() {
   local tmp
@@ -220,12 +220,12 @@ fi
 
 echo "== C1 residency checks (static; validated-plans honesty per ADR-0002) =="
 echo "    infra: $INFRA_DIR"
-# Run in THIS shell — a command substitution would run the checks in a
+# Run in THIS shell - a command substitution would run the checks in a
 # subshell and the failure counter would never reach the exit decision
 # (the bug the selftest exists to catch).
 run_checks
 if [ "$failures" -eq 0 ]; then
-  echo "residency OK (7/7 checks) — graph + wiring enforce C1 statically; runtime proof waits for an account"
+  echo "residency OK (7/7 checks) - graph + wiring enforce C1 statically; runtime proof waits for an account"
   exit 0
 fi
 echo "residency FAILED: $failures check(s)"

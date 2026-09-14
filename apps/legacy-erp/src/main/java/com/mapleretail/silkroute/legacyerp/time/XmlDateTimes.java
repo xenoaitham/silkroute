@@ -11,7 +11,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 
 /**
  * Converts java.time values to the xsd:dateTime / xsd:date shapes the frozen
- * contracts use. All timestamps are emitted timezone-explicit (UTC) — constraint C5
+ * contracts use. All timestamps are emitted timezone-explicit (UTC) - constraint C5
  * requires timezone-explicit behavior across the multi-timezone batch windows.
  */
 public final class XmlDateTimes {

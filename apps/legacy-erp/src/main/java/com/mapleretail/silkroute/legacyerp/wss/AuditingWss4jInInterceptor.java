@@ -15,7 +15,7 @@ import org.apache.wss4j.common.WSS4JConstants;
 
 /**
  * WSS4J UsernameToken in-interceptor that additionally logs the presented
- * username whenever token processing fails. Password material is never logged —
+ * username whenever token processing fails. Password material is never logged -
  * only the username and the failure reason are written.
  */
 public class AuditingWss4jInInterceptor extends WSS4JInInterceptor {
