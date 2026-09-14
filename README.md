@@ -110,7 +110,7 @@ Cost headline: the designed 24/7 Singapore footprint prices at **949.64 USD/mont
 | [compliance/](compliance/) | Control matrix, cross-border memo, STRIDE, audit-trail design |
 | [tests/](tests/) | Karate contract, ESB fault-injection suite, ETL integration suite, k6 load, chaos harness |
 | [docs/](docs/) | HLD, LLD, runbooks, delivery model, SLO report, cost model, ICP runbook |
-| [demo/](demo/) | Screenshot walkthrough: the whole pipeline, visible without running it |
+| [demo/](demo/) | Screenshot walkthrough: the whole pipeline, visible without running it - live at <https://xenoaitham.github.io/silkroute/> |
 
 **Decision log (6 ADRs, one line each):**
 
