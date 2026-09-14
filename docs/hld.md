@@ -4,7 +4,7 @@ Maple Retail Group is a **fictional** Canadian retailer; this document is part o
 
 **Doc status, stated once and applying throughout:** the left side of every diagram in this document - the ESB, the frozen SOAP ERP, the sim data services, the ETL data plane, and all measured behavior - **runs here today** in sim mode (docker-compose + Spring Boot jars on host loopback). The right side - the AliCloud landing zone - is **validated IaC: schema- and plan-proven against the real `alicloud` provider, never applied** (ADR-0002; no account exists, plans create nothing). The CN partition is additionally **designed and plan-validated only** (ADR-0005). SLS runtime behavior and real cloud costs verify at activation. CDC freshness is **measured in sim** (producer live, E-030/E-031); SLS ingest of it verifies at activation.
 
-## 1. Scenario constraints (C1-C7, verbatim from [the project charter](../the project charter) )
+## 1. Scenario constraints (C1-C7)
 
 | # | Constraint | Consequence |
 |---|---|---|

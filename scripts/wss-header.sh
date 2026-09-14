@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# the maintainer verification helper - emits a WS-Security UsernameToken header (PasswordText).
+# WS-Security header verification helper - emits a UsernameToken header (PasswordText).
 # usage: wss.sh <username> <password>
 user="$1"; pass="$2"
 created="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"

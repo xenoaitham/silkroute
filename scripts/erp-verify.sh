@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# the maintainer independent verification of apps/legacy-erp - runtime probe (E-006).
+# Independent runtime verification of apps/legacy-erp - runtime probe (E-006).
 # Exercises happy + typed-fault + auth paths over SOAP 1.2 with UsernameToken.
 # This is NOT the Karate contract suite (tests/contract/) - it is a thin curl probe.
 # Prereq: the ERP is running, e.g.
@@ -35,14 +35,14 @@ check "pricing unknown SKU -> PRC-SKU-UNKNOWN" 'PRC-SKU-UNKNOWN' "$R"
 check "  ... fault element present" 'UnknownSkuFault' "$R"
 
 # --- orders happy path ---
-R=$(soap_post $BASE/ws/orders/v1 'urn:maple:erp:orders:v1:submitOrder' "$(env ' xmlns:mord="urn:maple:erp:orders:v1" xmlns:mcom="urn:maple:erp:common:v1"' "$(sec)" '<mord:submitOrderRequest><mord:externalOrderRef>the maintainer-0001</mord:externalOrderRef><mord:storeId>ST-CA-01</mord:storeId><mord:orderChannel>WEB_STORE</mord:orderChannel><mord:lines><mord:skuId>SKU-0001</mord:skuId><mord:quantity>2</mord:quantity></mord:lines><mord:audit><mcom:sourceSystem>the maintainer</mcom:sourceSystem><mcom:receivedAt>2026-09-09T18:00:00Z</mcom:receivedAt><mcom:correlationId>orch-0001</mcom:correlationId></mord:audit></mord:submitOrderRequest>')")
+R=$(soap_post $BASE/ws/orders/v1 'urn:maple:erp:orders:v1:submitOrder' "$(env ' xmlns:mord="urn:maple:erp:orders:v1" xmlns:mcom="urn:maple:erp:common:v1"' "$(sec)" '<mord:submitOrderRequest><mord:externalOrderRef>WEB-VERIFY-1</mord:externalOrderRef><mord:storeId>ST-CA-01</mord:storeId><mord:orderChannel>WEB_STORE</mord:orderChannel><mord:lines><mord:skuId>SKU-0001</mord:skuId><mord:quantity>2</mord:quantity></mord:lines><mord:audit><mcom:sourceSystem>WEB_STORE_VERIFY</mcom:sourceSystem><mcom:receivedAt>2026-09-09T18:00:00Z</mcom:receivedAt><mcom:correlationId>verify-0001</mcom:correlationId></mord:audit></mord:submitOrderRequest>')")
 check "orders happy: submitOrder SUBMITTED" 'SUBMITTED' "$R"
 [[ "$R" == *"currency>CAD<"* ]] && { echo "PASS  order total priced in store-region currency (CAD)"; pass=$((pass+1)); } || { echo "FAIL  order currency"; failed=$((failed+1)); }
 ORDER_ID=$(echo "$R" | grep -o 'ORD-2026-[0-9]*' | head -1)
 [[ -n "$ORDER_ID" ]] && { echo "PASS  order id assigned: $ORDER_ID"; pass=$((pass+1)); } || { echo "FAIL  no order id"; failed=$((failed+1)); }
 
 # --- invalid order (quantity 0) -> InvalidOrderFault ---
-R=$(soap_post $BASE/ws/orders/v1 'urn:maple:erp:orders:v1:submitOrder' "$(env ' xmlns:mord="urn:maple:erp:orders:v1" xmlns:mcom="urn:maple:erp:common:v1"' "$(sec)" '<mord:submitOrderRequest><mord:externalOrderRef>the maintainer-BAD-1</mord:externalOrderRef><mord:storeId>ST-CA-01</mord:storeId><mord:orderChannel>WEB_STORE</mord:orderChannel><mord:lines><mord:skuId>SKU-0001</mord:skuId><mord:quantity>0</mord:quantity></mord:lines><mord:audit><mcom:sourceSystem>the maintainer</mcom:sourceSystem><mcom:receivedAt>2026-09-09T18:00:00Z</mcom:receivedAt><mcom:correlationId>orch-0002</mcom:correlationId></mord:audit></mord:submitOrderRequest>')")
+R=$(soap_post $BASE/ws/orders/v1 'urn:maple:erp:orders:v1:submitOrder' "$(env ' xmlns:mord="urn:maple:erp:orders:v1" xmlns:mcom="urn:maple:erp:common:v1"' "$(sec)" '<mord:submitOrderRequest><mord:externalOrderRef>WEB-VERIFY-BAD-1</mord:externalOrderRef><mord:storeId>ST-CA-01</mord:storeId><mord:orderChannel>WEB_STORE</mord:orderChannel><mord:lines><mord:skuId>SKU-0001</mord:skuId><mord:quantity>0</mord:quantity></mord:lines><mord:audit><mcom:sourceSystem>WEB_STORE_VERIFY</mcom:sourceSystem><mcom:receivedAt>2026-09-09T18:00:00Z</mcom:receivedAt><mcom:correlationId>verify-0002</mcom:correlationId></mord:audit></mord:submitOrderRequest>')")
 check "orders qty=0 -> InvalidOrderFault/ORD-BAD-QUANTITY" 'ORD-BAD-QUANTITY' "$R"
 
 # --- inventory: getStock, oversell reserve, unknown reservation release ---
@@ -50,10 +50,10 @@ R=$(soap_post $BASE/ws/inventory/v1 'urn:maple:erp:inventory:v1:getStock' "$(env
 check "inventory getStock happy (SG region)" 'region>SG<' "$R"
 AVAIL=$(echo "$R" | grep -o 'availableQuantity>[0-9]*<' | head -1 | grep -o '[0-9]*')
 OVER=$((AVAIL+5))
-R=$(soap_post $BASE/ws/inventory/v1 'urn:maple:erp:inventory:v1:reserve' "$(env ' xmlns:minv="urn:maple:erp:inventory:v1" xmlns:mcom="urn:maple:erp:common:v1"' "$(sec)" "<minv:reserveRequest><minv:reservationRef>ORCH-OVERS-1</minv:reservationRef><minv:storeId>ST-SG-01</minv:storeId><minv:skuId>SKU-0007</minv:skuId><minv:quantity>$OVER</minv:quantity><minv:audit><mcom:sourceSystem>the maintainer</mcom:sourceSystem><mcom:receivedAt>2026-09-09T18:00:00Z</mcom:receivedAt><mcom:correlationId>orch-0003</mcom:correlationId></minv:audit></minv:reserveRequest>")")
+R=$(soap_post $BASE/ws/inventory/v1 'urn:maple:erp:inventory:v1:reserve' "$(env ' xmlns:minv="urn:maple:erp:inventory:v1" xmlns:mcom="urn:maple:erp:common:v1"' "$(sec)" "<minv:reserveRequest><minv:reservationRef>VERIFY-OVERS-1</minv:reservationRef><minv:storeId>ST-SG-01</minv:storeId><minv:skuId>SKU-0007</minv:skuId><minv:quantity>$OVER</minv:quantity><minv:audit><mcom:sourceSystem>WEB_STORE_VERIFY</mcom:sourceSystem><mcom:receivedAt>2026-09-09T18:00:00Z</mcom:receivedAt><mcom:correlationId>verify-0003</mcom:correlationId></minv:audit></minv:reserveRequest>")")
 check "inventory oversell ($OVER of $AVAIL) -> OutOfStockFault" 'OutOfStockFault' "$R"
 [[ "$R" == *"availableQuantity>$AVAIL<"* ]] && { echo "PASS  fault carries availableQuantity=$AVAIL (never over-allocated)"; pass=$((pass+1)); } || { echo "FAIL  oversell fault detail"; failed=$((failed+1)); }
-R=$(soap_post $BASE/ws/inventory/v1 'urn:maple:erp:inventory:v1:release' "$(env ' xmlns:minv="urn:maple:erp:inventory:v1" xmlns:mcom="urn:maple:erp:common:v1"' "$(sec)" '<minv:releaseRequest><minv:reservationId>RES-2026-999999</minv:reservationId><minv:audit><mcom:sourceSystem>the maintainer</mcom:sourceSystem><mcom:receivedAt>2026-09-09T18:00:00Z</mcom:receivedAt><mcom:correlationId>orch-0004</mcom:correlationId></minv:audit></minv:releaseRequest>')")
+R=$(soap_post $BASE/ws/inventory/v1 'urn:maple:erp:inventory:v1:release' "$(env ' xmlns:minv="urn:maple:erp:inventory:v1" xmlns:mcom="urn:maple:erp:common:v1"' "$(sec)" '<minv:releaseRequest><minv:reservationId>RES-2026-999999</minv:reservationId><minv:audit><mcom:sourceSystem>WEB_STORE_VERIFY</mcom:sourceSystem><mcom:receivedAt>2026-09-09T18:00:00Z</mcom:receivedAt><mcom:correlationId>verify-0004</mcom:correlationId></minv:audit></minv:releaseRequest>')")
 check "release bogus reservation -> UnknownReservationFault" 'UnknownReservationFault' "$R"
 
 # --- auth failure: no security header ---

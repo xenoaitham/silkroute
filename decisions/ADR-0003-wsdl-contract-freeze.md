@@ -5,7 +5,7 @@
 
 ## Context
 
-Scenario constraint **C6** states: *"The ERP team will NOT modify their WSDLs - all impedance mismatch must live in the ESB layer (XSLT, canonical model)."* the project charter ERP integration makes the freeze an acceptance criterion: contracts are authored first, validated, implemented against, and **frozen the moment contract tests pass**.
+Scenario constraint **C6** states: *"The ERP team will NOT modify their WSDLs - all impedance mismatch must live in the ESB layer (XSLT, canonical model)."* The original build plan makes the freeze an acceptance criterion: contracts are authored first, validated, implemented against, and **frozen the moment contract tests pass**.
 
 ERP integration produced three SOAP 1.2 WSDLs (document/literal wrapped) and four XSDs (`apps/legacy-erp/src/main/resources/{wsdl,xsd}/`):
 

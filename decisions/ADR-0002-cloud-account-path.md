@@ -5,10 +5,10 @@
 
 ## Context
 
-the project charter landing zone requires proving real AliCloud environment skill (Terraform alicloud modules, RAM least-privilege, KMS, SLS, OSS, RDS, SAE/ACK) and sets strict cost guardrails. The honest situation as of Session 1:
+The landing-zone workstream requires proving real AliCloud environment skill (Terraform alicloud modules, RAM least-privilege, KMS, SLS, OSS, RDS, SAE/ACK) and sets strict cost guardrails. The honest situation at the start of the build:
 
 - No AliCloud account is currently available in this build environment.
-- the project charter landing zone explicitly anticipates this: *"If no cloud account: validated-plans mode with sim-runtime parity, labeled honestly in evidence as 'validated IaC, sim runtime.'"*
+- The landing-zone plan explicitly anticipates this: *"If no cloud account: validated-plans mode with sim-runtime parity, labeled honestly in evidence as 'validated IaC, sim runtime.'"*
 - forbids invented metrics and requires every claim to map to a real artifact.
 
 ## Options considered

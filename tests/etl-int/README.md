@@ -23,7 +23,7 @@ Exit code 0 only if ALL six scenarios print their `PASS <name>` line; the
 first failed assertion prints `FAIL: ...` and exits non-zero immediately.
 
 The full transcript is tee'd to `/tmp/s9-etl-int-run.txt` (deliberately NOT
-committed; the maintainer copies what it needs into `evidence/`).
+committed; copy what you need into `evidence/`).
 
 Approximate runtime: 6-10 minutes (Spark local batch runs dominate).
 
@@ -87,7 +87,7 @@ Approximate runtime: 6-10 minutes (Spark local batch runs dominate).
 - Processes are started/stopped ONLY via the make PID-file targets
  (`esb-run/oms-run/cdc-run`, `esb-stop/oms-stop/cdc-stop`); NEVER pkill.
 - A trap stops esb+oms+cdc on ANY exit path (success, failure, interrupt).
-- On success the suite ends with `make etl-reset` so the maintainer and the
+- On success the suite ends with `make etl-reset` so the next run and the
  review always start from a known clean slate.
 - Only ever touches the sim compose stack (sim-mysql / sim-kafka /
  sim-minio / sim-* proxies); never busforge/helios; no new listening ports.
@@ -99,4 +99,4 @@ Approximate runtime: 6-10 minutes (Spark local batch runs dominate).
 - The business date is computed as `date -u +%F` (bronze `dt` partition =
  UTC date of the seed - C5 timezone-explicit).
 - No Makefile target is wired for this suite yet: `make etl-int` (or
- similar) is requested from the maintainer; until then run the script directly.
+ similar) is requested; until then run the script directly.

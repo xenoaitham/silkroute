@@ -7,7 +7,7 @@
 
 landing zone requires a cloud compute target for the ESB (a long-running Spring Boot + Camel hub holding persistent Kafka consumers) and a budget alarm (~$20, landing zone). already states the preference: *"Prefer SAE / Function Compute (pay-per-use) over long-running ECS/ACK nodepools; use spot if ACK is required."* Validated-plans mode (ADR-0002) applies - nothing is deployed - but the decision still shapes the Terraform and the interview story.
 
-Separately, the maintainer verified against the actual provider 1.285.0 schema (1161 resources, `terraform providers schema -json`) that **no budget/BSS/billing resource exists** in the provider. Any Terraform "budget alarm" resource would be fabrication.
+Separately, verified against the actual provider 1.285.0 schema (1161 resources, `terraform providers schema -json`) that **no budget/BSS/billing resource exists** in the provider. Any Terraform "budget alarm" resource would be fabrication.
 
 ## Options considered
 

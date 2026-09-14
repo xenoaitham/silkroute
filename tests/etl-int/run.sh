@@ -17,11 +17,11 @@
 #   - processes are ONLY ever started/stopped via the make PID-file targets
 #     (esb-run/oms-run/cdc-run, esb-stop/oms-stop/cdc-stop); NEVER pkill;
 #   - a trap stops esb+oms+cdc on ANY exit path (success, failure, Ctrl-C);
-#   - on SUCCESS the suite finishes with `make etl-reset` so the maintainer and
+#   - on SUCCESS the suite finishes with `make etl-reset` so the next run and
 #     an independent re-run starts from a known slate;
 #   - never touches busforge/helios or anything outside the sim compose stack;
 #   - the full transcript is tee'd to /tmp/s9-etl-int-run.txt (NOT committed;
-#     the maintainer copies what it needs into evidence/).
+#     copy what you need into evidence/).
 set -uo pipefail
 
 cd "$(dirname "$0")/../.." || { echo "cannot find repo root"; exit 1; }
