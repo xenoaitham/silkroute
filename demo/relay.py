@@ -29,6 +29,9 @@ import urllib.parse
 import urllib.request
 
 RELAY_PORT = int(os.environ.get("DEMO_RELAY_PORT", "18085"))
+# bind loopback by default (local demo); the HF Space sets 0.0.0.0 so the
+# platform's port mapping can reach it
+RELAY_HOST = os.environ.get("DEMO_RELAY_HOST", "127.0.0.1")
 ESB_API = "http://127.0.0.1:18081"
 ESB_HEALTH = "http://127.0.0.1:18082/actuator/health"
 TOXIPROXY = "http://127.0.0.1:18474"
@@ -174,5 +177,5 @@ class Server(http.server.ThreadingHTTPServer):
 
 
 if __name__ == "__main__":
-    print("[relay] listening on 127.0.0.1:%d" % RELAY_PORT, flush=True)
-    Server(("127.0.0.1", RELAY_PORT), Handler).serve_forever()
+    print("[relay] listening on %s:%d" % (RELAY_HOST, RELAY_PORT), flush=True)
+    Server((RELAY_HOST, RELAY_PORT), Handler).serve_forever()
