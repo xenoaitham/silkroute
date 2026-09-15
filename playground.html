@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SilkRoute live demo - drive a real running instance</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --text:#d0d7de; --dim:#8b949e; --accent:#d29922; --ok:#3fb950; --warn:#f85149; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
+  a { color:#58a6ff; text-decoration:none; }
+  .wrap { max-width:940px; margin:0 auto; padding:0 22px 70px; }
+  header { padding:40px 0 6px; }
+  h1 { font-size:30px; margin:0; } h1 span { color:var(--accent); }
+  p.sub { color:var(--dim); margin:8px 0 0; max-width:720px; }
+  .status { display:inline-block; margin:16px 0 4px; padding:5px 14px; border:1px solid var(--line); border-radius:20px; font-size:14px; color:var(--dim); }
+  .status.up { color:var(--ok); border-color:var(--ok); }
+  .status.down { color:var(--warn); border-color:var(--warn); }
+  h2 { font-size:19px; margin:34px 0 10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:10px; }
+  button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:12px 14px; font-size:14.5px; text-align:left; cursor:pointer; }
+  button:hover { border-color:#8b949e; }
+  button:disabled { opacity:.45; cursor:wait; }
+  button small { display:block; color:var(--dim); margin-top:3px; font-size:12.5px; }
+  .danger { border-color:#6e2a2a; } .danger:hover { border-color:var(--warn); }
+  .row { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  select, input { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:14px; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px 16px; font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,Menlo,monospace; overflow-x:auto; max-height:420px; overflow-y:auto; }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .dim { color:var(--dim); }
+  .hist { font-size:13px; color:var(--dim); margin-top:8px; }
+  .hist b { color:var(--text); }
+  .note { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; font-size:13.5px; color:var(--dim); margin-top:34px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Silk<span>Route</span> live demo</h1>
+  <p class="sub">This page talks to a <b>real running instance</b> of the platform: your click goes through the public tunnel to the order facade, which runs the full saga against a simulated legacy SOAP ERP - reserve stock, price each line, confirm. Break things on purpose with the chaos buttons; the retry, circuit breaker, and compensation behaviors you see are the same ones proven in the repository's test suite.</p>
+  <div class="status" id="status">checking the live instance...</div>
+  <div><a href="index.html">back to the walkthrough</a> - <a href="https://github.com/xenoaitham/silkroute">source</a></div>
+</header>
+
+<h2>Place real orders</h2>
+<div class="row">
+  store
+  <select id="store">
+    <option value="ST-CA-01|CA|CAD">Canada (ST-CA-01, CAD)</option>
+    <option value="ST-SG-01|SG|SGD">Singapore (ST-SG-01, SGD)</option>
+    <option value="ST-CN-01|CN|CNY">China (ST-CN-01, CNY - reference is pseudonymized downstream)</option>
+  </select>
+  sku
+  <select id="sku"></select>
+  qty
+  <input id="qty" type="number" value="2" min="1" max="5" style="width:70px">
+</div>
+<div class="grid" style="margin-top:12px">
+  <button id="b-order">Place this order<small>POST /api/v1/orders - full saga, expect 201 with per-step attempts</small></button>
+  <button id="b-replay">Replay the same order<small>same idempotency key - expect 409 DUPLICATE, no second order</small></button>
+  <button id="b-exhaust">Order way past available stock<small>expect 422 INV-OUT-OF-STOCK - a business rejection, no retry</small></button>
+</div>
+
+<h2>Break the ERP dependency, watch it cope</h2>
+<div class="grid">
+  <button id="b-latency" class="danger">Inject 800 ms latency on every ERP call<small>the same order takes ~3.3 s: retry ladder + saga = 4 proxied calls</small></button>
+  <button id="b-down" class="danger">Take the ERP offline<small>fail-fast 503 CIRCUIT-OPEN once the breaker opens</small></button>
+  <button id="b-heal">Restore the ERP<small>back to 201 within ~2 s (breaker half-open probes)</small></button>
+</div>
+
+<h2>Response</h2>
+<pre id="out">// press a button - the raw HTTP response lands here</pre>
+<div class="hist" id="hist"></div>
+
+<div class="note">
+  Honest boundaries: the instance is the local docker simulation of the platform - MySQL, Kafka, object storage, and the
+  SOAP ERP are the documented stand-ins, with fictional data and dummy credentials. The chaos buttons drive the same
+  fault-injection harness the automated suite uses. If the status pill says the instance is offline, it lives on a
+  laptop that may be asleep - the repository's quickstart runs the identical stack anywhere with docker.
+</div>
+</div>
+<script>
+const API = new URLSearchParams(location.search).get("api") ||
+  (fetch("endpoint.txt", {cache:"no-store"}).then(r=>r.text()).then(t=>t.trim()).catch(()=>""));
+let BASE = "";
+let lastKey = null;
+
+const skuSel = document.getElementById("sku");
+for (let i = 1; i <= 50; i++) {
+  const o = document.createElement("option");
+  o.value = "SKU-" + String(i).padStart(4, "0");
+  o.textContent = "SKU-" + String(i).padStart(4, "0");
+  skuSel.appendChild(o);
+}
+
+function busy(on) { document.querySelectorAll("button").forEach(b => b.disabled = on); }
+
+async function init() {
+  BASE = await API;
+  health();
+  setInterval(health, 15000);
+}
+async function health() {
+  const el = document.getElementById("status");
+  try {
+    const r = await fetch(BASE + "/healthz", {cache:"no-store"});
+    const j = await r.json();
+    el.textContent = "live instance: " + j.status;
+    el.className = "status " + (j.status === "UP" ? "up" : "down");
+  } catch (e) {
+    el.textContent = "live instance: offline right now";
+    el.className = "status down";
+  }
+}
+function orderBody(forceQty) {
+  const [storeId, region, currency] = document.getElementById("store").value.split("|");
+  const key = "web-demo-" + Math.random().toString(36).slice(2, 10);
+  lastKey = key;
+  const qty = forceQty || parseInt(document.getElementById("qty").value || "2", 10);
+  return {
+    idempotencyKey: key,
+    body: {
+      externalOrderRef: "WEB-" + key,
+      sourceSystem: "WEB_STORE_" + region,
+      storeId: storeId,
+      channel: "WEB_STORE",
+      customerRef: "cust-" + region.toLowerCase() + "-" + key.slice(-6),
+      lines: [{skuId: document.getElementById("sku").value, quantity: qty}],
+      audit: {sourceSystem: "WEB_STORE_" + region,
+              receivedAt: new Date().toISOString(),
+              correlationId: key}
+    }
+  };
+}
+async function call(label, path, opts) {
+  busy(true);
+  const out = document.getElementById("out");
+  out.textContent = "// " + label + " ...";
+  try {
+    const r = await fetch(BASE + path, opts);
+    const text = await r.text();
+    let pretty = text;
+    try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (e) {}
+    out.innerHTML = '<span class="' + (r.status < 300 ? "ok" : (r.status < 500 ? "" : "warn")) +
+      '">HTTP ' + r.status + "</span> on " + label + "\n" + pretty;
+    addHist(label, r.status);
+  } catch (e) {
+    out.textContent = "// network error - is the live instance offline?\n" + e;
+  }
+  busy(false);
+  health();
+}
+function postOrder(label, body) {
+  return call(label, "/api/v1/orders", {
+    method: "POST",
+    headers: {"Content-Type": "application/json",
+              "Idempotency-Key": body.idempotencyKey},
+    body: JSON.stringify(body.body)
+  });
+}
+function chaos(label, kind, payload) {
+  return call(label, "/demo/chaos/" + kind, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload || {})
+  });
+}
+const hist = [];
+function addHist(label, status) {
+  hist.unshift({label, status, t: new Date().toLocaleTimeString()});
+  if (hist.length > 8) hist.pop();
+  document.getElementById("hist").innerHTML = "recent: " + hist.map(h =>
+    '<b>HTTP ' + h.status + "</b> " + h.label + " (" + h.t + ")").join(" &middot; ");
+}
+
+document.getElementById("b-order").onclick = () => { const o = orderBody(); postOrder("place order (" + o.body.lines[0].quantity + "x " + o.body.lines[0].skuId + ")", o); };
+document.getElementById("b-replay").onclick = () => {
+  if (!lastKey) { document.getElementById("out").textContent = "// place an order first, then replay it"; return; }
+  const o = orderBody(); o.idempotencyKey = lastKey; o.body.externalOrderRef = "WEB-" + lastKey;
+  postOrder("replay same idempotency key", o);
+};
+document.getElementById("b-exhaust").onclick = () => { postOrder("order qty 999 (past available stock)", orderBody(999)); };
+document.getElementById("b-latency").onclick = () => chaos("inject 800ms ERP latency", "latency", {ms: 800});
+document.getElementById("b-down").onclick = () => chaos("take the ERP offline", "disable");
+document.getElementById("b-heal").onclick = () => chaos("restore the ERP", "restore");
+
+init();
+</script>
+</body>
+</html>
