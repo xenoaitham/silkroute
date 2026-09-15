@@ -12,10 +12,17 @@ RUN apt-get update \
 # noble's temurin image ships a default `ubuntu` user at UID 1000 (HF Spaces
 # run containers as 1000) - reuse it rather than creating a colliding one
 
-# Kafka 3.8 (KRaft, no zookeeper) - same engine major as the repo's sim
+# Kafka 3.8 (KRaft, no zookeeper) - same engine major as the repo's sim.
+# The toxiproxy binary is architecture-specific: pass TARGETARCH (docker
+# buildx sets it automatically; plain builds default to the host arch).
+ARG TARGETARCH=amd64
 RUN curl -fsSL https://archive.apache.org/dist/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o /tmp/kafka.tgz \
  && mkdir -p /opt/kafka && tar -xzf /tmp/kafka.tgz -C /opt/kafka --strip-components=1 && rm /tmp/kafka.tgz \
- && curl -fsSL https://github.com/Shopify/toxiproxy/releases/download/v2.11.0/toxiproxy-server-linux-amd64 \
+ && case "$TARGETARCH" in \
+      arm64|arm) TOXI_ARCH=arm64 ;; \
+      *)         TOXI_ARCH=amd64 ;; \
+    esac \
+ && curl -fsSL "https://github.com/Shopify/toxiproxy/releases/download/v2.11.0/toxiproxy-server-linux-${TOXI_ARCH}" \
       -o /usr/local/bin/toxiproxy-server && chmod +x /usr/local/bin/toxiproxy-server
 
 COPY apps/legacy-erp/target/legacy-erp-1.0.0-SNAPSHOT.jar /opt/app/legacy-erp.jar
